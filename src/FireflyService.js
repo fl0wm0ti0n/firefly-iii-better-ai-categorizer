@@ -83,12 +83,23 @@ export default class FireflyService {
 
     async getAllUncategorizedTransactions() {
         const transactions = [];
+        
+        // Fetch both withdrawals and deposits
+        const withdrawals = await this.#getUncategorizedByType('withdrawal');
+        const deposits = await this.#getUncategorizedByType('deposit');
+        
+        transactions.push(...withdrawals, ...deposits);
+        return transactions;
+    }
+
+    async #getUncategorizedByType(transactionType) {
+        const transactions = [];
         let page = 1;
         const limit = 50;
 
         while (true) {
             try {
-                const response = await fetch(`${this.#BASE_URL}/api/v1/transactions?type=withdrawal&limit=${limit}&page=${page}`, {
+                const response = await fetch(`${this.#BASE_URL}/api/v1/transactions?type=${transactionType}&limit=${limit}&page=${page}`, {
                     headers: {
                         Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
                     }
@@ -119,7 +130,7 @@ export default class FireflyService {
                 // Filter for uncategorized transactions
                 const uncategorizedTransactions = data.data.filter(transaction => {
                     const firstTransaction = transaction.attributes.transactions[0];
-                    return firstTransaction.type === "withdrawal" && 
+                    return firstTransaction.type === transactionType && 
                            (!firstTransaction.category_id || firstTransaction.category_id === null || firstTransaction.category_id === "");
                 });
 
@@ -185,6 +196,78 @@ export default class FireflyService {
                 });
 
                 transactions.push(...withdrawalTransactions);
+
+                // Check if we've reached the last page
+                if (data.data.length < limit) {
+                    break;
+                }
+
+                page++;
+            } catch (error) {
+                if (error instanceof FireflyException) {
+                    throw error;
+                }
+                console.error("Network error while fetching transactions:", error.message);
+                throw new FireflyException(0, null, `Network error: ${error.message}. Please check your FIREFLY_URL and internet connection.`);
+            }
+        }
+
+        return transactions;
+    }
+
+    async getAllTransactions() {
+        const transactions = [];
+        
+        // Fetch both withdrawals and deposits
+        const withdrawals = await this.#getAllTransactionsByType('withdrawal');
+        const deposits = await this.#getAllTransactionsByType('deposit');
+        
+        transactions.push(...withdrawals, ...deposits);
+        return transactions;
+    }
+
+    async #getAllTransactionsByType(transactionType) {
+        const transactions = [];
+        let page = 1;
+        const limit = 50;
+
+        while (true) {
+            try {
+                const response = await fetch(`${this.#BASE_URL}/api/v1/transactions?type=${transactionType}&limit=${limit}&page=${page}`, {
+                    headers: {
+                        Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`Firefly API Error (${response.status}):`, errorText);
+                    
+                    if (response.status === 401) {
+                        throw new FireflyException(response.status, response, "Authentication failed. Please check your FIREFLY_PERSONAL_TOKEN.");
+                    } else if (response.status === 404) {
+                        throw new FireflyException(response.status, response, "API endpoint not found. Please check your FIREFLY_URL.");
+                    } else {
+                        throw new FireflyException(response.status, response, errorText || "Unknown API error");
+                    }
+                }
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    const responseText = await response.text();
+                    console.error("Failed to parse JSON response:", responseText.substring(0, 500));
+                    throw new FireflyException(500, response, "API returned invalid JSON. This usually means your FIREFLY_URL is incorrect or points to a non-API endpoint.");
+                }
+
+                // Filter for transactions of the specified type
+                const filteredTransactions = data.data.filter(transaction => {
+                    const firstTransaction = transaction.attributes.transactions[0];
+                    return firstTransaction.type === transactionType;
+                });
+
+                transactions.push(...filteredTransactions);
 
                 // Check if we've reached the last page
                 if (data.data.length < limit) {

@@ -5,7 +5,7 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Firefly III AI Categorizer</title>
+    <title>Firefly III Better AI Categorizer</title>
     <style>
         body {
             font-family: sans-serif;
@@ -214,7 +214,7 @@
         </div>
         <p><small>
             <strong>Process Uncategorized:</strong> Categorizes only transactions without existing categories.<br>
-            <strong>Process All:</strong> Re-categorizes ALL withdrawal transactions, overwriting existing categories.
+            <strong>Process All:</strong> Re-categorizes ALL transactions (withdrawals and deposits), overwriting existing categories.
         </small></p>
     </section>
 
@@ -230,6 +230,13 @@
                 <label for="test-destination">Destination Name:</label>
                 <input type="text" id="test-destination" placeholder="z.B. Amazon.com" 
                        value="Amazon.com" style="width: 100%; padding: 5px; margin-top: 5px;">
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label for="test-type">Transaction Type:</label>
+                <select id="test-type" style="width: 100%; padding: 5px; margin-top: 5px;">
+                    <option value="withdrawal">Withdrawal (Ausgabe)</option>
+                    <option value="deposit">Deposit (Einzahlung)</option>
+                </select>
             </div>
             <button id="btn-test-webhook" class="btn btn-success">
                 🧪 Test Webhook Categorization
@@ -262,6 +269,7 @@
     const btnTestWebhook = document.getElementById('btn-test-webhook');
     const testDescription = document.getElementById('test-description');
     const testDestination = document.getElementById('test-destination');
+    const testType = document.getElementById('test-type');
 
     // Button event listeners
     btnProcessUncategorized.addEventListener('click', async () => {
@@ -301,9 +309,10 @@
     btnTestWebhook.addEventListener('click', async () => {
         const description = testDescription.value.trim();
         const destination = testDestination.value.trim();
+        const type = testType.value.trim();
         
-        if (!description || !destination) {
-            alert('Please fill in both description and destination fields');
+        if (!description || !destination || !type) {
+            alert('Please fill in all fields');
             return;
         }
         
@@ -318,7 +327,8 @@
                 },
                 body: JSON.stringify({
                     description: description,
-                    destination_name: destination
+                    destination_name: destination,
+                    transaction_type: type
                 })
             });
             

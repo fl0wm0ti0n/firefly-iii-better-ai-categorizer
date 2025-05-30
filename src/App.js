@@ -104,8 +104,8 @@ export default class App {
             throw new WebhookException("No transactions are available in content.transactions");
         }
 
-        if (req.body.content.transactions[0].type !== "withdrawal") {
-            throw new WebhookException("content.transactions[0].type has to be 'withdrawal'. Transaction will be ignored.");
+        if (req.body.content.transactions[0].type !== "withdrawal" && req.body.content.transactions[0].type !== "deposit") {
+            throw new WebhookException("content.transactions[0].type has to be 'withdrawal' or 'deposit'. Transaction will be ignored.");
         }
         
         if (req.body.content.transactions[0].category_id !== null && req.body.content.transactions[0].category_id !== "") {
@@ -180,6 +180,7 @@ export default class App {
             const testDescription = req.body?.description || "Test transaction - Einkauf bei Amazon";
             const testDestination = req.body?.destination_name || "Amazon.com";
             const testTransactionId = req.body?.transaction_id || "test-" + Date.now();
+            const testType = req.body?.transaction_type || "withdrawal";
             
             const fakeWebhookPayload = {
                 trigger: "STORE_TRANSACTION",
@@ -187,7 +188,7 @@ export default class App {
                 content: {
                     id: testTransactionId,
                     transactions: [{
-                        type: "withdrawal",
+                        type: testType,
                         category_id: null,
                         description: testDescription,
                         destination_name: testDestination,
@@ -280,11 +281,11 @@ export default class App {
     }
 
     async #processAllTransactions() {
-        const transactions = await this.#firefly.getAllWithdrawalTransactions();
+        const transactions = await this.#firefly.getAllTransactions();
         const categories = await this.#firefly.getCategories();
         const batchJob = this.#jobList.createBatchJob('all', transactions.length);
         
-        console.info(`Found ${transactions.length} withdrawal transactions to process`);
+        console.info(`Found ${transactions.length} transactions (withdrawals and deposits) to process`);
 
         let processedCount = 0;
         let successCount = 0;
