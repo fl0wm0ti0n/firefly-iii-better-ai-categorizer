@@ -2,6 +2,7 @@ import express from "express";
 import {getConfigVariable} from "./util.js";
 import FireflyService from "./FireflyService.js";
 import OpenAiService from "./OpenAiService.js";
+import WordMappingService from "./WordMappingService.js";
 import {Server} from "socket.io";
 import * as http from "http";
 import Queue from "queue";
@@ -13,6 +14,7 @@ export default class App {
 
     #firefly;
     #openAi;
+    #wordMapping;
 
     #server;
     #io;
@@ -30,6 +32,7 @@ export default class App {
     async run() {
         this.#firefly = new FireflyService();
         this.#openAi = new OpenAiService();
+        this.#wordMapping = new WordMappingService();
 
         this.#queue = new Queue({
             timeout: 30 * 1000,
@@ -62,6 +65,12 @@ export default class App {
         this.#express.post('/api/process-uncategorized', this.#onProcessUncategorized.bind(this))
         this.#express.post('/api/process-all', this.#onProcessAll.bind(this))
         this.#express.post('/api/test-webhook', this.#onTestWebhook.bind(this))
+        
+        // Word mapping endpoints
+        this.#express.get('/api/word-mappings', this.#onGetWordMappings.bind(this))
+        this.#express.post('/api/word-mappings', this.#onAddWordMapping.bind(this))
+        this.#express.delete('/api/word-mappings/:fromWord', this.#onDeleteWordMapping.bind(this))
+        this.#express.get('/api/failed-transactions', this.#onGetFailedTransactions.bind(this))
 
         this.#server.listen(this.#PORT, async () => {
             console.log(`Application running on port ${this.#PORT}`);
@@ -133,7 +142,15 @@ export default class App {
 
             const categories = await this.#firefly.getCategories();
 
-            const {category, prompt, response} = await this.#openAi.classify(Array.from(categories.keys()), destinationName, description)
+            // Apply word mappings to improve categorization
+            const mappedDescription = this.#wordMapping.applyMappings(description);
+            const mappedDestinationName = this.#wordMapping.applyMappings(destinationName);
+
+            const {category, prompt, response} = await this.#openAi.classify(
+                Array.from(categories.keys()), 
+                mappedDestinationName, 
+                mappedDescription
+            )
 
             const newData = Object.assign({}, job.data);
             newData.category = category;
@@ -218,6 +235,71 @@ export default class App {
         } catch (e) {
             console.error("Test webhook error:", e);
             res.status(400).json({ success: false, error: e.message });
+        }
+    }
+
+    #onGetWordMappings(req, res) {
+        try {
+            const mappings = this.#wordMapping.getAllMappings();
+            res.json({ success: true, mappings });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onAddWordMapping(req, res) {
+        try {
+            const { fromWord, toWord } = req.body;
+            
+            if (!fromWord || !toWord) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'Both fromWord and toWord are required' 
+                });
+            }
+
+            await this.#wordMapping.addMapping(fromWord, toWord);
+            res.json({ success: true, message: 'Word mapping added successfully' });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onDeleteWordMapping(req, res) {
+        try {
+            const { fromWord } = req.params;
+            await this.#wordMapping.removeMapping(fromWord);
+            res.json({ success: true, message: 'Word mapping removed successfully' });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    #onGetFailedTransactions(req, res) {
+        try {
+            // Get failed transactions from job list
+            const jobs = Array.from(this.#jobList.getJobs().values());
+            const failedJobs = jobs.filter(job => 
+                job.status === 'finished' && 
+                (!job.data?.category || job.data.category === null)
+            );
+
+            const failedTransactions = failedJobs.map(job => ({
+                id: job.id,
+                description: job.data?.description || '',
+                destinationName: job.data?.destinationName || '',
+                created: job.created,
+                prompt: job.data?.prompt || '',
+                response: job.data?.response || ''
+            }));
+
+            res.json({ success: true, failedTransactions });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
         }
     }
 
@@ -363,8 +445,12 @@ export default class App {
             const destinationName = firstTransaction.destination_name || "(unknown destination)";
             const description = firstTransaction.description || "(no description)";
             
+            // Apply word mappings to improve categorization
+            const mappedDescription = this.#wordMapping.applyMappings(description);
+            const mappedDestinationName = this.#wordMapping.applyMappings(destinationName);
+            
             const result = await this.#retryWithBackoff(async () => {
-                return await this.#openAi.classify(categoryNames, destinationName, description);
+                return await this.#openAi.classify(categoryNames, mappedDestinationName, mappedDescription);
             });
 
             if (!result || !result.category) {

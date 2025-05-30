@@ -196,11 +196,71 @@
         summary:hover {
             background: #dee2e6;
         }
+
+        .failed-transaction, .word-mapping {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .failed-transaction {
+            border-left: 4px solid #dc3545;
+        }
+
+        .word-mapping {
+            border-left: 4px solid #28a745;
+        }
+
+        .transaction-content, .mapping-content {
+            flex: 1;
+        }
+
+        .transaction-meta, .mapping-meta {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .transaction-text, .mapping-text {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .mapping-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-left: auto;
+        }
+
+        .mapping-inputs input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            width: 120px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>Firefly III AI Categorizer</h1>
+    <h1>Firefly III Better AI Categorizer</h1>
     
     <section class="controls">
         <h2>Manual Processing</h2>
@@ -252,6 +312,26 @@
         <div id="batch-mount"></div>
     </section>
 
+    <section class="controls">
+        <h2>Word Mappings & Failed Transactions</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <h3>Failed Transactions</h3>
+            <button id="btn-refresh-failed" class="btn btn-primary">🔄 Refresh Failed Transactions</button>
+            <div id="failed-transactions" style="margin-top: 10px;"></div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <h3>Word Mappings</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="mapping-from" placeholder="Original word/phrase" style="flex: 1; padding: 8px;">
+                <input type="text" id="mapping-to" placeholder="Replacement word/phrase" style="flex: 1; padding: 8px;">
+                <button id="btn-add-mapping" class="btn btn-success">Add Mapping</button>
+            </div>
+            <div id="word-mappings" style="margin-top: 10px;"></div>
+        </div>
+    </section>
+
     <section>
         <h2>Individual Jobs</h2>
         <div id="mount"></div>
@@ -270,6 +350,14 @@
     const testDescription = document.getElementById('test-description');
     const testDestination = document.getElementById('test-destination');
     const testType = document.getElementById('test-type');
+
+    // Word mapping elements
+    const btnRefreshFailed = document.getElementById('btn-refresh-failed');
+    const btnAddMapping = document.getElementById('btn-add-mapping');
+    const mappingFrom = document.getElementById('mapping-from');
+    const mappingTo = document.getElementById('mapping-to');
+    const failedTransactionsDiv = document.getElementById('failed-transactions');
+    const wordMappingsDiv = document.getElementById('word-mappings');
 
     // Button event listeners
     btnProcessUncategorized.addEventListener('click', async () => {
@@ -350,6 +438,164 @@ Check the individual jobs section below to see the categorization result.`);
             btnTestWebhook.textContent = '🧪 Test Webhook Categorization';
         }
     });
+
+    // Word mapping event listeners
+    btnRefreshFailed.addEventListener('click', loadFailedTransactions);
+    btnAddMapping.addEventListener('click', addWordMapping);
+    
+    // Load data on page load
+    loadWordMappings();
+    loadFailedTransactions();
+
+    async function loadFailedTransactions() {
+        try {
+            const response = await fetch('/api/failed-transactions');
+            const result = await response.json();
+            
+            if (result.success) {
+                renderFailedTransactions(result.failedTransactions);
+            } else {
+                console.error('Failed to load failed transactions:', result.error);
+            }
+        } catch (error) {
+            console.error('Error loading failed transactions:', error);
+        }
+    }
+
+    async function loadWordMappings() {
+        try {
+            const response = await fetch('/api/word-mappings');
+            const result = await response.json();
+            
+            if (result.success) {
+                renderWordMappings(result.mappings);
+            } else {
+                console.error('Failed to load word mappings:', result.error);
+            }
+        } catch (error) {
+            console.error('Error loading word mappings:', error);
+        }
+    }
+
+    async function addWordMapping() {
+        const from = mappingFrom.value.trim();
+        const to = mappingTo.value.trim();
+        
+        if (!from || !to) {
+            alert('Please fill in both fields');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/word-mappings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fromWord: from,
+                    toWord: to
+                })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                mappingFrom.value = '';
+                mappingTo.value = '';
+                loadWordMappings(); // Refresh the list
+                alert('Word mapping added successfully!');
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function removeWordMapping(fromWord) {
+        if (confirm(`Remove mapping for "${fromWord}"?`)) {
+            try {
+                const response = await fetch(`/api/word-mappings/${encodeURIComponent(fromWord)}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    loadWordMappings(); // Refresh the list
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+    }
+
+    function renderFailedTransactions(transactions) {
+        if (!transactions || transactions.length === 0) {
+            failedTransactionsDiv.innerHTML = '<div class="no-data">No failed transactions found</div>';
+            return;
+        }
+
+        failedTransactionsDiv.innerHTML = transactions.map(transaction => `
+            <div class="failed-transaction">
+                <div class="transaction-content">
+                    <div class="transaction-meta">Failed on ${new Date(transaction.created).toLocaleString()}</div>
+                    <div class="transaction-text">${transaction.description}</div>
+                    <div style="font-size: 14px; color: #666;">Destination: ${transaction.destinationName}</div>
+                </div>
+                <div class="mapping-inputs">
+                    <input type="text" placeholder="Replace word" class="mapping-input-from" data-transaction-id="${transaction.id}">
+                    <span>→</span>
+                    <input type="text" placeholder="With word" class="mapping-input-to" data-transaction-id="${transaction.id}">
+                    <button class="btn btn-success btn-small" onclick="addMappingFromTransaction('${transaction.id}')">
+                        Add Mapping
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderWordMappings(mappings) {
+        if (!mappings || mappings.length === 0) {
+            wordMappingsDiv.innerHTML = '<div class="no-data">No word mappings defined</div>';
+            return;
+        }
+
+        wordMappingsDiv.innerHTML = mappings.map(mapping => `
+            <div class="word-mapping">
+                <div class="mapping-content">
+                    <div class="mapping-meta">Word Mapping</div>
+                    <div class="mapping-text">"${mapping.from}" → "${mapping.to}"</div>
+                </div>
+                <button class="btn btn-warning btn-small" onclick="removeWordMapping('${mapping.from}')">
+                    Remove
+                </button>
+            </div>
+        `).join('');
+    }
+
+    window.addMappingFromTransaction = function(transactionId) {
+        const fromInput = document.querySelector(`.mapping-input-from[data-transaction-id="${transactionId}"]`);
+        const toInput = document.querySelector(`.mapping-input-to[data-transaction-id="${transactionId}"]`);
+        
+        const from = fromInput.value.trim();
+        const to = toInput.value.trim();
+        
+        if (!from || !to) {
+            alert('Please fill in both mapping fields');
+            return;
+        }
+        
+        // Set the values in the main form
+        mappingFrom.value = from;
+        mappingTo.value = to;
+        
+        // Trigger the add mapping
+        addWordMapping();
+    };
+
+    window.removeWordMapping = removeWordMapping;
 
     // Socket event handlers
     socket.on('jobs', jobs => {
