@@ -35,6 +35,13 @@ export default class FireflyService {
     }
 
     async setCategory(transactionId, transactions, categoryId) {
+        // Skip actual API call for test transactions
+        if (transactionId.toString().startsWith('test-')) {
+            console.info(`🧪 TEST MODE: Would update transaction ${transactionId} with category ID ${categoryId}`);
+            console.info(`🧪 TEST MODE: Transaction data:`, JSON.stringify(transactions, null, 2));
+            return;
+        }
+
         const tag = getConfigVariable("FIREFLY_TAG", "AI categorized");
 
         const body = {

@@ -61,6 +61,7 @@ export default class App {
         this.#express.post('/webhook', this.#onWebhook.bind(this))
         this.#express.post('/api/process-uncategorized', this.#onProcessUncategorized.bind(this))
         this.#express.post('/api/process-all', this.#onProcessAll.bind(this))
+        this.#express.post('/api/test-webhook', this.#onTestWebhook.bind(this))
 
         this.#server.listen(this.#PORT, async () => {
             console.log(`Application running on port ${this.#PORT}`);
@@ -168,6 +169,54 @@ export default class App {
         } catch (e) {
             console.error(e);
             res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    #onTestWebhook(req, res) {
+        try {
+            console.info("Test webhook triggered");
+            
+            // Create a fake webhook payload based on the request body or use defaults
+            const testDescription = req.body?.description || "Test transaction - Einkauf bei Amazon";
+            const testDestination = req.body?.destination_name || "Amazon.com";
+            const testTransactionId = req.body?.transaction_id || "test-" + Date.now();
+            
+            const fakeWebhookPayload = {
+                trigger: "STORE_TRANSACTION",
+                response: "TRANSACTIONS",
+                content: {
+                    id: testTransactionId,
+                    transactions: [{
+                        type: "withdrawal",
+                        category_id: null,
+                        description: testDescription,
+                        destination_name: testDestination,
+                        transaction_journal_id: testTransactionId,
+                        tags: []
+                    }]
+                }
+            };
+            
+            // Create a fake request object
+            const fakeReq = {
+                body: fakeWebhookPayload
+            };
+            
+            console.info(`🧪 Testing categorization for: "${testDescription}" → "${testDestination}"`);
+            
+            this.#handleWebhook(fakeReq, res);
+            res.json({ 
+                success: true, 
+                message: "Test webhook processed successfully",
+                test_data: {
+                    description: testDescription,
+                    destination_name: testDestination,
+                    transaction_id: testTransactionId
+                }
+            });
+        } catch (e) {
+            console.error("Test webhook error:", e);
+            res.status(400).json({ success: false, error: e.message });
         }
     }
 

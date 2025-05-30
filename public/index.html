@@ -65,11 +65,24 @@
 
         .btn-warning {
             background-color: #ffc107;
+            border-color: #ffc107;
             color: #212529;
         }
 
-        .btn-warning:hover:not(:disabled) {
+        .btn-warning:hover {
             background-color: #e0a800;
+            border-color: #d39e00;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
         }
 
         .btn:disabled {
@@ -205,6 +218,28 @@
         </small></p>
     </section>
 
+    <section class="controls">
+        <h2>Test Webhook (Live Mode)</h2>
+        <div class="test-form">
+            <div style="margin-bottom: 10px;">
+                <label for="test-description">Transaction Description:</label>
+                <input type="text" id="test-description" placeholder="z.B. Einkauf bei Amazon" 
+                       value="Test transaction - Einkauf bei Amazon" style="width: 100%; padding: 5px; margin-top: 5px;">
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label for="test-destination">Destination Name:</label>
+                <input type="text" id="test-destination" placeholder="z.B. Amazon.com" 
+                       value="Amazon.com" style="width: 100%; padding: 5px; margin-top: 5px;">
+            </div>
+            <button id="btn-test-webhook" class="btn btn-success">
+                🧪 Test Webhook Categorization
+            </button>
+        </div>
+        <p><small>
+            <strong>Test Webhook:</strong> Simulates a Firefly III webhook call to test the AI categorization without creating real transactions.
+        </small></p>
+    </section>
+
     <section>
         <h2>Batch Jobs</h2>
         <div id="batch-mount"></div>
@@ -224,6 +259,9 @@
     const batchMount = document.getElementById('batch-mount');
     const btnProcessUncategorized = document.getElementById('btn-process-uncategorized');
     const btnProcessAll = document.getElementById('btn-process-all');
+    const btnTestWebhook = document.getElementById('btn-test-webhook');
+    const testDescription = document.getElementById('test-description');
+    const testDestination = document.getElementById('test-destination');
 
     // Button event listeners
     btnProcessUncategorized.addEventListener('click', async () => {
@@ -257,6 +295,49 @@
                 alert('Error: ' + error.message);
                 btnProcessAll.disabled = false;
             }
+        }
+    });
+
+    btnTestWebhook.addEventListener('click', async () => {
+        const description = testDescription.value.trim();
+        const destination = testDestination.value.trim();
+        
+        if (!description || !destination) {
+            alert('Please fill in both description and destination fields');
+            return;
+        }
+        
+        btnTestWebhook.disabled = true;
+        btnTestWebhook.textContent = '🧪 Testing...';
+        
+        try {
+            const response = await fetch('/api/test-webhook', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    description: description,
+                    destination_name: destination
+                })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert(`Test webhook processed! 
+Transaction: "${result.test_data.description}" 
+Destination: "${result.test_data.destination_name}"
+ID: ${result.test_data.transaction_id}
+
+Check the individual jobs section below to see the categorization result.`);
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        } finally {
+            btnTestWebhook.disabled = false;
+            btnTestWebhook.textContent = '🧪 Test Webhook Categorization';
         }
     });
 
