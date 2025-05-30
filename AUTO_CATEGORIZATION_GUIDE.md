@@ -29,7 +29,9 @@ New Transaction
    ├─ Apply word replacements → Enhanced description
    └─ Continue to step 5
        ↓
-5. AI Classification (OpenAI)
+5. AI Classification (OpenAI) - **Enhanced with Transaction Type**
+   ├─ Include transaction type (withdrawal/deposit) in prompt
+   ├─ Provide specific guidance for expense vs income categorization
    ├─ Generate category suggestion
    └─ Apply category or log as failed
 ```
@@ -175,6 +177,11 @@ Rule: country (germany)
 - Use **Test Webhook** with various transaction types
 - Check Individual Jobs for **"Auto-categorized: ✅ rule"** or **"🗂️ Category mapped"**
 - Batch processing shows all categorizations in the log
+
+### **🧹 Step 7: Failed Transactions Management**
+- **Automatic Cleanup**: Successfully categorized transactions are automatically removed from the failed list
+- **Manual Cleanup**: Use the "🧹 Cleanup" button to remove old and duplicate failed transactions
+- **Refresh**: Click "🔄 Refresh" to reload the current failed transactions list
 
 ## 🎨 UI Improvements
 
@@ -358,6 +365,18 @@ Webhook/Manual/Batch
 - Separate sections
 - Logical grouping
 - Better user experience
+
+### **🤖 Enhanced AI Categorization**
+- Transaction type awareness (withdrawal vs deposit)
+- Specific guidance for expense vs income categories
+- Improved accuracy for deposits and withdrawals
+- Prevents incorrect category assignments
+
+### **🧹 Smart Failed Transaction Management**
+- Automatically removes successfully categorized transactions from failed list
+- Manual cleanup for old and duplicate entries
+- Real-time list updates during batch processing
+- Keeps failed transaction list relevant and manageable
 
 ## 🎉 Conclusion
 

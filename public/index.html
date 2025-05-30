@@ -548,7 +548,10 @@
         <div style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h3>Failed Transactions</h3>
-                <button id="btn-refresh-failed" class="btn btn-primary">🔄 Refresh</button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-cleanup-failed" class="btn btn-warning">🧹 Cleanup</button>
+                    <button id="btn-refresh-failed" class="btn btn-primary">🔄 Refresh</button>
+                </div>
             </div>
             
             <div class="collapsible-section">
@@ -732,6 +735,7 @@
 
     // Word mapping elements
     const btnRefreshFailed = document.getElementById('btn-refresh-failed');
+    const btnCleanupFailed = document.getElementById('btn-cleanup-failed');
     const btnAddMapping = document.getElementById('btn-add-mapping');
     const mappingFrom = document.getElementById('mapping-from');
     const mappingTo = document.getElementById('mapping-to');
@@ -841,6 +845,7 @@ Check the individual jobs section below to see the categorization result.`);
 
     // Word mapping event listeners
     btnRefreshFailed.addEventListener('click', loadFailedTransactions);
+    btnCleanupFailed.addEventListener('click', cleanupFailedTransactions);
     btnAddMapping.addEventListener('click', addWordMapping);
     
     // Load data on page load
@@ -919,6 +924,24 @@ Check the individual jobs section below to see the categorization result.`);
             }
         } catch (error) {
             console.error('Error loading failed transactions:', error);
+        }
+    }
+
+    async function cleanupFailedTransactions() {
+        if (confirm('Clean up old and duplicate failed transactions? This will remove transactions older than 7 days and duplicates.')) {
+            try {
+                const response = await fetch('/api/failed-transactions/cleanup', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Failed transactions cleaned up successfully!');
+                    loadFailedTransactions(); // Refresh the list
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
         }
     }
 

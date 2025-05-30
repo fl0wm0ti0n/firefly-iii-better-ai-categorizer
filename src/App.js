@@ -80,6 +80,8 @@ export default class App {
         this.#express.post('/api/word-mappings', this.#onAddWordMapping.bind(this))
         this.#express.delete('/api/word-mappings/:fromWord', this.#onDeleteWordMapping.bind(this))
         this.#express.get('/api/failed-transactions', this.#onGetFailedTransactions.bind(this))
+        this.#express.delete('/api/failed-transactions/:id', this.#onDeleteFailedTransaction.bind(this))
+        this.#express.post('/api/failed-transactions/cleanup', this.#onCleanupFailedTransactions.bind(this))
 
         // Batch job control endpoints
         this.#express.post('/api/batch-jobs/:id/pause', this.#onPauseBatchJob.bind(this))
@@ -224,7 +226,8 @@ export default class App {
                     const aiResult = await this.#openAi.classify(
                         Array.from(categories.keys()), 
                         mappedDestinationName, 
-                        mappedDescription
+                        mappedDescription,
+                        transactionType
                     );
                     
                     category = aiResult.category;
@@ -244,6 +247,10 @@ export default class App {
 
             if (category) {
                 await this.#firefly.setCategory(req.body.content.id, req.body.content.transactions, categories.get(category));
+                
+                // Remove from failed transactions if it was successfully categorized
+                this.#failedTransactionService.removeFailedTransactionByProperties(description, destinationName);
+                this.#failedTransactionService.removeFailedTransactionByFireflyId(req.body.content.id);
             }
 
             this.#jobList.setJobFinished(job.id);
@@ -658,6 +665,7 @@ export default class App {
             const firstTransaction = transaction.attributes.transactions[0];
             const destinationName = firstTransaction.destination_name || "(unknown destination)";
             const description = firstTransaction.description || "(no description)";
+            const transactionType = firstTransaction.type || "withdrawal";
             
             // 1. Try category mappings first (user-defined rules)
             const categoryResult = this.#categoryMappingService.categorizeTransaction(transaction);
@@ -697,7 +705,7 @@ export default class App {
                     const mappedDestinationName = this.#wordMapping.applyMappings(destinationName);
                     
                     result = await this.#retryWithBackoff(async () => {
-                        return await this.#openAi.classify(categoryNames, mappedDestinationName, mappedDescription);
+                        return await this.#openAi.classify(categoryNames, mappedDestinationName, mappedDescription, transactionType);
                     });
                     
                     category = result?.category;
@@ -725,6 +733,10 @@ export default class App {
             }
 
             await this.#firefly.updateTransactionCategory(transaction.id, category);
+            
+            // Remove from failed transactions if it was successfully categorized
+            this.#failedTransactionService.removeFailedTransactionByProperties(description, destinationName);
+            this.#failedTransactionService.removeFailedTransactionByFireflyId(transaction.id);
             
             console.info(`✅ Transaction ${transaction.id} categorized as: ${category}`);
             
@@ -872,6 +884,35 @@ export default class App {
             
             const mapping = this.#categoryMappingService.toggleMapping(id, enabled);
             res.json({ success: true, message: 'Category mapping toggled successfully', mapping });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onDeleteFailedTransaction(req, res) {
+        try {
+            const { id } = req.params;
+            const success = this.#failedTransactionService.removeFailedTransaction(id);
+            if (success) {
+                res.json({ success: true, message: 'Failed transaction removed successfully' });
+            } else {
+                res.status(404).json({ success: false, error: 'Failed transaction not found' });
+            }
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onCleanupFailedTransactions(req, res) {
+        try {
+            const success = this.#failedTransactionService.cleanupFailedTransactions();
+            if (success) {
+                res.json({ success: true, message: 'Failed transactions cleaned up successfully' });
+            } else {
+                res.status(500).json({ success: false, error: 'Failed to clean up failed transactions' });
+            }
         } catch (e) {
             console.error(e);
             res.status(500).json({ success: false, error: e.message });

@@ -27,9 +27,9 @@ export default class OpenAiService {
         }
     }
 
-    async classify(categories, destinationName, description) {
+    async classify(categories, destinationName, description, transactionType = 'withdrawal') {
         try {
-            const prompt = this.#generatePrompt(categories, destinationName, description);
+            const prompt = this.#generatePrompt(categories, destinationName, description, transactionType);
 
             // Estimated token count (rough: 1 token ≈ 4 characters)
             const estimatedTokens = Math.ceil((prompt.length + 50) / 4);
@@ -113,14 +113,22 @@ export default class OpenAiService {
         }
     }
 
-    #generatePrompt(categories, destinationName, description) {
+    #generatePrompt(categories, destinationName, description, transactionType) {
+        const typeGuidance = transactionType === 'withdrawal' 
+            ? 'This is a WITHDRAWAL (money going out). Choose categories appropriate for expenses, purchases, or outgoing payments.'
+            : 'This is a DEPOSIT (money coming in). Choose categories appropriate for income, refunds, or incoming payments.';
+
         return `Given I want to categorize transactions on my bank account into these categories: ${categories.join(", ")}
 
 In which category would a transaction from "${destinationName}" with the subject "${description}" fall into?
 
+Transaction Type: ${transactionType}
+${typeGuidance}
+
 Rules:
 - Respond with ONLY the exact category name from the list above
 - If no category fits well, respond with "UNKNOWN"
+- Pay attention to transaction type: withdrawals are expenses, deposits are income
 - Do not explain your reasoning`;
     }
 

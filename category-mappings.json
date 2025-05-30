@@ -1,37 +1,5 @@
 [
   {
-    "id": "2c9fdf03-128a-4957-92a2-d491f0e09440",
-    "name": "Gas Stations",
-    "targetCategory": "Transportation",
-    "keywords": [
-      "shell",
-      "bp",
-      "esso",
-      "omv",
-      "jet",
-      "total",
-      "tankstelle"
-    ],
-    "enabled": true,
-    "created": "2025-05-30T13:36:48.466Z"
-  },
-  {
-    "id": "ff322beb-f5fe-4879-a234-9122d12b31a0",
-    "name": "Medical & Health",
-    "targetCategory": "Healthcare",
-    "keywords": [
-      "apotheke",
-      "arzt",
-      "zahnarzt",
-      "krankenhaus",
-      "pharmacy",
-      "hospital",
-      "doctor"
-    ],
-    "enabled": true,
-    "created": "2025-05-30T13:36:48.466Z"
-  },
-  {
     "id": "0e044635-9a12-4813-9df7-22b0b33df60e",
     "name": "Lebensmittelhandel",
     "targetCategory": "Lebensmittel - Lebensmittelhandel",
@@ -47,5 +15,16 @@
     ],
     "enabled": true,
     "created": "2025-05-30T14:23:00.745Z"
+  },
+  {
+    "id": "f44003b7-e10f-4b69-b2aa-06e8470971f7",
+    "name": "Gastronomie",
+    "targetCategory": "Hobby & Freizeit - Gastronomie",
+    "keywords": [
+      "STROECK",
+      "der mann"
+    ],
+    "enabled": true,
+    "created": "2025-05-30T18:01:47.741Z"
   }
 ]

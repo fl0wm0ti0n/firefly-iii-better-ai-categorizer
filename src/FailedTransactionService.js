@@ -77,6 +77,34 @@ export default class FailedTransactionService {
         return false;
     }
 
+    removeFailedTransactionByProperties(description, destinationName) {
+        const initialLength = this.#failedTransactions.length;
+        this.#failedTransactions = this.#failedTransactions.filter(ft => 
+            !(ft.description === description && ft.destinationName === destinationName)
+        );
+        
+        if (this.#failedTransactions.length < initialLength) {
+            this.saveFailedTransactions();
+            console.info(`✅ Removed ${initialLength - this.#failedTransactions.length} failed transaction(s) for: "${description}" → "${destinationName}"`);
+            return true;
+        }
+        
+        return false;
+    }
+
+    removeFailedTransactionByFireflyId(transactionId) {
+        const initialLength = this.#failedTransactions.length;
+        this.#failedTransactions = this.#failedTransactions.filter(ft => ft.transactionId !== transactionId);
+        
+        if (this.#failedTransactions.length < initialLength) {
+            this.saveFailedTransactions();
+            console.info(`✅ Removed ${initialLength - this.#failedTransactions.length} failed transaction(s) for Firefly ID: ${transactionId}`);
+            return true;
+        }
+        
+        return false;
+    }
+
     clearOldFailedTransactions(daysOld = 30) {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - daysOld);
@@ -90,6 +118,34 @@ export default class FailedTransactionService {
             this.saveFailedTransactions();
             console.info(`🧹 Cleared ${initialLength - this.#failedTransactions.length} old failed transactions`);
         }
+    }
+
+    cleanupFailedTransactions() {
+        // Clear transactions older than 7 days
+        const initialLength = this.#failedTransactions.length;
+        this.clearOldFailedTransactions(7);
+        
+        // Also remove duplicates
+        const uniqueTransactions = [];
+        const seen = new Set();
+        
+        for (const ft of this.#failedTransactions) {
+            const key = `${ft.description}||${ft.destinationName}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueTransactions.push(ft);
+            }
+        }
+        
+        this.#failedTransactions = uniqueTransactions;
+        
+        if (this.#failedTransactions.length < initialLength) {
+            this.saveFailedTransactions();
+            console.info(`🧹 Cleanup complete: ${initialLength - this.#failedTransactions.length} entries removed`);
+            return true;
+        }
+        
+        return false;
     }
 
     getAllFailedTransactions() {

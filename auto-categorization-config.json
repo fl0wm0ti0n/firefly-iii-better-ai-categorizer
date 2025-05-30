@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "skipDeposits": true,
+  "skipDeposits": false,
   "nativeCurrency": "EUR",
   "homeCountry": "Austria",
   "foreignCategory": "Reisen & Urlaub - Sonstiges",
