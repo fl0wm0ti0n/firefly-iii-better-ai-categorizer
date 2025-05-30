@@ -3,6 +3,9 @@ import {getConfigVariable} from "./util.js";
 import FireflyService from "./FireflyService.js";
 import OpenAiService from "./OpenAiService.js";
 import WordMappingService from "./WordMappingService.js";
+import FailedTransactionService from "./FailedTransactionService.js";
+import AutoCategorizationService from "./AutoCategorizationService.js";
+import CategoryMappingService from "./CategoryMappingService.js";
 import {Server} from "socket.io";
 import * as http from "http";
 import Queue from "queue";
@@ -15,6 +18,9 @@ export default class App {
     #firefly;
     #openAi;
     #wordMapping;
+    #failedTransactionService;
+    #autoCategorizationService;
+    #categoryMappingService;
 
     #server;
     #io;
@@ -33,6 +39,9 @@ export default class App {
         this.#firefly = new FireflyService();
         this.#openAi = new OpenAiService();
         this.#wordMapping = new WordMappingService();
+        this.#failedTransactionService = new FailedTransactionService();
+        this.#autoCategorizationService = new AutoCategorizationService();
+        this.#categoryMappingService = new CategoryMappingService();
 
         this.#queue = new Queue({
             timeout: 30 * 1000,
@@ -71,6 +80,24 @@ export default class App {
         this.#express.post('/api/word-mappings', this.#onAddWordMapping.bind(this))
         this.#express.delete('/api/word-mappings/:fromWord', this.#onDeleteWordMapping.bind(this))
         this.#express.get('/api/failed-transactions', this.#onGetFailedTransactions.bind(this))
+
+        // Batch job control endpoints
+        this.#express.post('/api/batch-jobs/:id/pause', this.#onPauseBatchJob.bind(this))
+        this.#express.post('/api/batch-jobs/:id/resume', this.#onResumeBatchJob.bind(this))
+        this.#express.post('/api/batch-jobs/:id/cancel', this.#onCancelBatchJob.bind(this))
+
+        // Auto-categorization endpoints
+        this.#express.get('/api/auto-categorization/config', this.#onGetAutoCategorizationConfig.bind(this))
+        this.#express.post('/api/auto-categorization/config', this.#onUpdateAutoCategorizationConfig.bind(this))
+        this.#express.post('/api/auto-categorization/keywords', this.#onAddForeignKeyword.bind(this))
+        this.#express.delete('/api/auto-categorization/keywords/:keyword', this.#onRemoveForeignKeyword.bind(this))
+
+        // Category mapping endpoints
+        this.#express.get('/api/category-mappings', this.#onGetCategoryMappings.bind(this))
+        this.#express.post('/api/category-mappings', this.#onAddCategoryMapping.bind(this))
+        this.#express.put('/api/category-mappings/:id', this.#onUpdateCategoryMapping.bind(this))
+        this.#express.delete('/api/category-mappings/:id', this.#onDeleteCategoryMapping.bind(this))
+        this.#express.patch('/api/category-mappings/:id/toggle', this.#onToggleCategoryMapping.bind(this))
 
         this.#server.listen(this.#PORT, async () => {
             console.log(`Application running on port ${this.#PORT}`);
@@ -131,6 +158,14 @@ export default class App {
 
         const destinationName = req.body.content.transactions[0].destination_name;
         const description = req.body.content.transactions[0].description
+        const transactionType = req.body.content.transactions[0].type;
+
+        // Check if we should skip deposits
+        const autoConfig = this.#autoCategorizationService.getConfig();
+        if (autoConfig.skipDeposits && transactionType === 'deposit') {
+            console.info(`⏭️ Skipping deposit transaction: "${description}" (skipDeposits enabled)`);
+            return; // Exit early, don't process this transaction
+        }
 
         const job = this.#jobList.createJob({
             destinationName,
@@ -142,20 +177,68 @@ export default class App {
 
             const categories = await this.#firefly.getCategories();
 
-            // Apply word mappings to improve categorization
-            const mappedDescription = this.#wordMapping.applyMappings(description);
-            const mappedDestinationName = this.#wordMapping.applyMappings(destinationName);
+            // 1. Try category mappings first (user-defined rules)
+            const fakeTransaction = {
+                attributes: {
+                    transactions: [{
+                        description: description,
+                        destination_name: destinationName,
+                        currency_code: req.body.content.transactions[0].currency_code,
+                        foreign_currency_code: req.body.content.transactions[0].foreign_currency_code,
+                        foreign_amount: req.body.content.transactions[0].foreign_amount
+                    }]
+                }
+            };
 
-            const {category, prompt, response} = await this.#openAi.classify(
-                Array.from(categories.keys()), 
-                mappedDestinationName, 
-                mappedDescription
-            )
+            const categoryResult = this.#categoryMappingService.categorizeTransaction(fakeTransaction);
+            
+            let category, prompt, response, autoRule;
+            
+            if (categoryResult && categories.has(categoryResult.category)) {
+                // Category mapping matched
+                category = categoryResult.category;
+                prompt = `Category mapped: ${categoryResult.reason}`;
+                response = `Automatically categorized as "${category}" using category mapping: ${categoryResult.mappingName}`;
+                autoRule = categoryResult.autoRule;
+                
+                console.info(`🗂️ Category mapped: "${description}" → "${category}" (${categoryResult.reason})`);
+            } else {
+                // 2. Try auto-categorization (foreign/travel detection)
+                const autoResult = this.#autoCategorizationService.autoCategorize(fakeTransaction);
+                
+                if (autoResult && categories.has(autoResult.category)) {
+                    // Auto-categorized successfully
+                    category = autoResult.category;
+                    prompt = `Auto-categorized based on: ${autoResult.reason}`;
+                    response = `Automatically categorized as "${category}" using rule: ${autoResult.autoRule}`;
+                    autoRule = autoResult.autoRule;
+                    
+                    console.info(`🤖 Auto-categorized: "${description}" → "${category}" (${autoResult.reason})`);
+                } else {
+                    // 3. Fall back to AI categorization
+                    
+                    // Apply word mappings to improve categorization
+                    const mappedDescription = this.#wordMapping.applyMappings(description);
+                    const mappedDestinationName = this.#wordMapping.applyMappings(destinationName);
+
+                    const aiResult = await this.#openAi.classify(
+                        Array.from(categories.keys()), 
+                        mappedDestinationName, 
+                        mappedDescription
+                    );
+                    
+                    category = aiResult.category;
+                    prompt = aiResult.prompt;
+                    response = aiResult.response;
+                    autoRule = null;
+                }
+            }
 
             const newData = Object.assign({}, job.data);
             newData.category = category;
             newData.prompt = prompt;
             newData.response = response;
+            newData.autoRule = autoRule;
 
             this.#jobList.updateJobData(job.id, newData);
 
@@ -164,6 +247,19 @@ export default class App {
             }
 
             this.#jobList.setJobFinished(job.id);
+
+            // If categorization failed, save to failed transactions
+            if (!category) {
+                this.#failedTransactionService.addFailedTransaction({
+                    id: job.id,
+                    description: description,
+                    destinationName: destinationName,
+                    created: job.created,
+                    prompt: prompt || '',
+                    response: response || '',
+                    transactionId: req.body.content.id
+                });
+            }
         });
     }
 
@@ -194,7 +290,7 @@ export default class App {
             console.info("Test webhook triggered");
             
             // Create a fake webhook payload based on the request body or use defaults
-            const testDescription = req.body?.description || "Test transaction - Einkauf bei Amazon";
+            const testDescription = req.body?.description || "Test transaction - Purchase at Amazon";
             const testDestination = req.body?.destination_name || "Amazon.com";
             const testTransactionId = req.body?.transaction_id || "test-" + Date.now();
             const testType = req.body?.transaction_type || "withdrawal";
@@ -280,14 +376,17 @@ export default class App {
 
     #onGetFailedTransactions(req, res) {
         try {
-            // Get failed transactions from job list
+            // Get persistent failed transactions
+            const persistentFailedTransactions = this.#failedTransactionService.getAllFailedTransactions();
+            
+            // Also get recent failed jobs from memory (jobs from current session)
             const jobs = Array.from(this.#jobList.getJobs().values());
-            const failedJobs = jobs.filter(job => 
+            const recentFailedJobs = jobs.filter(job => 
                 job.status === 'finished' && 
                 (!job.data?.category || job.data.category === null)
             );
 
-            const failedTransactions = failedJobs.map(job => ({
+            const recentFailedTransactions = recentFailedJobs.map(job => ({
                 id: job.id,
                 description: job.data?.description || '',
                 destinationName: job.data?.destinationName || '',
@@ -296,7 +395,58 @@ export default class App {
                 response: job.data?.response || ''
             }));
 
-            res.json({ success: true, failedTransactions });
+            // Combine both sources, with recent ones first
+            const allFailedTransactions = [...recentFailedTransactions, ...persistentFailedTransactions];
+
+            res.json({ success: true, failedTransactions: allFailedTransactions });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    #onPauseBatchJob(req, res) {
+        try {
+            const { id } = req.params;
+            const success = this.#jobList.pauseBatchJob(id);
+            
+            if (success) {
+                res.json({ success: true, message: 'Batch job paused successfully' });
+            } else {
+                res.status(400).json({ success: false, error: 'Could not pause batch job' });
+            }
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    #onResumeBatchJob(req, res) {
+        try {
+            const { id } = req.params;
+            const success = this.#jobList.resumeBatchJob(id);
+            
+            if (success) {
+                res.json({ success: true, message: 'Batch job resumed successfully' });
+            } else {
+                res.status(400).json({ success: false, error: 'Could not resume batch job' });
+            }
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    #onCancelBatchJob(req, res) {
+        try {
+            const { id } = req.params;
+            const success = this.#jobList.cancelBatchJob(id);
+            
+            if (success) {
+                res.json({ success: true, message: 'Batch job cancelled successfully' });
+            } else {
+                res.status(400).json({ success: false, error: 'Could not cancel batch job' });
+            }
         } catch (e) {
             console.error(e);
             res.status(500).json({ success: false, error: e.message });
@@ -304,7 +454,22 @@ export default class App {
     }
 
     async #processUncategorizedTransactions() {
-        const transactions = await this.#firefly.getAllUncategorizedTransactions();
+        let transactions = await this.#firefly.getAllUncategorizedTransactions();
+        
+        // Filter out deposits if skipDeposits is enabled
+        const autoConfig = this.#autoCategorizationService.getConfig();
+        if (autoConfig.skipDeposits) {
+            const originalCount = transactions.length;
+            transactions = transactions.filter(transaction => {
+                const firstTx = transaction.attributes.transactions[0];
+                return firstTx.type !== 'deposit';
+            });
+            const filteredCount = originalCount - transactions.length;
+            if (filteredCount > 0) {
+                console.info(`⏭️ Skipped ${filteredCount} deposit transactions (skipDeposits enabled)`);
+            }
+        }
+        
         const categories = await this.#firefly.getCategories();
         const batchJob = this.#jobList.createBatchJob('uncategorized', transactions.length);
         
@@ -315,12 +480,29 @@ export default class App {
         let errorCount = 0;
 
         // Intelligente Batch-Verarbeitung mit dynamischen Delays
-        const batchSize = 10; // Verarbeite 10 Transaktionen, dann pause
+        const batchSize = 10; // Process 10 transactions, then pause
         const baseDelay = 1000; // 1 Sekunde zwischen Requests
         let currentDelay = baseDelay;
 
         for (let i = 0; i < transactions.length; i++) {
             const transaction = transactions[i];
+            
+            // Check if batch job is paused or cancelled
+            let batchJobStatus = this.#jobList.getBatchJobStatus(batchJob.id);
+            if (batchJobStatus === 'cancelled') {
+                console.info(`❌ Batch job ${batchJob.id} cancelled, stopping processing`);
+                break;
+            }
+            
+            while (batchJobStatus === 'paused') {
+                console.info(`⏸️ Batch job ${batchJob.id} paused, waiting...`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Re-check status after wait
+                batchJobStatus = this.#jobList.getBatchJobStatus(batchJob.id);
+                if (batchJobStatus !== 'paused') {
+                    break;
+                }
+            }
             
             try {
                 const success = await this.#processTransaction(transaction, categories, batchJob.id);
@@ -333,7 +515,7 @@ export default class App {
                 console.error(`Error processing transaction ${transaction.id}:`, error);
                 errorCount++;
                 
-                // Bei Rate Limit Fehlern: exponentiell längere Pausen
+                // For rate limit errors: exponentially longer pauses
                 if (error.code === 429) {
                     currentDelay = Math.min(currentDelay * 2, 30000); // Max 30 Sekunden
                     console.warn(`⏳ Rate limit detected, increasing delay to ${currentDelay/1000}s`);
@@ -363,7 +545,22 @@ export default class App {
     }
 
     async #processAllTransactions() {
-        const transactions = await this.#firefly.getAllTransactions();
+        let transactions = await this.#firefly.getAllTransactions();
+        
+        // Filter out deposits if skipDeposits is enabled
+        const autoConfig = this.#autoCategorizationService.getConfig();
+        if (autoConfig.skipDeposits) {
+            const originalCount = transactions.length;
+            transactions = transactions.filter(transaction => {
+                const firstTx = transaction.attributes.transactions[0];
+                return firstTx.type !== 'deposit';
+            });
+            const filteredCount = originalCount - transactions.length;
+            if (filteredCount > 0) {
+                console.info(`⏭️ Skipped ${filteredCount} deposit transactions (skipDeposits enabled)`);
+            }
+        }
+        
         const categories = await this.#firefly.getCategories();
         const batchJob = this.#jobList.createBatchJob('all', transactions.length);
         
@@ -373,13 +570,30 @@ export default class App {
         let successCount = 0;
         let errorCount = 0;
 
-        // Für "alle Transaktionen" - noch konservativere Limits
-        const batchSize = 5; // Kleinere Batches
-        const baseDelay = 2000; // 2 Sekunden zwischen Requests
+        // For "all transactions" - even more conservative limits
+        const batchSize = 10; // Process 10 transactions, then pause
+        const baseDelay = 1000; // 1 Sekunde zwischen Requests
         let currentDelay = baseDelay;
 
         for (let i = 0; i < transactions.length; i++) {
             const transaction = transactions[i];
+            
+            // Check if batch job is paused or cancelled
+            let batchJobStatus = this.#jobList.getBatchJobStatus(batchJob.id);
+            if (batchJobStatus === 'cancelled') {
+                console.info(`❌ Batch job ${batchJob.id} cancelled, stopping processing`);
+                break;
+            }
+            
+            while (batchJobStatus === 'paused') {
+                console.info(`⏸️ Batch job ${batchJob.id} paused, waiting...`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Re-check status after wait
+                batchJobStatus = this.#jobList.getBatchJobStatus(batchJob.id);
+                if (batchJobStatus !== 'paused') {
+                    break;
+                }
+            }
             
             try {
                 const success = await this.#processTransaction(transaction, categories, batchJob.id);
@@ -405,7 +619,7 @@ export default class App {
             processedCount++;
             this.#jobList.updateBatchJobProgress(batchJob.id, { processed: 1 });
             
-            // Längere Pausen für "alle Transaktionen"
+            // Longer pauses for "all transactions"
             if (processedCount % batchSize === 0) {
                 console.info(`⏸️ Processed ${processedCount}/${transactions.length}, pausing ${currentDelay/1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, currentDelay));
@@ -418,7 +632,7 @@ export default class App {
         console.info(`Batch processing completed. Processed: ${processedCount}, Success: ${successCount}, Errors: ${errorCount}`);
     }
 
-    // Hilfsmethode für Retry-Logic bei Rate Limits
+    // Helper method for retry logic with rate limits
     async #retryWithBackoff(fn, maxRetries = 3, baseDelay = 2000) {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
@@ -437,7 +651,7 @@ export default class App {
 
     async #processTransaction(transaction, categories, batchJobId = null) {
         try {
-            // Kategorien als Array für OpenAI und als Map für Firefly verwenden
+            // Categories as array for OpenAI and as Map for Firefly
             const categoryNames = Array.from(categories.keys());
             
             // Transaction-Daten aus der Firefly-Struktur extrahieren
@@ -445,23 +659,71 @@ export default class App {
             const destinationName = firstTransaction.destination_name || "(unknown destination)";
             const description = firstTransaction.description || "(no description)";
             
-            // Apply word mappings to improve categorization
-            const mappedDescription = this.#wordMapping.applyMappings(description);
-            const mappedDestinationName = this.#wordMapping.applyMappings(destinationName);
+            // 1. Try category mappings first (user-defined rules)
+            const categoryResult = this.#categoryMappingService.categorizeTransaction(transaction);
             
-            const result = await this.#retryWithBackoff(async () => {
-                return await this.#openAi.classify(categoryNames, mappedDestinationName, mappedDescription);
-            });
+            let result;
+            let category;
+            
+            if (categoryResult && categories.has(categoryResult.category)) {
+                // Category mapping matched
+                category = categoryResult.category;
+                result = {
+                    category: category,
+                    prompt: `Category mapped: ${categoryResult.reason}`,
+                    response: `Automatically categorized as "${category}" using category mapping: ${categoryResult.mappingName}`
+                };
+                
+                console.info(`🗂️ Category mapped batch transaction ${transaction.id}: "${description}" → "${category}" (${categoryResult.reason})`);
+            } else {
+                // 2. Try auto-categorization (foreign/travel detection)
+                const autoResult = this.#autoCategorizationService.autoCategorize(transaction);
+                
+                if (autoResult && categories.has(autoResult.category)) {
+                    // Auto-categorized successfully
+                    category = autoResult.category;
+                    result = {
+                        category: category,
+                        prompt: `Auto-categorized: ${autoResult.reason}`,
+                        response: `Automatically categorized as "${category}" using rule: ${autoResult.autoRule}`
+                    };
+                    
+                    console.info(`🤖 Auto-categorized batch transaction ${transaction.id}: "${description}" → "${category}" (${autoResult.reason})`);
+                } else {
+                    // 3. Fall back to AI categorization
+                    
+                    // Apply word mappings to improve categorization
+                    const mappedDescription = this.#wordMapping.applyMappings(description);
+                    const mappedDestinationName = this.#wordMapping.applyMappings(destinationName);
+                    
+                    result = await this.#retryWithBackoff(async () => {
+                        return await this.#openAi.classify(categoryNames, mappedDestinationName, mappedDescription);
+                    });
+                    
+                    category = result?.category;
+                }
+            }
 
             if (!result || !result.category) {
                 console.warn(`⚠️ Could not classify transaction ${transaction.id}: ${description}`);
+                
+                // Save to failed transactions
+                this.#failedTransactionService.addFailedTransaction({
+                    id: `batch-${transaction.id}-${Date.now()}`,
+                    description: description,
+                    destinationName: destinationName,
+                    created: new Date().toISOString(),
+                    prompt: result?.prompt || '',
+                    response: result?.response || '',
+                    transactionId: transaction.id
+                });
+                
                 if (batchJobId) {
                     this.#jobList.updateBatchJobProgress(batchJobId, { errors: 1 });
                 }
                 return false;
             }
 
-            const category = result.category;
             await this.#firefly.updateTransactionCategory(transaction.id, category);
             
             console.info(`✅ Transaction ${transaction.id} categorized as: ${category}`);
@@ -482,13 +744,137 @@ export default class App {
                 });
             }
             
-            // Bei Rate Limit Fehlern die Batch-Verarbeitung pausieren
+            // Pause batch processing on rate limit errors
             if (error.code === 429) {
                 console.error("🚨 Rate limit exceeded. Pausing batch processing for 60 seconds...");
                 await new Promise(resolve => setTimeout(resolve, 60000));
             }
             
             return false;
+        }
+    }
+
+    async #onGetAutoCategorizationConfig(req, res) {
+        try {
+            const config = await this.#autoCategorizationService.getConfig();
+            res.json({ success: true, config });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onUpdateAutoCategorizationConfig(req, res) {
+        try {
+            const { config } = req.body;
+            await this.#autoCategorizationService.updateConfig(config);
+            res.json({ success: true, message: 'Auto-categorization config updated successfully' });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onAddForeignKeyword(req, res) {
+        try {
+            const { keyword, keywords } = req.body;
+            
+            if (keywords && Array.isArray(keywords)) {
+                // Handle multiple keywords (new comma-separated approach)
+                await this.#autoCategorizationService.setForeignKeywords(keywords);
+                res.json({ success: true, message: 'Foreign keywords updated successfully' });
+            } else if (keyword) {
+                // Handle single keyword (legacy approach)
+                await this.#autoCategorizationService.addForeignKeyword(keyword);
+                res.json({ success: true, message: 'Foreign keyword added successfully' });
+            } else {
+                res.status(400).json({ success: false, error: 'Either keyword or keywords array is required' });
+            }
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onRemoveForeignKeyword(req, res) {
+        try {
+            const { keyword } = req.params;
+            await this.#autoCategorizationService.removeForeignKeyword(keyword);
+            res.json({ success: true, message: 'Foreign keyword removed successfully' });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onGetCategoryMappings(req, res) {
+        try {
+            const mappings = this.#categoryMappingService.getAllMappings();
+            res.json({ success: true, mappings });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onAddCategoryMapping(req, res) {
+        try {
+            const mappingData = req.body;
+            
+            const validation = this.#categoryMappingService.validateMapping(mappingData);
+            if (!validation.isValid) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: validation.errors.join(', ')
+                });
+            }
+
+            const mapping = this.#categoryMappingService.addMapping(mappingData);
+            res.json({ success: true, message: 'Category mapping added successfully', mapping });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onUpdateCategoryMapping(req, res) {
+        try {
+            const { id } = req.params;
+            const updates = req.body;
+            
+            const mapping = this.#categoryMappingService.updateMapping(id, updates);
+            res.json({ success: true, message: 'Category mapping updated successfully', mapping });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onDeleteCategoryMapping(req, res) {
+        try {
+            const { id } = req.params;
+            const success = this.#categoryMappingService.removeMapping(id);
+            if (success) {
+                res.json({ success: true, message: 'Category mapping removed successfully' });
+            } else {
+                res.status(404).json({ success: false, error: 'Category mapping not found' });
+            }
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onToggleCategoryMapping(req, res) {
+        try {
+            const { id } = req.params;
+            const { enabled } = req.body;
+            
+            const mapping = this.#categoryMappingService.toggleMapping(id, enabled);
+            res.json({ success: true, message: 'Category mapping toggled successfully', mapping });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
         }
     }
 }

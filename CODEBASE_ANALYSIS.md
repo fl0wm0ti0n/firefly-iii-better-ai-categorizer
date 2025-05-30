@@ -1,33 +1,33 @@
-# Firefly III AI Categorizer - Codebase Analyse
+# Firefly III AI Categorizer - Codebase Analysis
 
-## Übersicht
+## Overview
 
-Das **Firefly III AI Categorizer** ist ein automatischer Transaktions-Kategorisierer für [Firefly III](https://www.firefly-iii.org/), eine Open-Source-Finanzverwaltungssoftware. Das Programm nutzt **OpenAI's GPT-Modell**, um eingehende Ausgaben automatisch zu kategorisieren.
+The **Firefly III AI Categorizer** is an automatic transaction categorizer for [Firefly III](https://www.firefly-iii.org/), an open-source financial management software. The program uses **OpenAI's GPT model** to automatically categorize incoming expenses.
 
-## Hauptzweck
+## Main Purpose
 
-Das System automatisiert die manuelle Kategorisierung von Finanztransaktionen durch:
-- **Webhook-basierte Integration** mit Firefly III für automatische Verarbeitung
-- **AI-gestützte Kategorisierung** über OpenAI
-- **Automatische Aktualisierung** der Transaktionen
-- **Manuelle Batch-Verarbeitung** für bestehende Transaktionen
-- **Web-UI** für Monitoring und manuelle Steuerung
+The system automates manual categorization of financial transactions through:
+- **Webhook-based integration** with Firefly III for automatic processing
+- **AI-powered categorization** via OpenAI
+- **Automatic transaction updates**
+- **Manual batch processing** for existing transactions
+- **Web UI** for monitoring and manual control
 
-## Technische Architektur
+## Technical Architecture
 
-### Backend-Komponenten
+### Backend Components
 
-#### 1. App.js - Hauptanwendung
-- **Express.js Webserver** für HTTP-Endpoints
-- **Socket.io** für Echtzeit-Updates an das UI
-- **Queue-Management** für asynchrone Verarbeitung
-- **Webhook-Endpunkt** (`/webhook`) für Firefly III Integration
-- **API-Endpunkte** für manuelle Verarbeitung:
-  - `/api/process-uncategorized` - Verarbeitet nur unkategorisierte Transaktionen
-  - `/api/process-all` - Verarbeitet alle Transaktionen (überschreibt Kategorien)
+#### 1. App.js - Main Application
+- **Express.js web server** for HTTP endpoints
+- **Socket.io** for real-time UI updates
+- **Queue management** for asynchronous processing
+- **Webhook endpoint** (`/webhook`) for Firefly III integration
+- **API endpoints** for manual processing:
+  - `/api/process-uncategorized` - Processes only uncategorized transactions
+  - `/api/process-all` - Processes all transactions (overwrites categories)
 
 ```javascript
-// Hauptworkflow: Webhook → Validierung → Queue → AI → Update
+// Main workflow: Webhook → Validation → Queue → AI → Update
 #onWebhook(req, res) {
     console.info("Webhook triggered");
     this.#handleWebhook(req, res);
@@ -36,16 +36,16 @@ Das System automatisiert die manuelle Kategorisierung von Finanztransaktionen du
 ```
 
 #### 2. FireflyService.js - Firefly III Integration
-- **API-Kommunikation** mit Firefly III
-- **Kategorien abrufen** (`getCategories()`)
-- **Transaktionen aktualisieren** (`setCategory()`)
-- **Batch-Daten abrufen**:
-  - `getAllUncategorizedTransactions()` - Holt alle Transaktionen ohne Kategorie
-  - `getAllWithdrawalTransactions()` - Holt alle Ausgaben-Transaktionen
-- **Authentication** über Personal Access Token
+- **API communication** with Firefly III
+- **Retrieve categories** (`getCategories()`)
+- **Update transactions** (`setCategory()`)
+- **Batch data retrieval**:
+  - `getAllUncategorizedTransactions()` - Gets all transactions without category
+  - `getAllWithdrawalTransactions()` - Gets all withdrawal transactions
+- **Authentication** via Personal Access Token
 
 ```javascript
-// Kategorien aus Firefly III laden
+// Load categories from Firefly III
 async getCategories() {
     const response = await fetch(`${this.#BASE_URL}/api/v1/categories`, {
         headers: { Authorization: `Bearer ${this.#PERSONAL_TOKEN}` }
@@ -53,13 +53,13 @@ async getCategories() {
 }
 ```
 
-#### 3. OpenAiService.js - AI-Integration
-- **OpenAI API-Aufrufe** mit GPT-3.5-turbo-instruct
-- **Prompt-Generierung** für Kategorisierung
-- **Antwort-Verarbeitung** und Validierung
+#### 3. OpenAiService.js - AI Integration
+- **OpenAI API calls** with GPT-3.5-turbo-instruct
+- **Prompt generation** for categorization
+- **Response processing** and validation
 
 ```javascript
-// AI-Prompt für Kategorisierung
+// AI prompt for categorization
 #generatePrompt(categories, destinationName, description) {
     return `Given i want to categorize transactions on my bank account into this categories: ${categories.join(", ")}
 In which category would a transaction from "${destinationName}" with the subject "${description}" fall into?
@@ -67,38 +67,38 @@ Just output the name of the category. Does not have to be a complete sentence.`;
 }
 ```
 
-#### 4. JobList.js - Job-Management
-- **Tracking aller Verarbeitungsjobs**
-- **Event-basierte Updates** für UI
-- **Status-Management**: `queued` → `in_progress` → `finished`
-- **Batch-Job-Tracking** mit Progress-Monitoring:
-  - `createBatchJob()` - Erstellt Batch-Jobs für manuelle Verarbeitung
-  - `updateBatchJobProgress()` - Aktualisiert Fortschritt
-  - `finishBatchJob()` - Markiert Batch-Job als abgeschlossen
+#### 4. JobList.js - Job Management
+- **Tracking all processing jobs**
+- **Event-based updates** for UI
+- **Status management**: `queued` → `in_progress` → `finished`
+- **Batch job tracking** with progress monitoring:
+  - `createBatchJob()` - Creates batch jobs for manual processing
+  - `updateBatchJobProgress()` - Updates progress
+  - `finishBatchJob()` - Marks batch job as completed
 
-#### 5. util.js - Utility-Funktionen
-- **Umgebungsvariablen-Management**
-- **Konfiguration** mit Fallback-Werten
+#### 5. util.js - Utility Functions
+- **Environment variable management**
+- **Configuration** with fallback values
 
 ### Frontend (Optional UI)
 
-#### public/index.html - Web-Interface
-- **Erweiterte Monitoring-Interface** mit manueller Steuerung
-- **Control-Panel** mit Buttons für:
-  - Verarbeitung unkategorisierter Transaktionen
-  - Verarbeitung aller Transaktionen (Überschreibung)
-- **Batch-Job-Monitoring** mit:
-  - Echtzeit-Progress-Bars
-  - Statistiken (Total, Verarbeitet, Erfolg, Fehler)
-  - Fehler-Details mit ausklappbaren Listen
-- **Echtzeit-Anzeige** aller Jobs via Socket.io
-- **Responsive Design** mit modernem CSS
+#### public/index.html - Web Interface
+- **Enhanced monitoring interface** with manual control
+- **Control panel** with buttons for:
+  - Processing uncategorized transactions
+  - Processing all transactions (overwrite)
+- **Batch job monitoring** with:
+  - Real-time progress bars
+  - Statistics (Total, Processed, Success, Errors)
+  - Error details with expandable lists
+- **Real-time display** of all jobs via Socket.io
+- **Responsive design** with modern CSS
 
-## Workflow im Detail
+## Detailed Workflow
 
-### 1. Automatischer Webhook-Workflow
+### 1. Automatic Webhook Workflow
 ```javascript
-// Validierung eingehender Webhooks
+// Validation of incoming webhooks
 if (req.body?.trigger !== "STORE_TRANSACTION") {
     throw new WebhookException("trigger is not STORE_TRANSACTION");
 }
@@ -108,33 +108,33 @@ if (req.body.content.transactions[0].type !== "withdrawal") {
 }
 ```
 
-**Validierungen:**
-- Nur `STORE_TRANSACTION` Trigger
-- Nur `withdrawal` Transaktionen
-- Keine bereits kategorisierten Transaktionen
-- Pflichtfelder: `description`, `destination_name`
+**Validations:**
+- Only `STORE_TRANSACTION` triggers
+- Only `withdrawal` transactions
+- No already categorized transactions
+- Required fields: `description`, `destination_name`
 
-### 2. Manuelle Batch-Verarbeitung
+### 2. Manual Batch Processing
 
-#### 2.1 Unkategorisierte Transaktionen verarbeiten
+#### 2.1 Process Uncategorized Transactions
 ```javascript
 async #processUncategorizedTransactions() {
     const transactions = await this.#firefly.getAllUncategorizedTransactions();
     const batchJob = this.#jobList.createBatchJob('uncategorized', transactions.length);
-    // ... Verarbeitung mit Progress-Tracking
+    // ... Processing with progress tracking
 }
 ```
 
-#### 2.2 Alle Transaktionen verarbeiten (Überschreibung)
+#### 2.2 Process All Transactions (Overwrite)
 ```javascript
 async #processAllTransactions() {
     const transactions = await this.#firefly.getAllWithdrawalTransactions();
     const batchJob = this.#jobList.createBatchJob('all', transactions.length);
-    // ... Verarbeitung mit Progress-Tracking
+    // ... Processing with progress tracking
 }
 ```
 
-### 3. Job-Erstellung
+### 3. Job Creation
 ```javascript
 const job = this.#jobList.createJob({
     destinationName,
@@ -142,7 +142,7 @@ const job = this.#jobList.createJob({
 });
 ```
 
-### 4. AI-Klassifizierung
+### 4. AI Classification
 ```javascript
 const {category, prompt, response} = await this.#openAi.classify(
     Array.from(categories.keys()), 
@@ -151,7 +151,7 @@ const {category, prompt, response} = await this.#openAi.classify(
 );
 ```
 
-### 5. Automatische Aktualisierung
+### 5. Automatic Update
 ```javascript
 if (category) {
     await this.#firefly.setCategory(
@@ -162,26 +162,26 @@ if (category) {
 }
 ```
 
-**Bei erfolgreicher Kategorisierung:**
-- Kategorie wird in Firefly III gesetzt
-- Automatischer Tag wird hinzugefügt (Standard: "AI categorized")
-- Transaktion wird über API aktualisiert
+**On successful categorization:**
+- Category is set in Firefly III
+- Automatic tag is added (default: "AI categorized")
+- Transaction is updated via API
 
-## Konfiguration
+## Configuration
 
-### Erforderliche Umgebungsvariablen
-- `FIREFLY_URL` - URL zur Firefly III Instanz
-- `FIREFLY_PERSONAL_TOKEN` - API-Token für Firefly III
-- `OPENAI_API_KEY` - OpenAI API-Schlüssel
+### Required Environment Variables
+- `FIREFLY_URL` - URL to Firefly III instance
+- `FIREFLY_PERSONAL_TOKEN` - API token for Firefly III
+- `OPENAI_API_KEY` - OpenAI API key
 
-### Optionale Umgebungsvariablen
-- `ENABLE_UI` - Aktiviert Web-Interface (Standard: `false`)
-- `FIREFLY_TAG` - Name des Auto-Tags (Standard: `"AI categorized"`)
-- `PORT` - Server-Port (Standard: `3000`)
+### Optional Environment Variables
+- `ENABLE_UI` - Enables web interface (default: `false`)
+- `FIREFLY_TAG` - Name of auto tag (default: `"AI categorized"`)
+- `PORT` - Server port (default: `3000`)
 
 ## Deployment
 
-### Docker-Deployment
+### Docker Deployment
 ```dockerfile
 FROM node:18-alpine
 ENV NODE_ENV=production
@@ -192,7 +192,7 @@ COPY . .
 CMD ["node", "index.js"]
 ```
 
-### Docker Compose Beispiel
+### Docker Compose Example
 ```yaml
 version: '3.3'
 services:
@@ -205,112 +205,49 @@ services:
       FIREFLY_URL: "https://firefly.example.com"
       FIREFLY_PERSONAL_TOKEN: "eyabc123..."
       OPENAI_API_KEY: "sk-abc123..."
-      ENABLE_UI: "true"  # Für Web-Interface
+      ENABLE_UI: "true"
 ```
 
-## Dependencies
+## Enhanced Features
 
-### Produktions-Dependencies
-```json
-{
-  "express": "^4.18.2",     // Webserver
-  "openai": "^3.2.1",       // OpenAI API Client
-  "queue": "^7.0.0",        // Job Queue Management
-  "socket.io": "^4.6.1",    // Echtzeit-Kommunikation
-  "uuid": "^9.0.0"          // Unique ID Generation
-}
-```
+### Multi-Stage Categorization Process
+1. **Category Mappings** (highest priority) - User-defined rules
+2. **Auto-categorization** - Foreign/travel detection
+3. **Word Mappings** - Text preprocessing
+4. **AI Categorization** - OpenAI fallback
 
-## Datenschutz und Sicherheit
+### Real-time Monitoring
+- Socket.io for live updates
+- Progress bars for batch jobs
+- Error tracking and display
+- Job status indicators
 
-### An OpenAI übertragene Daten
-- ✅ Transaktionsbeschreibung
-- ✅ Empfänger-Name  
-- ✅ Namen aller Kategorien
+### Error Handling
+- OpenAI rate limit management
+- Firefly III API error handling
+- Failed transaction logging
+- Retry mechanisms with exponential backoff
 
-### Nicht übertragene Daten
-- ❌ Transaktionsbeträge
-- ❌ Kontoinformationen
-- ❌ Persönliche Bankdaten
+### User Interface Features
+- Collapsible sections for better organization
+- Edit functionality for all mappings
+- Test webhook functionality
+- Batch job control (pause/resume/cancel)
+- Skip deposits option
+- Category mapping management
 
-### Sicherheitsaspekte
-- **API-Token Authentifizierung** für Firefly III
-- **HTTPS-Kommunikation** empfohlen
-- **Webhook-Validierung** für eingehende Requests
-- **Rate-Limiting** bei Batch-Verarbeitung (100ms Pause zwischen Requests)
+## Performance Optimizations
 
-## Monitoring und Debugging
+### Rate Limiting
+- Built-in OpenAI rate limit handling
+- Exponential backoff for API errors
+- Configurable delays between requests
+- Batch size optimization
 
-### Web-UI Features (wenn aktiviert)
-- **Manuelle Steuerung** über Control-Panel
-  - Button: "Process Uncategorized Transactions"
-  - Button: "Process All Transactions (Overwrite Categories)"
-- **Batch-Job-Monitoring** in Echtzeit:
-  - Progress-Bars mit Prozent-Anzeige
-  - Statistiken: Total/Verarbeitet/Erfolg/Fehler
-  - Detaillierte Fehler-Listen
-- **Individual Job-Tracking** für Webhook-Jobs
-- **Echtzeit-Updates** via Socket.io
+### Processing Efficiency
+- Early exit for deposit transactions (if enabled)
+- Priority-based processing order
+- Minimal API calls through pre-filtering
+- Category mapping for common patterns
 
-### Logging
-```javascript
-console.info("Webhook triggered");
-console.warn(`OpenAI could not classify the transaction`);
-console.error('Job error', event.job, event.err);
-console.info(`Successfully categorized transaction ${transaction.id} as '${category}'`);
-```
-
-## Neue Features - Manuelle Verarbeitung
-
-### 1. Batch-Verarbeitung unkategorisierter Transaktionen
-- **Zweck**: Kategorisiert alle bestehenden Transaktionen ohne Kategorie
-- **Sicherheit**: Überschreibt keine bestehenden Kategorien
-- **Zugriff**: Web-UI Button oder API-Endpoint `/api/process-uncategorized`
-
-### 2. Vollständige Neu-Kategorisierung
-- **Zweck**: Kategorisiert ALLE Ausgaben-Transaktionen neu
-- **Warnung**: Überschreibt bestehende Kategorien!
-- **Zugriff**: Web-UI Button (mit Bestätigung) oder API-Endpoint `/api/process-all`
-
-### 3. Progress-Tracking
-```javascript
-// Batch-Job mit Progress-Monitoring
-const batchJob = this.#jobList.createBatchJob('uncategorized', transactions.length);
-this.#jobList.updateBatchJobProgress(batchJob.id, processedCount, successCount, errorCount);
-```
-
-### 4. Fehler-Behandlung
-- **Einzelne Fehler** stoppen nicht die gesamte Batch-Verarbeitung
-- **Detaillierte Fehler-Logs** für jede fehlgeschlagene Transaktion
-- **Statistiken** über Erfolg/Fehler-Rate
-
-## API-Endpunkte
-
-### Webhook-Endpunkt
-- `POST /webhook` - Automatische Verarbeitung neuer Transaktionen
-
-### Manuelle Verarbeitung
-- `POST /api/process-uncategorized` - Startet Batch-Verarbeitung unkategorisierter Transaktionen
-- `POST /api/process-all` - Startet Batch-Verarbeitung aller Transaktionen
-
-### Response-Format
-```json
-{
-  "success": true,
-  "message": "Processing started"
-}
-```
-
-## Fazit
-
-Der **Firefly III AI Categorizer** ist ein robuster, produktionsreifer Service, der:
-
-1. **Vollautomatische Kategorisierung** von Finanztransaktionen bietet
-2. **Nahtlose Integration** mit Firefly III über Webhooks ermöglicht
-3. **Moderne AI-Technologie** für präzise Klassifizierung nutzt
-4. **Containerisiertes Deployment** für einfache Installation bietet
-5. **Erweiterte Monitoring-Funktionen** für Transparenz und Debugging bereitstellt
-6. **Manuelle Batch-Verarbeitung** für bestehende Transaktionen ermöglicht
-7. **Benutzerfreundliche Web-UI** für Steuerung und Überwachung bietet
-
-Das System verbessert die Effizienz der Finanzverwaltung erheblich und reduziert den manuellen Aufwand für die Transaktions-Kategorisierung auf ein Minimum. Mit den neuen manuellen Verarbeitungsfunktionen können auch bestehende Transaktionshistorien effizient kategorisiert werden. 
+This architecture provides a robust, scalable solution for automated transaction categorization with comprehensive user control and multiple fallback mechanisms. 

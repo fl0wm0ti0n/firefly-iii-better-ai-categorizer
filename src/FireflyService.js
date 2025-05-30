@@ -289,7 +289,7 @@ export default class FireflyService {
 
     async updateTransactionCategory(transactionId, categoryName) {
         try {
-            // Zuerst die Kategorie-ID anhand des Namens finden
+            // First find the category ID by name
             const categories = await this.getCategories();
             const categoryId = categories.get(categoryName);
             

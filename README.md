@@ -20,14 +20,45 @@ transaction.
 
 If it cannot detect the category, it will not update anything.
 
-## New Features - Manual Processing
+## New Features - Enhanced User Experience
 
-The application now includes manual processing capabilities:
+### **🎛️ General Settings**
+- **Skip Deposits Option**: Automatically exclude deposit transactions (salary, refunds) from categorization
+- **Configurable per process**: Applies to webhooks, manual processing, and batch operations
 
+### **📊 Collapsible Interface**
+- **Space-efficient UI**: All major sections (Failed Transactions, Word Mappings, Foreign Keywords, Category Mappings) are collapsible
+- **Item counters**: Each section displays the number of items when collapsed
+- **Improved navigation**: Better overview of large lists and configurations
+
+### **✏️ Edit Functionality**
+- **Edit Word Mappings**: Modify existing word mappings with edit buttons
+- **Edit Category Mappings**: Full CRUD operations for category rules
+- **Intuitive workflow**: Click edit, modify values, and save changes
+
+### **🗂️ Category Mappings (Custom Rules)**
+- **Priority processing**: Category mappings are checked BEFORE auto-categorization and AI
+- **Pattern matching**: Define rules like "rewe, spar, hofer" → "Groceries"
+- **Enable/disable rules**: Toggle individual mappings without deletion
+- **Keyword-based**: Comma-separated keywords for flexible matching
+
+### **🌍 Enhanced Auto-Categorization**
+- **Foreign/Travel Detection**: Automatic categorization for international transactions
+- **Multi-criteria**: Currency, foreign flags, keywords, and country detection
+- **Comma-separated keywords**: Easy bulk input like "bangkok, hotel, usd, paris, london"
+- **API savings**: Reduces OpenAI API calls for obvious foreign transactions
+
+### **📋 Manual Processing**
 - **Process Uncategorized Transactions**: Categorizes only transactions without existing categories
-- **Process All Transactions**: Re-categorizes ALL withdrawal transactions (overwrites existing categories)
-- **Web UI**: Real-time monitoring with progress bars, statistics, and error tracking
-- **Batch Processing**: Efficient handling of large transaction volumes
+- **Process All Transactions**: Re-categorizes ALL transactions (with deposit filtering option)
+- **Real-time monitoring**: Progress bars, statistics, and error tracking
+- **Batch control**: Pause, resume, and cancel batch operations
+
+### **🔧 Word Mappings & Failed Transactions**
+- **Failed transaction tracking**: Automatic logging of categorization failures
+- **Quick mapping creation**: Create word mappings directly from failed transactions
+- **Edit existing mappings**: Modify word replacements with intuitive interface
+- **Collapsible lists**: Better organization of large mapping collections
 
 ## Privacy
 
@@ -176,22 +207,91 @@ Now you are ready and every new withdrawal transaction should be automatically c
 
 ## User Interface
 
-The application comes with a minimal UI that allows you to monitor the classification queue and see the OpenAI prompts
-and responses. This UI is disabled by default.
+The application comes with a comprehensive Web UI that provides full control over the categorization system.
+This UI is disabled by default but highly recommended for management and monitoring.
 
 To enable this UI set the environment variable `ENABLE_UI` to `true`.
 
 After a restart of the application the UI can be accessed at `http://localhost:3000/` (or any other URL that allows you
 to reach the container).
 
-### Manual Processing Features
+### **🎛️ General Settings**
+Configure system-wide options:
+- **Skip Deposits**: Exclude deposit transactions from all categorization processes
+- Useful for salary, refunds, and other income transactions that don't need categorization
 
-The Web UI includes buttons for manual processing:
-
+### **🔧 Manual Processing**
+Control batch operations with real-time monitoring:
 - **Process Uncategorized Transactions**: Safely categorizes only transactions without existing categories
 - **Process All Transactions**: Re-categorizes ALL transactions (with confirmation dialog)
-- **Real-time Progress Tracking**: Live progress bars and statistics
-- **Error Handling**: Detailed error logs for troubleshooting
+- **Pause/Resume/Cancel**: Full control over long-running batch jobs
+- **Progress tracking**: Live progress bars, statistics, and detailed error logs
+
+### **🧪 Test Webhook**
+Test the categorization system without affecting real transactions:
+- **Live simulation**: Test with custom transaction descriptions and destinations
+- **Transaction type selection**: Test both withdrawals and deposits
+- **Immediate feedback**: See categorization results in real-time
+
+### **🗂️ Category Mappings (Custom Rules)**
+Create and manage custom categorization rules with highest priority:
+- **Rule creation**: Define rules like "Supermarkets" with keywords "rewe, spar, hofer" → "Groceries"
+- **Priority processing**: Category mappings are checked BEFORE auto-categorization and AI
+- **Edit functionality**: Modify existing rules with intuitive edit buttons
+- **Enable/disable**: Toggle rules without deletion
+- **Collapsible interface**: Organized view with item counters
+
+### **🌍 Auto-Categorization (Foreign/Travel Detection)**
+Automatic categorization for international transactions:
+- **Configuration**: Set native currency, home country, and target category
+- **Foreign keywords**: Manage keywords like "bangkok, hotel, usd, paris, london" with comma-separated input
+- **Multi-criteria detection**: Currency, foreign flags, keywords, and country-based recognition
+- **API optimization**: Reduces OpenAI API calls for obvious foreign transactions
+
+### **✏️ Word Mappings & Failed Transactions**
+Improve categorization accuracy and handle failures:
+- **Failed transaction tracking**: Automatic logging of categorization failures
+- **Quick mapping creation**: Create word mappings directly from failed transactions
+- **Edit mappings**: Modify existing word replacements with edit buttons
+- **Collapsible lists**: Better organization with item counters
+
+### **📊 Monitoring & Jobs**
+Real-time monitoring with detailed insights:
+- **Batch jobs**: Progress tracking with pause/resume/cancel functionality
+- **Individual jobs**: Detailed view of each categorization attempt
+- **Auto-categorization indicators**: Clear marking of transactions processed by different rules
+- **Error tracking**: Comprehensive error logging for troubleshooting
+
+## Categorization Process Flow
+
+The system uses a sophisticated multi-stage categorization process:
+
+```
+New Transaction
+       ↓
+1. Skip Deposits Check (if enabled)
+   ├─ Deposit? → Skip transaction
+   └─ Continue to categorization
+       ↓
+2. Category Mappings (Custom Rules) - HIGHEST PRIORITY
+   ├─ Keywords match? → Apply custom category
+   └─ No match: Continue to step 3
+       ↓
+3. Auto-Categorization (Foreign/Travel Detection)
+   ├─ Currency ≠ Native? → Foreign category
+   ├─ Foreign Flag? → Foreign category
+   ├─ Foreign Keywords? → Foreign category
+   ├─ Foreign Country? → Foreign category
+   └─ No match: Continue to step 4
+       ↓
+4. Word Mappings (Text Replacement)
+   ├─ Apply word replacements → Enhanced description
+   └─ Continue to step 5
+       ↓
+5. AI Classification (OpenAI)
+   ├─ Generate category suggestion
+   └─ Apply category or log as failed
+```
 
 ## Adjust Tag name
 
@@ -215,6 +315,32 @@ If you have to run the application on a different port than the default port `30
 
 ## API Endpoints
 
+### Core Processing
 - `POST /webhook` - Webhook for automatic transaction processing
 - `POST /api/process-uncategorized` - Start manual processing of uncategorized transactions
-- `POST /api/process-all` - Start manual processing of all transactions (overwrites categories)
+- `POST /api/process-all` - Start manual processing of all transactions
+- `POST /api/test-webhook` - Test webhook functionality with custom data
+
+### Batch Job Control
+- `POST /api/batch-jobs/:id/pause` - Pause a running batch job
+- `POST /api/batch-jobs/:id/resume` - Resume a paused batch job
+- `POST /api/batch-jobs/:id/cancel` - Cancel a batch job
+
+### Word Mappings
+- `GET /api/word-mappings` - Get all word mappings
+- `POST /api/word-mappings` - Add new word mapping
+- `DELETE /api/word-mappings/:fromWord` - Remove word mapping
+- `GET /api/failed-transactions` - Get failed transactions list
+
+### Auto-Categorization
+- `GET /api/auto-categorization/config` - Get auto-categorization configuration
+- `POST /api/auto-categorization/config` - Update auto-categorization configuration
+- `POST /api/auto-categorization/keywords` - Add/update foreign keywords
+- `DELETE /api/auto-categorization/keywords/:keyword` - Remove foreign keyword
+
+### Category Mappings
+- `GET /api/category-mappings` - Get all category mappings
+- `POST /api/category-mappings` - Add new category mapping
+- `PUT /api/category-mappings/:id` - Update existing category mapping
+- `DELETE /api/category-mappings/:id` - Delete category mapping
+- `PATCH /api/category-mappings/:id/toggle` - Enable/disable category mapping

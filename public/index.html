@@ -85,6 +85,17 @@
             border-color: #1e7e34;
         }
 
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
@@ -256,12 +267,228 @@
             font-style: italic;
             padding: 20px;
         }
+
+        .category-mapping {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .category-mapping.disabled {
+            background: #f8f9fa;
+            opacity: 0.7;
+        }
+
+        .category-mapping-content {
+            flex: 1;
+        }
+
+        .category-mapping-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .category-mapping-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #495057;
+        }
+
+        .category-mapping-category {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .category-mapping-keywords {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .category-mapping-stats {
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .category-mapping-actions {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #28a745;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .collapsible-section {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s;
+            user-select: none;
+        }
+
+        .collapsible-header:hover {
+            background: #e9ecef;
+        }
+
+        .collapsible-title {
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .collapsible-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .item-count {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .expand-icon {
+            font-size: 14px;
+            transition: transform 0.3s;
+            color: #6c757d;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            padding: 15px;
+            background: white;
+            display: none;
+        }
+
+        .collapsible-content.expanded {
+            display: block;
+        }
+
+        .collapsible-content.no-items {
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .foreign-keywords-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .foreign-keywords-display .keywords-list {
+            word-wrap: break-word;
+            line-height: 1.5;
+            color: #495057;
+        }
+
+        .edit-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .edit-button:hover {
+            background: #5a6268;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>Firefly III Better AI Categorizer</h1>
     
+    <section class="controls">
+        <h2>General Settings</h2>
+        <div style="margin-bottom: 15px;">
+            <label for="auto-skip-deposits">
+                <input type="checkbox" id="auto-skip-deposits" style="margin-right: 8px;">
+                Skip Deposits from categorization
+            </label>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #6c757d;">
+                <em>When enabled, deposit transactions (salary, refunds, etc.) will be skipped during all categorization processes.</em>
+            </p>
+        </div>
+        <button id="btn-save-general-settings" class="btn btn-success">💾 Save General Settings</button>
+    </section>
+
     <section class="controls">
         <h2>Manual Processing</h2>
         <div class="button-group">
@@ -270,6 +497,9 @@
             </button>
             <button id="btn-process-all" class="btn btn-warning">
                 Process All Transactions (Overwrite Categories)
+            </button>
+            <button onclick="testCollapsible()" class="btn btn-primary" style="margin-left: 10px;">
+                🧪 Test Collapsible
             </button>
         </div>
         <p><small>
@@ -283,19 +513,19 @@
         <div class="test-form">
             <div style="margin-bottom: 10px;">
                 <label for="test-description">Transaction Description:</label>
-                <input type="text" id="test-description" placeholder="z.B. Einkauf bei Amazon" 
-                       value="Test transaction - Einkauf bei Amazon" style="width: 100%; padding: 5px; margin-top: 5px;">
+                <input type="text" id="test-description" placeholder="e.g. Purchase at Amazon" 
+                       value="Test transaction - Purchase at Amazon" style="width: 100%; padding: 5px; margin-top: 5px;">
             </div>
             <div style="margin-bottom: 10px;">
                 <label for="test-destination">Destination Name:</label>
-                <input type="text" id="test-destination" placeholder="z.B. Amazon.com" 
+                <input type="text" id="test-destination" placeholder="e.g. Amazon.com" 
                        value="Amazon.com" style="width: 100%; padding: 5px; margin-top: 5px;">
             </div>
             <div style="margin-bottom: 10px;">
                 <label for="test-type">Transaction Type:</label>
                 <select id="test-type" style="width: 100%; padding: 5px; margin-top: 5px;">
-                    <option value="withdrawal">Withdrawal (Ausgabe)</option>
-                    <option value="deposit">Deposit (Einzahlung)</option>
+                    <option value="withdrawal">Withdrawal</option>
+                    <option value="deposit">Deposit</option>
                 </select>
             </div>
             <button id="btn-test-webhook" class="btn btn-success">
@@ -316,19 +546,167 @@
         <h2>Word Mappings & Failed Transactions</h2>
         
         <div style="margin-bottom: 20px;">
-            <h3>Failed Transactions</h3>
-            <button id="btn-refresh-failed" class="btn btn-primary">🔄 Refresh Failed Transactions</button>
-            <div id="failed-transactions" style="margin-top: 10px;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3>Failed Transactions</h3>
+                <button id="btn-refresh-failed" class="btn btn-primary">🔄 Refresh</button>
+            </div>
+            
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('failed-transactions-content')">
+                    <span class="collapsible-title">Failed Transactions</span>
+                    <div class="collapsible-info">
+                        <span id="failed-transactions-count" class="item-count">0</span>
+                        <span class="expand-icon">🔽</span>
+                    </div>
+                </div>
+                <div id="failed-transactions-content" class="collapsible-content">
+                    <div id="failed-transactions"></div>
+                </div>
+            </div>
         </div>
 
         <div style="margin-bottom: 20px;">
-            <h3>Word Mappings</h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <input type="text" id="mapping-from" placeholder="Original word/phrase" style="flex: 1; padding: 8px;">
-                <input type="text" id="mapping-to" placeholder="Replacement word/phrase" style="flex: 1; padding: 8px;">
-                <button id="btn-add-mapping" class="btn btn-success">Add Mapping</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3>Word Mappings</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="mapping-from" placeholder="Original word/phrase" style="padding: 6px; width: 140px;">
+                    <input type="text" id="mapping-to" placeholder="Replacement word/phrase" style="padding: 6px; width: 140px;">
+                    <button id="btn-add-mapping" class="btn btn-success btn-small">➕ Add</button>
+                </div>
             </div>
-            <div id="word-mappings" style="margin-top: 10px;"></div>
+            
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('word-mappings-content')">
+                    <span class="collapsible-title">Word Mappings</span>
+                    <div class="collapsible-info">
+                        <span id="word-mappings-count" class="item-count">0</span>
+                        <span class="expand-icon">🔽</span>
+                    </div>
+                </div>
+                <div id="word-mappings-content" class="collapsible-content">
+                    <div id="word-mappings"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="controls">
+        <h2>Auto-Categorization (Foreign/Travel Detection)</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <h3>Configuration</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label for="auto-enabled">Enable Auto-Categorization:</label>
+                    <input type="checkbox" id="auto-enabled" style="margin-left: 10px;">
+                </div>
+                <div>
+                    <label for="auto-native-currency">Native Currency:</label>
+                    <input type="text" id="auto-native-currency" placeholder="EUR" style="width: 100%; padding: 5px; margin-top: 5px;">
+                </div>
+                <div>
+                    <label for="auto-home-country">Home Country:</label>
+                    <input type="text" id="auto-home-country" placeholder="Austria" style="width: 100%; padding: 5px; margin-top: 5px;">
+                </div>
+                <div>
+                    <label for="auto-foreign-category">Foreign/Travel Category:</label>
+                    <input type="text" id="auto-foreign-category" placeholder="Travel & Foreign" style="width: 100%; padding: 5px; margin-top: 5px;">
+                </div>
+            </div>
+            <button id="btn-save-auto-config" class="btn btn-success">💾 Save Configuration</button>
+        </div>
+
+
+        <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3>Foreign Keywords</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="foreign-keywords-input" placeholder="e.g. bangkok, hotel, usd, paris, london" style="padding: 6px; width: 300px;">
+                    <button id="btn-save-foreign-keywords" class="btn btn-success btn-small">💾 Save Keywords</button>
+                </div>
+            </div>
+            
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('foreign-keywords-content')">
+                    <span class="collapsible-title">Foreign Keywords</span>
+                    <div class="collapsible-info">
+                        <span id="foreign-keywords-count" class="item-count">0</span>
+                        <span class="expand-icon">🔽</span>
+                    </div>
+                </div>
+                <div id="foreign-keywords-content" class="collapsible-content">
+                    <div id="foreign-keywords"></div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff;">
+            <strong>ℹ️ How it works:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li><strong>Currency Check:</strong> Non-native currencies are auto-categorized</li>
+                <li><strong>Foreign Flag:</strong> Firefly's foreign transactions are auto-categorized</li>
+                <li><strong>Keywords:</strong> Foreign places, travel terms, and international brands trigger auto-categorization</li>
+                <li><strong>Countries:</strong> Foreign country names in transaction text trigger auto-categorization</li>
+            </ul>
+            <small><em>Auto-categorization runs BEFORE AI processing, saving OpenAI API calls for obvious foreign/travel transactions.</em></small>
+        </div>
+    </section>
+
+    <section class="controls">
+        <h2>Category Mappings (Custom Rules)</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>Your Category Rules</h3>
+                <button id="btn-add-category-mapping" class="btn btn-success">➕ Add New Category Mapping</button>
+            </div>
+            
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('category-mappings-content')">
+                    <span class="collapsible-title">Category Mappings</span>
+                    <div class="collapsible-info">
+                        <span id="category-mappings-count" class="item-count">0</span>
+                        <span class="expand-icon">🔽</span>
+                    </div>
+                </div>
+                <div id="category-mappings-content" class="collapsible-content">
+                    <div id="category-mappings-list"></div>
+                </div>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #28a745; margin-bottom: 20px;">
+                <strong>💡 How to use:</strong>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li><strong>Name:</strong> Descriptive name for the rule (e.g. "Supermarkets")</li>
+                    <li><strong>Category:</strong> Firefly category (must exist, e.g. "Groceries")</li>
+                    <li><strong>Keywords:</strong> Comma-separated search terms (e.g. "rewe, spar, hofer, billa")</li>
+                    <li><strong>Priority:</strong> Category Mappings are checked BEFORE Auto-Categorization and AI</li>
+                </ul>
+                <small><em>Examples: "shell, bp, esso" → "Transportation" | "pharmacy, doctor, dentist" → "Healthcare"</em></small>
+            </div>
+
+            <!-- Add Category Mapping Form (initially hidden) -->
+            <div id="add-category-mapping-form" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #dee2e6; margin-bottom: 20px;">
+                <h4>Add New Category Mapping</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label for="mapping-name">Mapping Name:</label>
+                        <input type="text" id="mapping-name" placeholder="e.g. Supermarkets" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    </div>
+                    <div>
+                        <label for="mapping-target-category">Target Category:</label>
+                        <input type="text" id="mapping-target-category" placeholder="e.g. Groceries" style="width: 100%; padding: 8px; margin-top: 5px;">
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="mapping-keywords">Keywords (comma separated):</label>
+                    <input type="text" id="mapping-keywords" placeholder="e.g. rewe, spar, hofer, billa" style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-save-category-mapping" class="btn btn-success">💾 Save Mapping</button>
+                    <button id="btn-cancel-category-mapping" class="btn btn-warning">❌ Cancel</button>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -347,6 +725,7 @@
     const btnProcessUncategorized = document.getElementById('btn-process-uncategorized');
     const btnProcessAll = document.getElementById('btn-process-all');
     const btnTestWebhook = document.getElementById('btn-test-webhook');
+    const btnSaveGeneralSettings = document.getElementById('btn-save-general-settings');
     const testDescription = document.getElementById('test-description');
     const testDestination = document.getElementById('test-destination');
     const testType = document.getElementById('test-type');
@@ -358,6 +737,27 @@
     const mappingTo = document.getElementById('mapping-to');
     const failedTransactionsDiv = document.getElementById('failed-transactions');
     const wordMappingsDiv = document.getElementById('word-mappings');
+
+    // Auto-categorization elements
+    const autoEnabled = document.getElementById('auto-enabled');
+    const autoSkipDeposits = document.getElementById('auto-skip-deposits');
+    const autoNativeCurrency = document.getElementById('auto-native-currency');
+    const autoHomeCountry = document.getElementById('auto-home-country');
+    const autoForeignCategory = document.getElementById('auto-foreign-category');
+    const btnSaveAutoConfig = document.getElementById('btn-save-auto-config');
+    const foreignKeywordsInput = document.getElementById('foreign-keywords-input');
+    const btnSaveForeignKeywords = document.getElementById('btn-save-foreign-keywords');
+    const foreignKeywordsDiv = document.getElementById('foreign-keywords');
+
+    // Category mapping elements
+    const btnAddCategoryMapping = document.getElementById('btn-add-category-mapping');
+    const addCategoryMappingForm = document.getElementById('add-category-mapping-form');
+    const btnSaveCategoryMapping = document.getElementById('btn-save-category-mapping');
+    const btnCancelCategoryMapping = document.getElementById('btn-cancel-category-mapping');
+    const mappingName = document.getElementById('mapping-name');
+    const mappingTargetCategory = document.getElementById('mapping-target-category');
+    const mappingKeywords = document.getElementById('mapping-keywords');
+    const categoryMappingsList = document.getElementById('category-mappings-list');
 
     // Button event listeners
     btnProcessUncategorized.addEventListener('click', async () => {
@@ -447,6 +847,66 @@ Check the individual jobs section below to see the categorization result.`);
     loadWordMappings();
     loadFailedTransactions();
 
+    // Auto-categorization event listeners
+    btnSaveAutoConfig.addEventListener('click', saveAutoCategorizationConfig);
+    btnSaveForeignKeywords.addEventListener('click', saveForeignKeywords);
+    btnSaveGeneralSettings.addEventListener('click', saveGeneralSettings);
+    
+    // Load auto-categorization config on page load
+    loadAutoCategorizationConfig();
+
+    // Category mapping event listeners
+    btnAddCategoryMapping.addEventListener('click', showAddCategoryMappingForm);
+    btnSaveCategoryMapping.addEventListener('click', saveCategoryMapping);
+    btnCancelCategoryMapping.addEventListener('click', hideAddCategoryMappingForm);
+    
+    // Load category mappings on page load
+    loadCategoryMappings();
+
+    // Initialize collapsible interface
+    setTimeout(() => {
+        updateCollapsibleCounts();
+        
+        // Test all collapsible sections
+        const testSections = [
+            'failed-transactions-content',
+            'word-mappings-content', 
+            'foreign-keywords-content',
+            'category-mappings-content'
+        ];
+        
+        testSections.forEach(sectionId => {
+            const content = document.getElementById(sectionId);
+            const header = content?.previousElementSibling;
+            const icon = header?.querySelector('.expand-icon');
+            
+            if (!content) console.error('Missing content:', sectionId);
+            if (!header) console.error('Missing header for:', sectionId);
+            if (!icon) console.error('Missing icon for:', sectionId);
+        });
+        
+        console.log('Collapsible interface initialized and tested');
+    }, 100);
+
+    // Test function for collapsible interface
+    window.testCollapsible = function() {
+        alert('JavaScript is working! Now testing collapsible sections...');
+        
+        const testSections = [
+            'failed-transactions-content',
+            'word-mappings-content', 
+            'foreign-keywords-content',
+            'category-mappings-content'
+        ];
+        
+        testSections.forEach(sectionId => {
+            console.log('Testing section:', sectionId);
+            toggleCollapsible(sectionId);
+        });
+        
+        alert('All sections tested! Check console for details.');
+    };
+
     async function loadFailedTransactions() {
         try {
             const response = await fetch('/api/failed-transactions');
@@ -534,6 +994,7 @@ Check the individual jobs section below to see the categorization result.`);
     function renderFailedTransactions(transactions) {
         if (!transactions || transactions.length === 0) {
             failedTransactionsDiv.innerHTML = '<div class="no-data">No failed transactions found</div>';
+            updateCollapsibleCounts();
             return;
         }
 
@@ -554,26 +1015,43 @@ Check the individual jobs section below to see the categorization result.`);
                 </div>
             </div>
         `).join('');
+        updateCollapsibleCounts();
     }
 
     function renderWordMappings(mappings) {
         if (!mappings || mappings.length === 0) {
             wordMappingsDiv.innerHTML = '<div class="no-data">No word mappings defined</div>';
+            updateCollapsibleCounts();
             return;
         }
 
         wordMappingsDiv.innerHTML = mappings.map(mapping => `
-            <div class="word-mapping">
+            <div class="word-mapping" id="mapping-${mapping.from}">
                 <div class="mapping-content">
                     <div class="mapping-meta">Word Mapping</div>
                     <div class="mapping-text">"${mapping.from}" → "${mapping.to}"</div>
                 </div>
-                <button class="btn btn-warning btn-small" onclick="removeWordMapping('${mapping.from}')">
-                    Remove
-                </button>
+                <div style="display: flex; gap: 5px;">
+                    <button class="btn btn-primary btn-small" onclick="editWordMapping('${mapping.from}', '${mapping.to}')">
+                        ✏️ Edit
+                    </button>
+                    <button class="btn btn-warning btn-small" onclick="removeWordMapping('${mapping.from}')">
+                        🗑️ Remove
+                    </button>
+                </div>
             </div>
         `).join('');
+        updateCollapsibleCounts();
     }
+
+    window.editWordMapping = function(fromWord, toWord) {
+        mappingFrom.value = fromWord;
+        mappingTo.value = toWord;
+        mappingFrom.focus();
+        
+        // Show a message that they can edit and save
+        alert(`Editing mapping: "${fromWord}" → "${toWord}"\n\nYou can now modify the values and click "Add Mapping" to update.`);
+    };
 
     window.addMappingFromTransaction = function(transactionId) {
         const fromInput = document.querySelector(`.mapping-input-from[data-transaction-id="${transactionId}"]`);
@@ -596,6 +1074,401 @@ Check the individual jobs section below to see the categorization result.`);
     };
 
     window.removeWordMapping = removeWordMapping;
+
+    // General Settings functions
+    async function saveGeneralSettings() {
+        const config = {
+            skipDeposits: autoSkipDeposits.checked
+        };
+        
+        try {
+            const response = await fetch('/api/auto-categorization/config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ config })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert('General settings saved successfully!');
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    // Auto-categorization functions
+    async function loadAutoCategorizationConfig() {
+        try {
+            const response = await fetch('/api/auto-categorization/config');
+            const result = await response.json();
+            
+            if (result.success) {
+                const config = result.config;
+                autoEnabled.checked = config.enabled;
+                autoSkipDeposits.checked = config.skipDeposits;
+                autoNativeCurrency.value = config.nativeCurrency;
+                autoHomeCountry.value = config.homeCountry;
+                autoForeignCategory.value = config.foreignCategory;
+                renderForeignKeywords(config.foreignKeywords);
+            } else {
+                console.error('Failed to load auto-categorization config:', result.error);
+            }
+        } catch (error) {
+            console.error('Error loading auto-categorization config:', error);
+        }
+    }
+
+    async function saveAutoCategorizationConfig() {
+        const config = {
+            enabled: autoEnabled.checked,
+            skipDeposits: autoSkipDeposits.checked,
+            nativeCurrency: autoNativeCurrency.value.trim().toUpperCase(),
+            homeCountry: autoHomeCountry.value.trim(),
+            foreignCategory: autoForeignCategory.value.trim()
+        };
+        
+        if (!config.nativeCurrency || !config.homeCountry || !config.foreignCategory) {
+            alert('Please fill in all configuration fields');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/auto-categorization/config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ config })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert('Auto-categorization config saved successfully!');
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function saveForeignKeywords() {
+        const keywords = foreignKeywordsInput.value.trim().split(',').map(keyword => keyword.trim());
+        
+        if (keywords.length === 0) {
+            alert('Please enter at least one keyword');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/auto-categorization/keywords', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ keywords })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                foreignKeywordsInput.value = '';
+                loadAutoCategorizationConfig(); // Refresh the list
+                alert('Foreign keywords saved successfully!');
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    function renderForeignKeywords(keywords) {
+        if (!keywords || keywords.length === 0) {
+            foreignKeywordsDiv.innerHTML = '<div class="no-data">No foreign keywords defined</div>';
+            foreignKeywordsInput.value = '';
+            updateCollapsibleCounts();
+            return;
+        }
+
+        // Display as comma-separated list in input field
+        foreignKeywordsInput.value = keywords.join(', ');
+        
+        // Display as read-only list in collapsible section
+        foreignKeywordsDiv.innerHTML = `
+            <div class="word-mapping">
+                <div class="mapping-content">
+                    <div class="mapping-meta">Foreign Keywords (${keywords.length} total)</div>
+                    <div class="mapping-text">${keywords.join(', ')}</div>
+                </div>
+                <button class="btn btn-warning btn-small" onclick="clearForeignKeywords()">
+                    🗑️ Clear All
+                </button>
+            </div>
+        `;
+        updateCollapsibleCounts();
+    }
+
+    window.clearForeignKeywords = function() {
+        if (confirm('Clear all foreign keywords?')) {
+            foreignKeywordsInput.value = '';
+            saveForeignKeywords();
+        }
+    };
+
+    // Category mapping functions
+    async function loadCategoryMappings() {
+        try {
+            const response = await fetch('/api/category-mappings');
+            const result = await response.json();
+            
+            if (result.success) {
+                renderCategoryMappings(result.mappings);
+            } else {
+                console.error('Failed to load category mappings:', result.error);
+            }
+        } catch (error) {
+            console.error('Error loading category mappings:', error);
+        }
+    }
+
+    function showAddCategoryMappingForm() {
+        addCategoryMappingForm.style.display = 'block';
+        btnAddCategoryMapping.style.display = 'none';
+        mappingName.focus();
+    }
+
+    function hideAddCategoryMappingForm() {
+        addCategoryMappingForm.style.display = 'none';
+        btnAddCategoryMapping.style.display = 'inline-block';
+        
+        // Clear form
+        mappingName.value = '';
+        mappingTargetCategory.value = '';
+        mappingKeywords.value = '';
+        
+        // Reset editing state
+        window.editingMappingId = null;
+        btnSaveCategoryMapping.textContent = '💾 Save Mapping';
+    }
+
+    async function saveCategoryMapping() {
+        const mappingData = {
+            name: mappingName.value.trim(),
+            targetCategory: mappingTargetCategory.value.trim(),
+            keywords: mappingKeywords.value.trim()
+        };
+        
+        if (!mappingData.name || !mappingData.targetCategory || !mappingData.keywords) {
+            alert('Please fill in all fields');
+            return;
+        }
+        
+        try {
+            let response;
+            if (window.editingMappingId) {
+                // Update existing mapping
+                response = await fetch(`/api/category-mappings/${window.editingMappingId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(mappingData)
+                });
+            } else {
+                // Create new mapping
+                response = await fetch('/api/category-mappings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(mappingData)
+                });
+            }
+            
+            const result = await response.json();
+            if (result.success) {
+                hideAddCategoryMappingForm();
+                loadCategoryMappings(); // Refresh the list
+                alert(window.editingMappingId ? 'Category mapping updated successfully!' : 'Category mapping added successfully!');
+                
+                // Reset editing state
+                window.editingMappingId = null;
+                btnSaveCategoryMapping.textContent = '💾 Save Mapping';
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function toggleCategoryMapping(id, enabled) {
+        try {
+            const response = await fetch(`/api/category-mappings/${id}/toggle`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ enabled })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                loadCategoryMappings(); // Refresh the list
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function deleteCategoryMapping(id, name) {
+        if (confirm(`Delete category mapping "${name}"?`)) {
+            try {
+                const response = await fetch(`/api/category-mappings/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    loadCategoryMappings(); // Refresh the list
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+    }
+
+    function renderCategoryMappings(mappings) {
+        if (!mappings || mappings.length === 0) {
+            categoryMappingsList.innerHTML = '<div class="no-data">No category mappings defined. Click "➕ Add New Category Mapping" to create your first rule.</div>';
+            updateCollapsibleCounts();
+            return;
+        }
+
+        categoryMappingsList.innerHTML = mappings.map(mapping => {
+            const keywordsString = Array.isArray(mapping.keywords) ? mapping.keywords.join(', ') : '';
+            const keywordCount = Array.isArray(mapping.keywords) ? mapping.keywords.length : 0;
+            
+            return `
+                <div class="category-mapping ${!mapping.enabled ? 'disabled' : ''}">
+                    <div class="category-mapping-content">
+                        <div class="category-mapping-header">
+                            <span class="category-mapping-name">${mapping.name}</span>
+                            <span class="category-mapping-category">${mapping.targetCategory}</span>
+                        </div>
+                        <div class="category-mapping-keywords">
+                            <strong>Keywords:</strong> ${keywordsString}
+                        </div>
+                        <div class="category-mapping-stats">
+                            ${keywordCount} keywords • Created: ${new Date(mapping.created).toLocaleDateString()}
+                            ${mapping.updated ? ` • Updated: ${new Date(mapping.updated).toLocaleDateString()}` : ''}
+                        </div>
+                    </div>
+                    <div class="category-mapping-actions">
+                        <label class="toggle-switch">
+                            <input type="checkbox" ${mapping.enabled ? 'checked' : ''} 
+                                   onchange="toggleCategoryMapping('${mapping.id}', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button class="btn btn-primary btn-small" onclick="editCategoryMapping('${mapping.id}', '${mapping.name}', '${mapping.targetCategory}', '${keywordsString}')">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn btn-danger btn-small" onclick="deleteCategoryMapping('${mapping.id}', '${mapping.name}')">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        updateCollapsibleCounts();
+    }
+
+    window.toggleCategoryMapping = toggleCategoryMapping;
+    window.deleteCategoryMapping = deleteCategoryMapping;
+
+    window.editCategoryMapping = function(id, name, targetCategory, keywords) {
+        // Fill the form with existing values
+        mappingName.value = name;
+        mappingTargetCategory.value = targetCategory;
+        mappingKeywords.value = keywords;
+        
+        // Show the form
+        showAddCategoryMappingForm();
+        
+        // Store the ID for updating instead of creating
+        window.editingMappingId = id;
+        
+        // Change button text
+        btnSaveCategoryMapping.textContent = '💾 Update Mapping';
+        
+        alert(`Editing: "${name}"\n\nModify the values and click "Update Mapping" to save changes.`);
+    };
+
+    // Batch job control functions
+    window.pauseBatchJob = async function(batchJobId) {
+        if (confirm('Pause this batch job?')) {
+            try {
+                const response = await fetch(`/api/batch-jobs/${batchJobId}/pause`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+    };
+
+    window.resumeBatchJob = async function(batchJobId) {
+        try {
+            const response = await fetch(`/api/batch-jobs/${batchJobId}/resume`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+            if (!result.success) {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    };
+
+    window.cancelBatchJob = async function(batchJobId) {
+        if (confirm('Cancel this batch job? This action cannot be undone.')) {
+            try {
+                const response = await fetch(`/api/batch-jobs/${batchJobId}/cancel`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+    };
+
+    function getStatusColor(status) {
+        switch (status) {
+            case 'running': return '#007bff';
+            case 'paused': return '#ffc107';
+            case 'finished': return '#28a745';
+            case 'cancelled': return '#dc3545';
+            default: return '#6c757d';
+        }
+    }
 
     // Socket event handlers
     socket.on('jobs', jobs => {
@@ -639,8 +1512,8 @@ Check the individual jobs section below to see the categorization result.`);
         element.innerHTML = renderBatchJob(e.batchJob);
         const oldElement = document.querySelector(`[data-batch-job-id="${e.batchJob.id}"]`);
         if (oldElement) {
-            oldElement.before(element);
-            oldElement.remove();
+        oldElement.before(element);
+        oldElement.remove();
         }
 
         // Re-enable buttons when batch job finishes
@@ -684,6 +1557,11 @@ Check the individual jobs section below to see the categorization result.`);
             <div><strong>Description:</strong> <span>${job.data?.description || ''}</span>
             <div><strong>Guessed category:</strong> <span>${job.data?.category ? job.data.category : '<em>Not yet classified</em>'}</span>
             </div>
+            ${job.data?.autoRule ? `<div><strong>Auto-categorized:</strong> 
+                <span style="color: ${job.data.autoRule === 'category_mapping' ? '#007bff' : '#28a745'}; font-weight: bold;">
+                    ${job.data.autoRule === 'category_mapping' ? '🗂️' : '✅'} ${job.data.autoRule}
+                </span>
+            </div>` : ''}
             ${ job.data?.prompt ? `<div><strong>Prompt:</strong><br>
                 <details>
                     <summary>Show</summary>
@@ -703,9 +1581,32 @@ Check the individual jobs section below to see the categorization result.`);
         const progress = batchJob.totalCount > 0 ? (batchJob.processedCount / batchJob.totalCount) * 100 : 0;
         const progressText = `${batchJob.processedCount}/${batchJob.totalCount}`;
         
+        // Control buttons based on status
+        let controlButtons = '';
+        if (batchJob.status === 'running') {
+            controlButtons = `
+                <button class="btn btn-warning btn-small" onclick="pauseBatchJob('${batchJob.id}')">⏸️ Pause</button>
+                <button class="btn btn-danger btn-small" onclick="cancelBatchJob('${batchJob.id}')">❌ Cancel</button>
+            `;
+        } else if (batchJob.status === 'paused') {
+            controlButtons = `
+                <button class="btn btn-success btn-small" onclick="resumeBatchJob('${batchJob.id}')">▶️ Resume</button>
+                <button class="btn btn-danger btn-small" onclick="cancelBatchJob('${batchJob.id}')">❌ Cancel</button>
+            `;
+        }
+        
         return `<article class="batch-job ${batchJob.status}" data-batch-job-id="${batchJob.id}">
-            <div><strong>Batch Job:</strong> ${batchJob.type === 'uncategorized' ? 'Process Uncategorized' : 'Process All Transactions'}</div>
-            <div><strong>Status:</strong> <span>${batchJob.status}</span></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div>
+                    <strong>Batch Job:</strong> ${batchJob.type === 'uncategorized' ? 'Process Uncategorized' : 'Process All Transactions'}
+                    <span style="margin-left: 10px; padding: 3px 8px; background: ${getStatusColor(batchJob.status)}; color: white; border-radius: 3px; font-size: 12px;">
+                        ${batchJob.status.toUpperCase()}
+                    </span>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    ${controlButtons}
+                </div>
+            </div>
             <div><strong>Started:</strong>
                 <time>${Intl.DateTimeFormat(undefined, {
                     dateStyle: 'medium',
@@ -717,6 +1618,18 @@ Check the individual jobs section below to see the categorization result.`);
                     dateStyle: 'medium',
                     timeStyle: 'medium'
                 }).format(new Date(batchJob.finishedAt))}</time>
+            </div>` : ''}
+            ${batchJob.pausedAt ? `<div><strong>Paused:</strong>
+                <time>${Intl.DateTimeFormat(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'medium'
+                }).format(new Date(batchJob.pausedAt))}</time>
+            </div>` : ''}
+            ${batchJob.cancelledAt ? `<div><strong>Cancelled:</strong>
+                <time>${Intl.DateTimeFormat(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'medium'
+                }).format(new Date(batchJob.cancelledAt))}</time>
             </div>` : ''}
             
             <div class="progress-bar">
@@ -753,6 +1666,81 @@ Check the individual jobs section below to see the categorization result.`);
                 </details>
             ` : ''}
         </article>`
+    }
+
+    // Collapsible interface functions
+    window.toggleCollapsible = function(contentId) {
+        console.log('toggleCollapsible called with:', contentId);
+        try {
+            const content = document.getElementById(contentId);
+            if (!content) {
+                console.error('Content element not found:', contentId);
+                return;
+            }
+            
+            const header = content.previousElementSibling;
+            if (!header) {
+                console.error('Header element not found for:', contentId);
+                return;
+            }
+            
+            const icon = header.querySelector('.expand-icon');
+            if (!icon) {
+                console.error('Icon element not found for:', contentId);
+                return;
+            }
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                icon.classList.remove('expanded');
+                icon.textContent = '🔽';
+                console.log('Collapsed:', contentId);
+            } else {
+                content.classList.add('expanded');
+                icon.classList.add('expanded');
+                icon.textContent = '🔼';
+                console.log('Expanded:', contentId);
+            }
+        } catch (error) {
+            console.error('Error in toggleCollapsible:', error);
+        }
+    };
+
+    // Update count displays
+    function updateCollapsibleCounts() {
+        try {
+            // Update failed transactions count
+            const failedTransactions = document.getElementById('failed-transactions');
+            const failedCount = document.getElementById('failed-transactions-count');
+            if (failedTransactions && failedCount) {
+                failedCount.textContent = failedTransactions.children.length;
+            }
+
+            // Update word mappings count
+            const wordMappings = document.getElementById('word-mappings');
+            const wordCount = document.getElementById('word-mappings-count');
+            if (wordMappings && wordCount) {
+                wordCount.textContent = wordMappings.children.length;
+            }
+
+            // Update foreign keywords count
+            const foreignKeywords = document.getElementById('foreign-keywords');
+            const foreignCount = document.getElementById('foreign-keywords-count');
+            if (foreignKeywords && foreignCount) {
+                foreignCount.textContent = foreignKeywords.children.length;
+            }
+
+            // Update category mappings count
+            const categoryMappings = document.getElementById('category-mappings-list');
+            const categoryCount = document.getElementById('category-mappings-count');
+            if (categoryMappings && categoryCount) {
+                categoryCount.textContent = categoryMappings.children.length;
+            }
+            
+            console.log('Counts updated successfully');
+        } catch (error) {
+            console.error('Error updating counts:', error);
+        }
     }
 </script>
 </body>

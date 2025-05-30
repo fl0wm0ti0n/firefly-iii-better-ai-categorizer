@@ -31,7 +31,7 @@ export default class OpenAiService {
         try {
             const prompt = this.#generatePrompt(categories, destinationName, description);
 
-            // Geschätzte Token-Anzahl (grob: 1 token ≈ 4 characters)
+            // Estimated token count (rough: 1 token ≈ 4 characters)
             const estimatedTokens = Math.ceil((prompt.length + 50) / 4);
             
             const response = await this.#openAi.createChatCompletion({

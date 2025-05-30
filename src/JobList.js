@@ -116,6 +116,47 @@ export default class JobList {
         }
     }
 
+    pauseBatchJob(id) {
+        const batchJob = this.#batchJobs.get(id);
+        if (batchJob && batchJob.status === "running") {
+            batchJob.status = "paused";
+            batchJob.pausedAt = new Date();
+            console.log(`⏸️ Batch job ${id} paused`);
+            this.#eventEmitter.emit('batch job updated', {batchJob, batchJobs: Array.from(this.#batchJobs.values())});
+            return true;
+        }
+        return false;
+    }
+
+    resumeBatchJob(id) {
+        const batchJob = this.#batchJobs.get(id);
+        if (batchJob && batchJob.status === "paused") {
+            batchJob.status = "running";
+            batchJob.resumedAt = new Date();
+            console.log(`▶️ Batch job ${id} resumed`);
+            this.#eventEmitter.emit('batch job updated', {batchJob, batchJobs: Array.from(this.#batchJobs.values())});
+            return true;
+        }
+        return false;
+    }
+
+    cancelBatchJob(id) {
+        const batchJob = this.#batchJobs.get(id);
+        if (batchJob && (batchJob.status === "running" || batchJob.status === "paused")) {
+            batchJob.status = "cancelled";
+            batchJob.cancelledAt = new Date();
+            console.log(`❌ Batch job ${id} cancelled`);
+            this.#eventEmitter.emit('batch job updated', {batchJob, batchJobs: Array.from(this.#batchJobs.values())});
+            return true;
+        }
+        return false;
+    }
+
+    getBatchJobStatus(id) {
+        const batchJob = this.#batchJobs.get(id);
+        return batchJob ? batchJob.status : null;
+    }
+
     updateJobData(id, data) {
         const job = this.#jobs.get(id);
         job.data = data;
