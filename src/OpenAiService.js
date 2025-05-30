@@ -3,7 +3,13 @@ import {getConfigVariable} from "./util.js";
 
 export default class OpenAiService {
     #openAi;
-    #model = "gpt-3.5-turbo-instruct";
+    #model = "gpt-4o-mini";
+    #stats = {
+        totalRequests: 0,
+        totalTokens: 0,
+        rateLimitHits: 0,
+        lastReset: Date.now()
+    };
 
     constructor() {
         const apiKey = getConfigVariable("OPENAI_API_KEY")
@@ -13,50 +19,137 @@ export default class OpenAiService {
         });
 
         this.#openAi = new OpenAIApi(configuration)
+        
+        // Modell aus Umgebungsvariablen lesen
+        const envModel = getConfigVariable("OPENAI_MODEL", false);
+        if (envModel) {
+            this.setModel(envModel);
+        }
     }
 
     async classify(categories, destinationName, description) {
         try {
             const prompt = this.#generatePrompt(categories, destinationName, description);
 
-            const response = await this.#openAi.createCompletion({
+            // Geschätzte Token-Anzahl (grob: 1 token ≈ 4 characters)
+            const estimatedTokens = Math.ceil((prompt.length + 50) / 4);
+            
+            const response = await this.#openAi.createChatCompletion({
                 model: this.#model,
-                prompt
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a financial transaction categorizer. Respond only with the exact category name from the provided list, or 'UNKNOWN' if no category fits."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                max_tokens: 50,
+                temperature: 0.1,
+                top_p: 1,
+                frequency_penalty: 0,
+                presence_penalty: 0
             });
 
-            let guess = response.data.choices[0].text;
+            // Statistiken aktualisieren
+            this.#stats.totalRequests++;
+            this.#stats.totalTokens += estimatedTokens;
+
+            let guess = response.data.choices[0].message.content;
             guess = guess.replace("\n", "");
             guess = guess.trim();
 
             if (categories.indexOf(guess) === -1) {
-                console.warn(`OpenAI could not classify the transaction. 
-                Prompt: ${prompt}
-                OpenAIs guess: ${guess}`)
-                return null;
+                console.warn(`OpenAI could not classify the transaction.`);
+                console.warn(`Prompt: ${prompt}`);
+                console.warn(`OpenAI's guess: ${guess}`);
+                console.warn(`Available categories: ${categories.join(", ")}`);
+                return {
+                    prompt,
+                    response: guess,
+                    category: null
+                };
             }
 
+            console.info(`✅ Successfully classified transaction as: ${guess}`);
             return {
                 prompt,
-                response: response.data.choices[0].text,
+                response: guess,
                 category: guess
             };
 
         } catch (error) {
             if (error.response) {
-                console.error(error.response.status);
-                console.error(error.response.data);
-                throw new OpenAiException(error.status, error.response, error.response.data);
+                const status = error.response.status;
+                const errorData = error.response.data;
+                
+                if (status === 429) {
+                    this.#stats.rateLimitHits++;
+                    console.error("🚨 OpenAI Rate Limit/Quota exceeded:");
+                    console.error("   - You may have exceeded your API quota");
+                    console.error("   - Try again in a few minutes");
+                    console.error("   - Check your OpenAI billing dashboard");
+                    console.error(`📊 Current session stats: ${this.#stats.totalRequests} requests, ${this.#stats.totalTokens} tokens, ${this.#stats.rateLimitHits} rate limits`);
+                    throw new OpenAiException(status, error.response, "Rate limit exceeded. Please check your OpenAI quota and billing.");
+                } else if (status === 401) {
+                    console.error("🚨 OpenAI Authentication failed:");
+                    console.error("   - Check your OPENAI_API_KEY");
+                    throw new OpenAiException(status, error.response, "Invalid API key. Please check your OPENAI_API_KEY.");
+                } else if (status === 400) {
+                    console.error("🚨 OpenAI Bad Request:");
+                    console.error("   - Invalid request parameters");
+                    console.error("   - Error details:", errorData);
+                    throw new OpenAiException(status, error.response, `Bad request: ${errorData?.error?.message || 'Unknown error'}`);
+                } else {
+                    console.error(`🚨 OpenAI API Error (${status}):`, errorData);
+                    throw new OpenAiException(status, error.response, errorData?.error?.message || errorData);
+                }
             } else {
-                console.error(error.message);
-                throw new OpenAiException(null, null, error.message);
+                console.error("🚨 Network error while communicating with OpenAI:", error.message);
+                throw new OpenAiException(null, null, `Network error: ${error.message}`);
             }
         }
     }
 
     #generatePrompt(categories, destinationName, description) {
-        return `Given i want to categorize transactions on my bank account into this categories: ${categories.join(", ")}
+        return `Given I want to categorize transactions on my bank account into these categories: ${categories.join(", ")}
+
 In which category would a transaction from "${destinationName}" with the subject "${description}" fall into?
-Just output the name of the category. Does not have to be a complete sentence.`;
+
+Rules:
+- Respond with ONLY the exact category name from the list above
+- If no category fits well, respond with "UNKNOWN"
+- Do not explain your reasoning`;
+    }
+
+    setModel(model) {
+        const supportedModels = ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"];
+        if (supportedModels.includes(model)) {
+            this.#model = model;
+            console.info(`✅ Switched to OpenAI model: ${model}`);
+        } else {
+            console.warn(`⚠️ Unsupported model: ${model}. Using default: ${this.#model}`);
+        }
+    }
+
+    getModel() {
+        return this.#model;
+    }
+
+    getStats() {
+        return { ...this.#stats };
+    }
+
+    resetStats() {
+        this.#stats = {
+            totalRequests: 0,
+            totalTokens: 0,
+            rateLimitHits: 0,
+            lastReset: Date.now()
+        };
+        console.info("📊 OpenAI statistics reset");
     }
 }
 

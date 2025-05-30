@@ -3,10 +3,8 @@
 This project allows you to automatically categorize your expenses in [Firefly III](https://www.firefly-iii.org/) by
 using OpenAI.
 
-## Please fork me
-Unfortunately i am not able to invest more time into maintaining this project. 
-
-Feel free to fork it and create a PR that adds a link to your fork in the README file.
+## this is a fork of
+bahuma20/firefly-iii-ai-categorize
 
 ## How it works
 
@@ -22,6 +20,15 @@ transaction.
 
 If it cannot detect the category, it will not update anything.
 
+## New Features - Manual Processing
+
+The application now includes manual processing capabilities:
+
+- **Process Uncategorized Transactions**: Categorizes only transactions without existing categories
+- **Process All Transactions**: Re-categorizes ALL withdrawal transactions (overwrites existing categories)
+- **Web UI**: Real-time monitoring with progress bars, statistics, and error tracking
+- **Batch Processing**: Efficient handling of large transaction volumes
+
 ## Privacy
 
 Please note that some details of the transactions will be sent to OpenAI as information to guess the category.
@@ -33,6 +40,32 @@ These are:
 - Names of all categories
 
 ## Installation
+
+### Option 1: Using .env file (Recommended)
+
+1. **Clone/Download the project**
+2. **Copy the environment template:**
+   ```bash
+   cp env.example .env
+   ```
+3. **Edit the `.env` file with your credentials:**
+   ```bash
+   # Required
+   FIREFLY_URL=https://your-firefly-instance.com
+   FIREFLY_PERSONAL_TOKEN=your-firefly-personal-access-token
+   OPENAI_API_KEY=sk-your-openai-api-key
+   
+   # Optional
+   ENABLE_UI=true
+   PORT=3000
+   FIREFLY_TAG=AI categorized
+   ```
+4. **Start the application:**
+   ```bash
+   ./start.sh
+   ```
+
+### Option 2: Using Environment Variables
 
 ### 1. Get a Firefly Personal Access Token
 
@@ -57,7 +90,7 @@ When an API key is created you'll be able to copy the secret key and use it.
 
 ![OpenAI screenshot](docs/img/openai-key.png)
 
-Note: OpenAI currently provides 5$ free credits for 3 months which is great since you won’t have to provide your
+Note: OpenAI currently provides 5$ free credits for 3 months which is great since you won't have to provide your
 payment details to begin interacting with the API for the first time.
 
 After that you have to enable billing in your account.
@@ -83,6 +116,7 @@ services:
       FIREFLY_URL: "https://firefly.example.com"
       FIREFLY_PERSONAL_TOKEN: "eyabc123..."
       OPENAI_API_KEY: "sk-abc123..."
+      ENABLE_UI: "true"
 ```
 
 Make sure to set the environment variables correctly.
@@ -102,7 +136,20 @@ docker run -d \
 -e FIREFLY_URL=https://firefly.example.com \
 -e FIREFLY_PERSONAL_TOKEN=eyabc123... \
 -e OPENAI_API_KEY=sk-abc123... \
+-e ENABLE_UI=true \
 ghcr.io/bahuma20/firefly-iii-ai-categorize:latest
+```
+
+#### 3.3 Manually via Node.js
+
+Set environment variables and start:
+```bash
+export FIREFLY_URL="https://firefly.example.com"
+export FIREFLY_PERSONAL_TOKEN="eyabc123..."
+export OPENAI_API_KEY="sk-abc123..."
+export ENABLE_UI=true
+npm install
+npm start
 ```
 
 ### 4. Set up the webhook
@@ -137,6 +184,15 @@ To enable this UI set the environment variable `ENABLE_UI` to `true`.
 After a restart of the application the UI can be accessed at `http://localhost:3000/` (or any other URL that allows you
 to reach the container).
 
+### Manual Processing Features
+
+The Web UI includes buttons for manual processing:
+
+- **Process Uncategorized Transactions**: Safely categorizes only transactions without existing categories
+- **Process All Transactions**: Re-categorizes ALL transactions (with confirmation dialog)
+- **Real-time Progress Tracking**: Live progress bars and statistics
+- **Error Handling**: Detailed error logs for troubleshooting
+
 ## Adjust Tag name
 
 The application automatically sets the tag "AI categorized" on every transaction that was processed and a category could
@@ -156,3 +212,9 @@ If you have to run the application on a different port than the default port `30
 - `ENABLE_UI`: If the user interface should be enabled. (Default: `false`)
 - `FIREFLY_TAG`: The tag to assign to the processed transactions. (Default: `AI categorized`)
 - `PORT`: The port where the application listens. (Default: `3000`)
+
+## API Endpoints
+
+- `POST /webhook` - Webhook for automatic transaction processing
+- `POST /api/process-uncategorized` - Start manual processing of uncategorized transactions
+- `POST /api/process-all` - Start manual processing of all transactions (overwrites categories)

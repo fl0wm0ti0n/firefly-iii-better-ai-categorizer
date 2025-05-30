@@ -3,6 +3,7 @@ import EventEmitter from "events";
 
 export default class JobList {
     #jobs = new Map();
+    #batchJobs = new Map();
     #eventEmitter = new EventEmitter();
 
     constructor() {
@@ -14,6 +15,10 @@ export default class JobList {
 
     getJobs() {
         return this.#jobs;
+    }
+
+    getBatchJobs() {
+        return this.#batchJobs;
     }
 
     createJob(data) {
@@ -31,6 +36,84 @@ export default class JobList {
         this.#eventEmitter.emit('job created', {job, jobs: Array.from(this.#jobs.values())})
 
         return job;
+    }
+
+    createBatchJob(type, totalCount) {
+        const id = uuid();
+        const created = new Date();
+
+        const batchJob = {
+            id,
+            created,
+            type, // 'uncategorized' or 'all'
+            status: "running",
+            totalCount,
+            processedCount: 0,
+            successCount: 0,
+            errorCount: 0,
+            errors: []
+        };
+
+        this.#batchJobs.set(id, batchJob);
+        this.#eventEmitter.emit('batch job created', {batchJob, batchJobs: Array.from(this.#batchJobs.values())});
+
+        return batchJob;
+    }
+
+    updateBatchJobProgress(id, updates) {
+        const batchJob = this.#batchJobs.get(id);
+        if (!batchJob) return;
+
+        // Support both old format (individual parameters) and new format (object)
+        if (typeof updates === 'object' && updates !== null && !Array.isArray(updates)) {
+            // New object-based format
+            if (typeof updates.processed === 'number') {
+                batchJob.processedCount += updates.processed;
+            }
+            if (typeof updates.success === 'number') {
+                batchJob.successCount += updates.success;
+            }
+            if (typeof updates.errors === 'number') {
+                batchJob.errorCount += updates.errors;
+            }
+            if (updates.errorDetails && typeof updates.errorDetails === 'string') {
+                batchJob.errors.push(updates.errorDetails);
+            }
+        } else {
+            // Old format compatibility (if called with individual parameters)
+            const processedCount = updates;
+            const successCount = arguments[2];
+            const errorCount = arguments[3];
+            const error = arguments[4];
+            
+            if (typeof processedCount === 'number') batchJob.processedCount = processedCount;
+            if (typeof successCount === 'number') batchJob.successCount = successCount;
+            if (typeof errorCount === 'number') batchJob.errorCount = errorCount;
+            if (error) batchJob.errors.push(error);
+        }
+
+        // Ensure all counts are valid numbers
+        batchJob.processedCount = Math.max(0, batchJob.processedCount || 0);
+        batchJob.successCount = Math.max(0, batchJob.successCount || 0);
+        batchJob.errorCount = Math.max(0, batchJob.errorCount || 0);
+
+        console.log(`📊 Batch job ${id} updated:`, {
+            processed: batchJob.processedCount,
+            success: batchJob.successCount,
+            errors: batchJob.errorCount,
+            total: batchJob.totalCount
+        });
+
+        this.#eventEmitter.emit('batch job updated', {batchJob, batchJobs: Array.from(this.#batchJobs.values())});
+    }
+
+    finishBatchJob(id) {
+        const batchJob = this.#batchJobs.get(id);
+        if (batchJob) {
+            batchJob.status = "finished";
+            batchJob.finishedAt = new Date();
+            this.#eventEmitter.emit('batch job updated', {batchJob, batchJobs: Array.from(this.#batchJobs.values())});
+        }
     }
 
     updateJobData(id, data) {

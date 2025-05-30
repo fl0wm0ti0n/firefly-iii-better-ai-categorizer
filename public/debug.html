@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Batch Jobs</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+        pre { overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Batch Job Debug</h1>
+    <div id="debug-output"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const debugOutput = document.getElementById('debug-output');
+
+        function addDebugMessage(title, data) {
+            const div = document.createElement('div');
+            div.className = 'debug';
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            debugOutput.appendChild(div);
+        }
+
+        socket.on('connect', () => {
+            addDebugMessage('Connected to server', { timestamp: new Date().toISOString() });
+        });
+
+        socket.on('batch jobs', (batchJobs) => {
+            addDebugMessage('Initial batch jobs', batchJobs);
+        });
+
+        socket.on('batch job created', (e) => {
+            addDebugMessage('Batch job created', e);
+        });
+
+        socket.on('batch job updated', (e) => {
+            addDebugMessage('Batch job updated', e);
+        });
+
+        socket.on('jobs', (jobs) => {
+            addDebugMessage('Initial jobs', jobs);
+        });
+    </script>
+</body>
+</html> 
