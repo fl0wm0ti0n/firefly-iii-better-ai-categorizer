@@ -498,9 +498,6 @@
             <button id="btn-process-all" class="btn btn-warning">
                 Process All Transactions (Overwrite Categories)
             </button>
-            <button onclick="testCollapsible()" class="btn btn-primary" style="margin-left: 10px;">
-                🧪 Test Collapsible
-            </button>
         </div>
         <p><small>
             <strong>Process Uncategorized:</strong> Categorizes only transactions without existing categories.<br>
@@ -872,45 +869,8 @@ Check the individual jobs section below to see the categorization result.`);
     setTimeout(() => {
         updateCollapsibleCounts();
         
-        // Test all collapsible sections
-        const testSections = [
-            'failed-transactions-content',
-            'word-mappings-content', 
-            'foreign-keywords-content',
-            'category-mappings-content'
-        ];
-        
-        testSections.forEach(sectionId => {
-            const content = document.getElementById(sectionId);
-            const header = content?.previousElementSibling;
-            const icon = header?.querySelector('.expand-icon');
-            
-            if (!content) console.error('Missing content:', sectionId);
-            if (!header) console.error('Missing header for:', sectionId);
-            if (!icon) console.error('Missing icon for:', sectionId);
-        });
-        
         console.log('Collapsible interface initialized and tested');
     }, 100);
-
-    // Test function for collapsible interface
-    window.testCollapsible = function() {
-        alert('JavaScript is working! Now testing collapsible sections...');
-        
-        const testSections = [
-            'failed-transactions-content',
-            'word-mappings-content', 
-            'foreign-keywords-content',
-            'category-mappings-content'
-        ];
-        
-        testSections.forEach(sectionId => {
-            console.log('Testing section:', sectionId);
-            toggleCollapsible(sectionId);
-        });
-        
-        alert('All sections tested! Check console for details.');
-    };
 
     async function loadFailedTransactions() {
         try {
