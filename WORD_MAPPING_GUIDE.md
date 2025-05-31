@@ -76,6 +76,13 @@ Category:  Subscriptions → Digital Services
    - Enter replacement word/phrase
    - Click **➕ Add**
 
+**Option C: Using Transaction Management Interface** 🆕
+1. Navigate to **"Transaction Management (Interactive)"**
+2. Filter for uncategorized transactions 
+3. Use drag & drop to manually categorize failed transactions
+4. Identify patterns that need word mappings
+5. **See [TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_MANAGEMENT_GUIDE.md) for details**
+
 ### Step 3: Manage Mappings
 - **View all**: Collapsible "Word Mappings" section
 - **Delete**: "Remove" button for each mapping

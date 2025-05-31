@@ -348,6 +348,7 @@ If you have to run the application on a different port than the default port `30
 ## ✨ Key Features
 
 - **🤖 AI-Powered Categorization**: Uses OpenAI's GPT model for intelligent transaction categorization
+- **🖱️ Drag & Drop Interface**: Visual transaction management with intuitive categorization
 - **🔄 Real-time Processing**: Webhook integration for automatic processing of new transactions
 - **📊 Batch Processing**: Process all uncategorized or all transactions manually
 - **🎯 Smart Auto-Categorization**: Pre-categorization based on currency, country, and custom keywords
@@ -358,7 +359,19 @@ If you have to run the application on a different port than the default port `30
 
 ## 🆕 Transaction Management Interface
 
-The new **Transaction Management** section provides a powerful interface for browsing and managing your Firefly III transactions:
+The new **Transaction Management** section provides a powerful interface for browsing and managing your Firefly III transactions with **Drag & Drop functionality**:
+
+### 🖱️ Drag & Drop Categorization
+
+- **Visual Categorization**: Drag transactions directly onto category zones
+- **Intuitive Interface**: Each transaction shows a `⋮⋮` drag handle on hover
+- **Category Grid**: Automatic category grid appears during dragging
+- **Three Categorization Methods**:
+  - Direct assignment: Drag to specific category zones
+  - Cross-column operations: Drag between left/right columns
+  - Category removal: Drag to "Remove Category" zone
+- **Smart Validation**: Visual feedback prevents invalid operations
+- **Toast Notifications**: Instant feedback for all operations
 
 ### 🎯 Features
 
@@ -371,6 +384,7 @@ The new **Transaction Management** section provides a powerful interface for bro
   - Category status (All, Has Category, No Category)
   - Specific category selection
   - Text search in description and destination
+  - Date range filtering (defaults to current month)
   - Amount range filtering
   
 - **Bulk Operations**:
@@ -384,40 +398,77 @@ The new **Transaction Management** section provides a powerful interface for bro
 
 1. **Set Filters**: Choose transaction type, category filters, and search criteria
 2. **Load Transactions**: Click "🔍 Load Transactions" to fetch matching transactions
-3. **Left Column**: Select transactions to categorize
-4. **Assign Category**: Choose a category and click "➡️ Assign Category"
-5. **Right Column**: Select a category from dropdown to view categorized transactions
-6. **Bulk Operations**: Select multiple transactions and reassign or remove categories
+3. **Drag & Drop**: Hover over transaction → drag handle appears → drag to category
+4. **Bulk Operations**: Select multiple transactions for batch categorization
+5. **Cross-Column**: Use right column to view and manage categorized transactions
 
 ### 💡 Use Cases
 
-- **Initial Setup**: Process all uncategorized transactions in bulk
-- **Category Cleanup**: Find all transactions in a category and reassign them
-- **Regular Maintenance**: Quickly categorize new transactions that weren't auto-processed
-- **Data Migration**: Move transactions between categories efficiently
+- **Daily Categorization**: Quick processing of new uncategorized transactions
+- **Category Cleanup**: Find and reorganize miscategorized transactions
+- **Regular Maintenance**: Efficient bulk operations for transaction management
+- **Data Migration**: Move transactions between categories with visual feedback
 
-### 🎮 Interface Elements
+For detailed instructions, see **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_MANAGEMENT_GUIDE.md)**.
 
-```
-Transaction Management (Interactive)
-├── Filters
-│   ├── Transaction Type Filter
-│   ├── Category Status Filter
-│   ├── Specific Category Filter
-│   ├── Text Search Box
-│   └── Amount Range Filters
-│
-├── Left Column: Uncategorized/Filtered Transactions
-│   ├── Select All/Deselect All buttons
-│   ├── Category Assignment dropdown
-│   └── Transaction list with checkboxes
-│
-└── Right Column: Categorized Transactions
-    ├── Category selection dropdown
-    ├── Select All/Deselect All buttons
-    ├── Reassign Category dropdown
-    ├── Remove Category button
-    └── Transaction list with checkboxes
-```
+## 🆕 Enhanced Features
+
+### **🎛️ General Settings**
+- **Skip Deposits Option**: Automatically exclude deposit transactions (salary, refunds) from categorization
+- **Configurable per process**: Applies to webhooks, manual processing, and batch operations
+
+### **📊 Collapsible Interface**
+- **Space-efficient UI**: All major sections (Failed Transactions, Word Mappings, Foreign Keywords, Category Mappings) are collapsible
+- **Item counters**: Each section displays the number of items when collapsed
+- **Improved navigation**: Better overview of large lists and configurations
+
+### **✏️ Edit Functionality**
+- **Edit Word Mappings**: Modify existing word mappings with edit buttons
+- **Edit Category Mappings**: Full CRUD operations for category rules
+- **Intuitive workflow**: Click edit, modify values, and save changes
+
+### **🗂️ Category Mappings (Custom Rules)**
+- **Priority processing**: Category mappings are checked BEFORE auto-categorization and AI
+- **Pattern matching**: Define rules like "rewe, spar, hofer" → "Groceries"
+- **Enable/disable rules**: Toggle individual mappings without deletion
+- **Keyword-based**: Comma-separated keywords for flexible matching
+
+### **🌍 Enhanced Auto-Categorization**
+- **Foreign/Travel Detection**: Automatic categorization for international transactions
+- **Multi-criteria**: Currency, foreign flags, keywords, and country detection
+- **Comma-separated keywords**: Easy bulk input like "bangkok, hotel, usd, paris, london"
+- **API savings**: Reduces OpenAI API calls for obvious foreign transactions
+
+### **📋 Manual Processing**
+- **Process Uncategorized Transactions**: Categorizes only transactions without existing categories
+- **Process All Transactions**: Re-categorizes ALL transactions (with deposit filtering option)
+- **Real-time monitoring**: Progress bars, statistics, and error tracking
+- **Batch control**: Pause, resume, and cancel batch operations
+
+### **🔧 Word Mappings & Failed Transactions**
+- **Failed transaction tracking**: Automatic logging of categorization failures
+- **Quick mapping creation**: Create word mappings directly from failed transactions
+- **Edit existing mappings**: Modify word replacements with intuitive interface
+- **Collapsible lists**: Better organization of large mapping collections
 
 ## 🔧 Configuration
+
+## 📚 Documentation
+
+For detailed information about specific features, see these comprehensive guides:
+
+- **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_MANAGEMENT_GUIDE.md)** - Complete guide to the Drag & Drop interface
+- **[AUTO_CATEGORIZATION_GUIDE.md](AUTO_CATEGORIZATION_GUIDE.md)** - Auto-categorization and foreign transaction detection
+- **[WORD_MAPPING_GUIDE.md](WORD_MAPPING_GUIDE.md)** - Word mapping system for improving AI accuracy
+
+## ✨ Key Features
+
+- **🤖 AI-Powered Categorization**: Uses OpenAI's GPT model for intelligent transaction categorization
+- **🖱️ Drag & Drop Interface**: Visual transaction management with intuitive categorization
+- **🔄 Real-time Processing**: Webhook integration for automatic processing of new transactions
+- **📊 Batch Processing**: Process all uncategorized or all transactions manually
+- **🎯 Smart Auto-Categorization**: Pre-categorization based on currency, country, and custom keywords
+- **🗂️ Category Mappings**: User-defined rules for automatic categorization
+- **💻 Interactive Transaction Management**: Browse, filter, and manage transactions with bulk operations
+- **📈 Real-time Monitoring**: Live updates via Socket.io with progress tracking
+- **🔧 Comprehensive Configuration**: Web-based settings for all features

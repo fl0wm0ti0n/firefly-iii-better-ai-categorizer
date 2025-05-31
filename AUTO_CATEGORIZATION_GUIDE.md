@@ -185,6 +185,13 @@ Rule: country (germany)
 
 ## 🎨 UI Improvements
 
+### **🖱️ Drag & Drop Transaction Management**
+- **Visual Categorization**: Interactive drag & drop interface for manual categorization
+- **Category Grid**: Automatic category zones that appear during dragging
+- **Smart Integration**: Works seamlessly with auto-categorization results
+- **Review Interface**: Easily check and correct auto-categorized transactions
+- **See [TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_MANAGEMENT_GUIDE.md) for detailed instructions**
+
 ### **📊 Collapsible Interface**
 - **Collapsible Sections**: All major lists are collapsible
 - **Item Counter**: Number of items displayed (e.g., "23")
@@ -204,7 +211,8 @@ Rule: country (germany)
 5. **Word Mappings & Failed Transactions** - Error handling
 6. **Auto-Categorization** - Foreign/Travel Detection
 7. **Category Mappings** - Custom Rules
-8. **Individual Jobs** - Single tasks
+8. **Transaction Management (Interactive)** - 🆕 Drag & Drop Interface
+9. **Individual Jobs** - Single tasks
 
 ## 📁 File Storage
 
