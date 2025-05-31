@@ -1,4 +1,30 @@
-# Transaction Management Interface - User Guide
+# Transaction Management Guide - Drag & Drop Interface
+
+Complete guide to the interactive drag & drop transaction management system for efficient categorization and processing of Firefly III transactions.
+
+## 🐳 Docker Access Information
+
+**Container Setup Access:**
+- **Web Interface URL**: `http://localhost:3001` (when using docker-compose)
+- **Container Network**: Accessible via `firefly-ai-network`
+- **Health Check**: Built-in container health monitoring
+- **Logs**: Monitor real-time with `docker-compose logs -f firefly-ai-categorizer`
+
+**Port Configuration:**
+```yaml
+# docker-compose.yml
+ports:
+  - "3001:3000"  # host:container
+```
+
+**Volume Persistence:**
+- Transaction data persists through container restarts
+- Configuration files mounted as volumes
+- Failed transactions saved in `./failed-transactions.json`
+
+For Docker setup instructions, see **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)**.
+
+---
 
 ## 🎯 Overview
 
@@ -317,12 +343,5 @@ Date: Last 3 months
 5. **Drag** to category grid that appears
 6. **Drop** on appropriate category
 7. **Enjoy** the instant categorization! 🎉
-
-### **First-Time Setup**
-1. **Ensure Categories Exist**: Check that your Firefly III has categories
-2. **Load Test Data**: Start with small transaction sets
-3. **Practice Dragging**: Get familiar with drag & drop mechanics
-4. **Explore Filters**: Learn how filtering affects the interface
-5. **Try Bulk Operations**: Select multiple transactions for efficiency
 
 This interface transforms transaction management from a tedious task into an **engaging, efficient, and enjoyable experience**! 🎯✨ 

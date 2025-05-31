@@ -1,3 +1,28 @@
+# Auto-Categorization Guide for Firefly III AI Categorizer
+
+This comprehensive guide covers the automatic categorization features of the Firefly III AI Categorizer, including LLM-powered AI categorization, pre-categorization rules, and advanced configuration options.
+
+## 🐳 Docker Users - Important Notes
+
+If you're running the application via Docker, please note:
+
+- **Configuration files** are mounted as volumes in `/app/` directory inside the container
+- **File paths** in this guide refer to the container paths, but you can edit them from your host system
+- **Volume mappings** (from `docker-compose.yml`):
+  ```yaml
+  volumes:
+    - ./auto-categorization-config.json:/app/auto-categorization-config.json
+    - ./category-mappings.json:/app/category-mappings.json
+    - ./word-mappings.json:/app/word-mappings.json
+    - ./failed-transactions.json:/app/failed-transactions.json
+  ```
+- **Restart required**: After configuration changes, restart with `docker-compose restart`
+- **Log monitoring**: Check status with `docker-compose logs -f`
+
+For Docker setup instructions, see **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)**.
+
+---
+
 # Auto-Categorization System - User Guide
 
 ## 🎯 Overview

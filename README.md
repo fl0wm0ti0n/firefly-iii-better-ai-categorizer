@@ -72,7 +72,52 @@ These are:
 
 ## Installation
 
-### Option 1: Using .env file (Recommended)
+### Option 1: Using Docker (Recommended for Production)
+
+The fastest and most reliable way to deploy the Firefly III AI Categorizer.
+
+#### **Quick Start with Docker Compose**
+```bash
+# Clone the repository
+git clone <repository-url>
+cd firefly-iii-ai-categorize
+
+# Copy and configure environment
+cp env.docker.example .env
+nano .env  # Edit with your credentials
+
+# Create required directories
+mkdir -p data logs
+
+# Start the application
+docker-compose up -d
+
+# Check status
+docker-compose ps
+docker-compose logs -f
+```
+
+#### **Access**
+- **Web UI**: http://localhost:3001
+- **Webhook URL**: http://localhost:3001/webhook (for Firefly III)
+
+#### **Docker Environment Variables**
+```bash
+# Required
+FIREFLY_URL=https://your-firefly-instance.com
+FIREFLY_PERSONAL_TOKEN=your-firefly-personal-access-token
+OPENAI_API_KEY=sk-your-openai-api-key
+
+# Optional
+ENABLE_UI=true
+PORT=3000
+FIREFLY_TAG=AI categorized
+OPENAI_MODEL=gpt-4o-mini
+```
+
+For detailed Docker setup instructions, see **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)**.
+
+### Option 2: Using .env file (Local Development)
 
 1. **Clone/Download the project**
 2. **Copy the environment template:**
@@ -93,10 +138,11 @@ These are:
    ```
 4. **Start the application:**
    ```bash
-   ./start.sh
+   npm install
+   npm start
    ```
 
-### Option 2: Using Environment Variables
+### Option 3: Using Environment Variables
 
 ### 1. Get a Firefly Personal Access Token
 
@@ -349,6 +395,7 @@ If you have to run the application on a different port than the default port `30
 
 - **🤖 AI-Powered Categorization**: Uses OpenAI's GPT model for intelligent transaction categorization
 - **🖱️ Drag & Drop Interface**: Visual transaction management with intuitive categorization
+- **🐳 Production-Ready Docker**: Multi-stage Docker builds with security hardening and health checks
 - **🔄 Real-time Processing**: Webhook integration for automatic processing of new transactions
 - **📊 Batch Processing**: Process all uncategorized or all transactions manually
 - **🎯 Smart Auto-Categorization**: Pre-categorization based on currency, country, and custom keywords
@@ -356,6 +403,7 @@ If you have to run the application on a different port than the default port `30
 - **💻 Interactive Transaction Management**: Browse, filter, and manage transactions with bulk operations
 - **📈 Real-time Monitoring**: Live updates via Socket.io with progress tracking
 - **🔧 Comprehensive Configuration**: Web-based settings for all features
+- **📦 Container Orchestration**: Docker Compose setup with volumes, networking, and resource management
 
 ## 🆕 Transaction Management Interface
 
@@ -455,20 +503,111 @@ For detailed instructions, see **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_M
 
 ## 📚 Documentation
 
-For detailed information about specific features, see these comprehensive guides:
+**📚 Comprehensive Guides Available:**
 
-- **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_MANAGEMENT_GUIDE.md)** - Complete guide to the Drag & Drop interface
-- **[AUTO_CATEGORIZATION_GUIDE.md](AUTO_CATEGORIZATION_GUIDE.md)** - Auto-categorization and foreign transaction detection
-- **[WORD_MAPPING_GUIDE.md](WORD_MAPPING_GUIDE.md)** - Word mapping system for improving AI accuracy
+- **[AUTO_CATEGORIZATION_GUIDE.md](AUTO_CATEGORIZATION_GUIDE.md)** - Complete guide for automatic transaction categorization with LLM
+- **[WORD_MAPPING_GUIDE.md](WORD_MAPPING_GUIDE.md)** - Advanced word-to-category mapping configuration
+- **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_MANAGEMENT_GUIDE.md)** - Interactive drag & drop transaction management interface
+- **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)** - Production Docker deployment with docker-compose
 
-## ✨ Key Features
+**Quick References:**
+- Setup and configuration
+- Webhook integration with Firefly III
+- Manual categorization workflow
+- Automatic categorization with AI
+- Troubleshooting and optimization
 
-- **🤖 AI-Powered Categorization**: Uses OpenAI's GPT model for intelligent transaction categorization
-- **🖱️ Drag & Drop Interface**: Visual transaction management with intuitive categorization
-- **🔄 Real-time Processing**: Webhook integration for automatic processing of new transactions
-- **📊 Batch Processing**: Process all uncategorized or all transactions manually
-- **🎯 Smart Auto-Categorization**: Pre-categorization based on currency, country, and custom keywords
-- **🗂️ Category Mappings**: User-defined rules for automatic categorization
-- **💻 Interactive Transaction Management**: Browse, filter, and manage transactions with bulk operations
-- **📈 Real-time Monitoring**: Live updates via Socket.io with progress tracking
-- **🔧 Comprehensive Configuration**: Web-based settings for all features
+## ⚡ Available Scripts
+
+### Docker Commands
+```bash
+# Start production container
+npm run docker:start
+
+# Start development container with hot reload
+npm run docker:dev
+
+# Stop containers
+npm run docker:stop
+
+# View logs
+npm run docker:logs
+
+# Rebuild and start
+npm run docker:build
+
+# Clean up (remove containers, volumes, images)
+npm run docker:clean
+```
+
+### Development Scripts
+```bash
+# Install dependencies
+npm install
+
+# Start application locally
+npm start
+
+# Development mode with auto-restart
+npm run dev
+```
+
+## 🔧 Troubleshooting
+
+### Docker Issues
+
+#### **Port Already in Use**
+```bash
+# Check what's using port 3001
+sudo lsof -i :3001
+
+# Stop conflicting containers
+docker stop $(docker ps -q --filter "publish=3001")
+
+# Or change port in docker-compose.yml
+ports:
+  - "3002:3000"  # Use different host port
+```
+
+#### **Container Won't Start**
+```bash
+# Check container logs
+docker-compose logs firefly-ai-categorizer
+
+# Check container status
+docker-compose ps
+
+# Restart services
+docker-compose restart
+
+# Rebuild if needed
+docker-compose down
+docker-compose up --build -d
+```
+
+#### **Permission Issues**
+```bash
+# Fix file permissions
+sudo chown -R 1001:1001 data/ logs/
+sudo chmod -R 755 data/ logs/
+
+# Or recreate with correct permissions
+docker-compose down
+sudo rm -rf data/ logs/
+mkdir -p data logs
+docker-compose up -d
+```
+
+#### **Health Check Failures**
+```bash
+# Check if application is responding
+curl http://localhost:3001/health
+
+# View detailed logs
+docker-compose logs -f firefly-ai-categorizer
+
+# Restart unhealthy container
+docker-compose restart firefly-ai-categorizer
+```
+
+### Local Installation Issues

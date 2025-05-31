@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  firefly-ai-categorizer:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: firefly-ai-categorizer
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      # Required environment variables
+      - FIREFLY_URL=${FIREFLY_URL}
+      - FIREFLY_PERSONAL_TOKEN=${FIREFLY_PERSONAL_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      
+      # Optional environment variables with defaults
+      - ENABLE_UI=${ENABLE_UI:-true}
+      - PORT=${PORT:-3000}
+      - FIREFLY_TAG=${FIREFLY_TAG:-AI categorized}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - NODE_ENV=production
+    
+    # Volume mounts for persistent data
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # Configuration files (optional - will be created if not exist)
+      - ./failed-transactions.json:/app/failed-transactions.json
+      - ./word-mappings.json:/app/word-mappings.json
+      - ./auto-categorization-config.json:/app/auto-categorization-config.json
+      - ./category-mappings.json:/app/category-mappings.json
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Networks
+    networks:
+      - firefly-network
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    
+    # Security options
+    user: "1001:1001"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    read_only: false
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  firefly-network:
+    driver: bridge
+    name: firefly-ai-network
+
+# Optional: If you want to use external volumes
+volumes:
+  app-data:
+    driver: local
+  app-logs:
+    driver: local 

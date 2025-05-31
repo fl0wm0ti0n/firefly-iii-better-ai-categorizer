@@ -1,0 +1,44 @@
+# Development Dockerfile with hot reloading
+FROM node:18-alpine AS development
+
+# Install additional tools for development
+RUN apk add --no-cache \
+    curl \
+    git \
+    dumb-init
+
+# Create app directory and user
+WORKDIR /app
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodeuser -u 1001 -G nodejs
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci && npm cache clean --force
+
+# Install nodemon globally for hot reloading
+RUN npm install -g nodemon
+
+# Copy application code
+COPY --chown=nodeuser:nodejs . .
+
+# Create necessary directories
+RUN mkdir -p /app/logs && \
+    chown -R nodeuser:nodejs /app
+
+# Switch to non-root user
+USER nodeuser
+
+# Expose ports
+EXPOSE 3000 9229
+
+# Set environment
+ENV NODE_ENV=development
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Default command for development (can be overridden in docker-compose)
+CMD ["nodemon", "--inspect=0.0.0.0:9229", "index.js"] 

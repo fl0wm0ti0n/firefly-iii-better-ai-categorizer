@@ -1,3 +1,23 @@
+# Word Mapping Guide for Firefly III AI Categorizer
+
+This guide covers the advanced word-to-category mapping system that enhances AI categorization accuracy by teaching the system specific keyword associations.
+
+## 🐳 Docker Deployment Notes
+
+When running via Docker:
+
+- **Configuration file**: `word-mappings.json` is mounted as volume in container
+- **Host file location**: `./word-mappings.json` (in your project directory)
+- **Container path**: `/app/word-mappings.json`
+- **Changes apply**: Restart with `docker-compose restart` after editing
+- **View logs**: Monitor with `docker-compose logs -f firefly-ai-categorizer`
+
+> **Tip**: Edit the `word-mappings.json` file on your host system - changes will be reflected in the container through volume mounting.
+
+For complete Docker setup, see **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)**.
+
+---
+
 # Word Mapping System - User Guide
 
 ## Overview
