@@ -321,6 +321,150 @@ export default class FireflyService {
             throw error;
         }
     }
+
+    async getAllTransactionsByType(transactionType) {
+        return await this.#getAllTransactionsByType(transactionType);
+    }
+
+    // Enhanced method with date filtering support using Firefly III API parameters
+    async getTransactionsWithFilters({ type = 'all', dateFrom = null, dateTo = null } = {}) {
+        const transactions = [];
+        let page = 1;
+        const limit = 50;
+
+        // Build API URL with date parameters
+        let apiUrl = `${this.#BASE_URL}/api/v1/transactions?limit=${limit}`;
+        
+        if (type !== 'all') {
+            apiUrl += `&type=${type}`;
+        }
+        
+        if (dateFrom) {
+            apiUrl += `&start=${dateFrom}`;
+        }
+        
+        if (dateTo) {
+            apiUrl += `&end=${dateTo}`;
+        }
+
+        while (true) {
+            try {
+                const response = await fetch(`${apiUrl}&page=${page}`, {
+                    headers: {
+                        Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`Firefly API Error (${response.status}):`, errorText);
+                    
+                    if (response.status === 401) {
+                        throw new FireflyException(response.status, response, "Authentication failed. Please check your FIREFLY_PERSONAL_TOKEN.");
+                    } else if (response.status === 404) {
+                        throw new FireflyException(response.status, response, "API endpoint not found. Please check your FIREFLY_URL.");
+                    } else {
+                        throw new FireflyException(response.status, response, errorText || "Unknown API error");
+                    }
+                }
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    const responseText = await response.text();
+                    console.error("Failed to parse JSON response:", responseText.substring(0, 500));
+                    throw new FireflyException(500, response, "API returned invalid JSON. This usually means your FIREFLY_URL is incorrect or points to a non-API endpoint.");
+                }
+
+                transactions.push(...data.data);
+
+                // Check if we've reached the last page
+                if (data.data.length < limit) {
+                    break;
+                }
+
+                page++;
+            } catch (error) {
+                if (error instanceof FireflyException) {
+                    throw error;
+                }
+                console.error("Network error while fetching transactions:", error.message);
+                throw new FireflyException(0, null, `Network error: ${error.message}. Please check your FIREFLY_URL and internet connection.`);
+            }
+        }
+
+        return transactions;
+    }
+
+    async removeTransactionCategory(transactionId) {
+        try {
+            // Skip actual API call for test transactions
+            if (transactionId.toString().startsWith('test-')) {
+                console.info(`🧪 TEST MODE: Would remove category from transaction ${transactionId}`);
+                return;
+            }
+
+            // Transaction-Details abrufen um die Struktur zu bekommen
+            const transactionResponse = await fetch(`${this.#BASE_URL}/api/v1/transactions/${transactionId}`, {
+                headers: {
+                    Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                }
+            });
+
+            if (!transactionResponse.ok) {
+                throw new FireflyException(transactionResponse.status, transactionResponse, await transactionResponse.text());
+            }
+
+            const transactionData = await transactionResponse.json();
+            const transactions = transactionData.data.attributes.transactions;
+
+            const tag = getConfigVariable("FIREFLY_TAG", "AI categorized");
+
+            const body = {
+                apply_rules: true,
+                fire_webhooks: true,
+                transactions: [],
+            }
+
+            transactions.forEach(transaction => {
+                let tags = transaction.tags;
+                if (!tags) {
+                    tags = [];
+                }
+                // Add the tag if not already present
+                if (!tags.includes(tag)) {
+                    tags.push(tag);
+                }
+
+                body.transactions.push({
+                    transaction_journal_id: transaction.transaction_journal_id,
+                    category_id: null, // Remove category by setting to null
+                    tags: tags,
+                });
+            })
+
+            const response = await fetch(`${this.#BASE_URL}/api/v1/transactions/${transactionId}`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                throw new FireflyException(response.status, response, await response.text())
+            }
+
+            await response.json();
+            console.info(`✅ Transaction ${transactionId} category removed`);
+            
+        } catch (error) {
+            console.error(`❌ Failed to remove category from transaction ${transactionId}:`, error.message);
+            throw error;
+        }
+    }
 }
 
 class FireflyException extends Error {

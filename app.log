@@ -1,0 +1,11 @@
+nohup: ignoring input
+
+> firefly-iii-ai-categorize@1.0.0 start
+> node index.js
+
+Application running on port 3001
+📚 Loaded 7 word mappings
+🔧 Loaded auto-categorization config: EUR/Austria → Reisen & Urlaub - Sonstiges
+🗂️ Loaded 2 category mappings
+📋 Loaded 100 failed transactions
+connected

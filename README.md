@@ -344,3 +344,80 @@ If you have to run the application on a different port than the default port `30
 - `PUT /api/category-mappings/:id` - Update existing category mapping
 - `DELETE /api/category-mappings/:id` - Delete category mapping
 - `PATCH /api/category-mappings/:id/toggle` - Enable/disable category mapping
+
+## ✨ Key Features
+
+- **🤖 AI-Powered Categorization**: Uses OpenAI's GPT model for intelligent transaction categorization
+- **🔄 Real-time Processing**: Webhook integration for automatic processing of new transactions
+- **📊 Batch Processing**: Process all uncategorized or all transactions manually
+- **🎯 Smart Auto-Categorization**: Pre-categorization based on currency, country, and custom keywords
+- **🗂️ Category Mappings**: User-defined rules for automatic categorization
+- **💻 Interactive Transaction Management**: Browse, filter, and manage transactions with bulk operations
+- **📈 Real-time Monitoring**: Live updates via Socket.io with progress tracking
+- **🔧 Comprehensive Configuration**: Web-based settings for all features
+
+## 🆕 Transaction Management Interface
+
+The new **Transaction Management** section provides a powerful interface for browsing and managing your Firefly III transactions:
+
+### 🎯 Features
+
+- **Two-Column Layout**:
+  - **Left Column**: Uncategorized transactions or filtered results
+  - **Right Column**: Transactions from a specific category
+  
+- **Advanced Filtering**:
+  - Transaction type (All, Withdrawals, Deposits, Uncategorized)
+  - Category status (All, Has Category, No Category)
+  - Specific category selection
+  - Text search in description and destination
+  - Amount range filtering
+  
+- **Bulk Operations**:
+  - Multi-select transactions with checkboxes
+  - Assign categories to multiple transactions
+  - Reassign categories in bulk
+  - Remove categories from multiple transactions
+  - Select all / Deselect all functionality
+
+### 📋 How to Use
+
+1. **Set Filters**: Choose transaction type, category filters, and search criteria
+2. **Load Transactions**: Click "🔍 Load Transactions" to fetch matching transactions
+3. **Left Column**: Select transactions to categorize
+4. **Assign Category**: Choose a category and click "➡️ Assign Category"
+5. **Right Column**: Select a category from dropdown to view categorized transactions
+6. **Bulk Operations**: Select multiple transactions and reassign or remove categories
+
+### 💡 Use Cases
+
+- **Initial Setup**: Process all uncategorized transactions in bulk
+- **Category Cleanup**: Find all transactions in a category and reassign them
+- **Regular Maintenance**: Quickly categorize new transactions that weren't auto-processed
+- **Data Migration**: Move transactions between categories efficiently
+
+### 🎮 Interface Elements
+
+```
+Transaction Management (Interactive)
+├── Filters
+│   ├── Transaction Type Filter
+│   ├── Category Status Filter
+│   ├── Specific Category Filter
+│   ├── Text Search Box
+│   └── Amount Range Filters
+│
+├── Left Column: Uncategorized/Filtered Transactions
+│   ├── Select All/Deselect All buttons
+│   ├── Category Assignment dropdown
+│   └── Transaction list with checkboxes
+│
+└── Right Column: Categorized Transactions
+    ├── Category selection dropdown
+    ├── Select All/Deselect All buttons
+    ├── Reassign Category dropdown
+    ├── Remove Category button
+    └── Transaction list with checkboxes
+```
+
+## 🔧 Configuration

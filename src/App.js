@@ -101,6 +101,17 @@ export default class App {
         this.#express.delete('/api/category-mappings/:id', this.#onDeleteCategoryMapping.bind(this))
         this.#express.patch('/api/category-mappings/:id/toggle', this.#onToggleCategoryMapping.bind(this))
 
+        // Transaction management endpoints
+        this.#express.get('/api/transactions/list', this.#getTransactionsList.bind(this));
+        this.#express.post('/api/transactions/update-categories', this.#updateTransactionCategories.bind(this));
+        this.#express.post('/api/transactions/remove-categories', this.#removeTransactionCategories.bind(this));
+        this.#express.get('/api/transactions/filter', this.#filterTransactions.bind(this));
+
+        // Health check endpoint
+        this.#express.get("/", (req, res) => {
+            res.send("OK");
+        });
+
         this.#server.listen(this.#PORT, async () => {
             console.log(`Application running on port ${this.#PORT}`);
         });
@@ -916,6 +927,285 @@ export default class App {
         } catch (e) {
             console.error(e);
             res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #getTransactionsList(req, res) {
+        try {
+            const { type = 'all', limit = 100, page = 1 } = req.query;
+            
+            // Get all transactions based on type
+            let transactions = [];
+            
+            if (type === 'withdrawal') {
+                transactions = await this.#firefly.getAllWithdrawalTransactions();
+            } else if (type === 'deposit') {
+                transactions = await this.#firefly.getAllTransactionsByType('deposit');
+            } else if (type === 'uncategorized') {
+                transactions = await this.#firefly.getAllUncategorizedTransactions();
+            } else {
+                transactions = await this.#firefly.getAllTransactions();
+            }
+            
+            // Get categories for mapping
+            const categories = await this.#firefly.getCategories();
+            const categoryNames = Array.from(categories.keys());
+            
+            // Transform transactions to frontend format
+            const transformedTransactions = transactions.map(transaction => {
+                const firstTx = transaction.attributes.transactions[0];
+                const categoryName = firstTx.category_name || null;
+                
+                return {
+                    id: transaction.id,
+                    description: firstTx.description || '',
+                    destinationName: firstTx.destination_name || '(unknown)',
+                    amount: parseFloat(firstTx.amount),
+                    currency: firstTx.currency_code || 'EUR',
+                    date: firstTx.date || transaction.attributes.updated_at || transaction.attributes.created_at,
+                    type: firstTx.type,
+                    category: categoryName,
+                    categoryId: firstTx.category_id || null,
+                    sourceId: firstTx.source_id,
+                    destinationId: firstTx.destination_id,
+                    transactionJournalId: firstTx.transaction_journal_id
+                };
+            });
+            
+            // Apply pagination
+            const startIndex = (page - 1) * limit;
+            const endIndex = startIndex + parseInt(limit);
+            const paginatedTransactions = transformedTransactions.slice(startIndex, endIndex);
+            
+            res.json({
+                success: true,
+                transactions: paginatedTransactions,
+                totalCount: transformedTransactions.length,
+                categories: categoryNames,
+                page: parseInt(page),
+                limit: parseInt(limit)
+            });
+            
+        } catch (error) {
+            console.error('Error getting transactions list:', error);
+            res.json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+
+    async #updateTransactionCategories(req, res) {
+        try {
+            const { transactionIds, categoryName } = req.body;
+            
+            if (!transactionIds || !Array.isArray(transactionIds) || transactionIds.length === 0) {
+                return res.json({
+                    success: false,
+                    error: 'transactionIds array is required'
+                });
+            }
+            
+            if (!categoryName || categoryName.trim() === '') {
+                return res.json({
+                    success: false,
+                    error: 'categoryName is required'
+                });
+            }
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            for (const transactionId of transactionIds) {
+                try {
+                    await this.#firefly.updateTransactionCategory(transactionId, categoryName.trim());
+                    successCount++;
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`Transaction ${transactionId}: ${error.message}`);
+                }
+            }
+            
+            res.json({
+                success: true,
+                message: `Updated ${successCount} transactions successfully`,
+                successCount,
+                errorCount,
+                errors: errors.length > 0 ? errors : undefined
+            });
+            
+        } catch (error) {
+            console.error('Error updating transaction categories:', error);
+            res.json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+
+    async #removeTransactionCategories(req, res) {
+        try {
+            const { transactionIds } = req.body;
+            
+            if (!transactionIds || !Array.isArray(transactionIds) || transactionIds.length === 0) {
+                return res.json({
+                    success: false,
+                    error: 'transactionIds array is required'
+                });
+            }
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            for (const transactionId of transactionIds) {
+                try {
+                    await this.#firefly.removeTransactionCategory(transactionId);
+                    successCount++;
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`Transaction ${transactionId}: ${error.message}`);
+                }
+            }
+            
+            res.json({
+                success: true,
+                message: `Removed categories from ${successCount} transactions successfully`,
+                successCount,
+                errorCount,
+                errors: errors.length > 0 ? errors : undefined
+            });
+            
+        } catch (error) {
+            console.error('Error removing transaction categories:', error);
+            res.json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+
+    async #filterTransactions(req, res) {
+        try {
+            const { 
+                searchText = '',
+                type = 'all',
+                hasCategory = 'all',
+                categoryName = '',
+                minAmount = null,
+                maxAmount = null,
+                dateFrom = null,
+                dateTo = null,
+                limit = 100
+            } = req.query;
+            
+            // Use optimized filtering when date filters are provided
+            let transactions = [];
+            
+            if (dateFrom || dateTo) {
+                // Use Firefly III API date filtering for better performance
+                const fireflyType = type === 'uncategorized' ? 'all' : type;
+                transactions = await this.#firefly.getTransactionsWithFilters({
+                    type: fireflyType,
+                    dateFrom: dateFrom,
+                    dateTo: dateTo
+                });
+            } else {
+                // Use existing methods when no date filtering
+                if (type === 'withdrawal') {
+                    transactions = await this.#firefly.getAllWithdrawalTransactions();
+                } else if (type === 'deposit') {
+                    transactions = await this.#firefly.getAllTransactionsByType('deposit');
+                } else if (type === 'uncategorized') {
+                    transactions = await this.#firefly.getAllUncategorizedTransactions();
+                } else {
+                    transactions = await this.#firefly.getAllTransactions();
+                }
+            }
+            
+            // Transform and filter transactions
+            const filteredTransactions = transactions
+                .map(transaction => {
+                    const firstTx = transaction.attributes.transactions[0];
+                    const categoryName = firstTx.category_name || null;
+                    
+                    return {
+                        id: transaction.id,
+                        description: firstTx.description || '',
+                        destinationName: firstTx.destination_name || '(unknown)',
+                        amount: parseFloat(firstTx.amount),
+                        currency: firstTx.currency_code || 'EUR',
+                        date: firstTx.date || transaction.attributes.updated_at || transaction.attributes.created_at,
+                        type: firstTx.type,
+                        category: categoryName,
+                        categoryId: firstTx.category_id || null,
+                        sourceId: firstTx.source_id,
+                        destinationId: firstTx.destination_id,
+                        transactionJournalId: firstTx.transaction_journal_id
+                    };
+                })
+                .filter(transaction => {
+                    // Type filter for uncategorized when using date filters
+                    if (type === 'uncategorized' && transaction.category) return false;
+                    
+                    // Text search filter
+                    if (searchText) {
+                        const searchLower = searchText.toLowerCase();
+                        const matchesText = 
+                            transaction.description.toLowerCase().includes(searchLower) ||
+                            transaction.destinationName.toLowerCase().includes(searchLower);
+                        if (!matchesText) return false;
+                    }
+                    
+                    // Category filter
+                    if (hasCategory === 'yes' && !transaction.category) return false;
+                    if (hasCategory === 'no' && transaction.category) return false;
+                    
+                    // Specific category filter
+                    if (categoryName && transaction.category !== categoryName) return false;
+                    
+                    // Amount filter - use absolute values for comparison
+                    const absoluteAmount = Math.abs(transaction.amount);
+                    if (minAmount !== null && absoluteAmount < parseFloat(minAmount)) return false;
+                    if (maxAmount !== null && absoluteAmount > parseFloat(maxAmount)) return false;
+                    
+                    // Date filter only needed if not using API date filtering
+                    if (!dateFrom && !dateTo) {
+                        // No additional date filtering needed
+                    } else if (!(dateFrom || dateTo)) {
+                        // Additional date filtering for edge cases
+                        if (dateFrom) {
+                            const transactionDate = new Date(transaction.date);
+                            const fromDate = new Date(dateFrom + 'T00:00:00.000Z');
+                            if (transactionDate < fromDate) return false;
+                        }
+                        
+                        if (dateTo) {
+                            const transactionDate = new Date(transaction.date);
+                            const toDate = new Date(dateTo + 'T23:59:59.999Z');
+                            if (transactionDate > toDate) return false;
+                        }
+                    }
+                    
+                    return true;
+                });
+            
+            // Apply limit
+            const limitedTransactions = filteredTransactions.slice(0, parseInt(limit));
+            
+            res.json({
+                success: true,
+                transactions: limitedTransactions,
+                totalCount: filteredTransactions.length
+            });
+            
+        } catch (error) {
+            console.error('Error filtering transactions:', error);
+            res.json({
+                success: false,
+                error: error.message
+            });
         }
     }
 }
