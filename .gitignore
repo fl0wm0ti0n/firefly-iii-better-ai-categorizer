@@ -2,3 +2,7 @@
 node_modules
 .specstory
 .env
+category-mappings.json
+auto-categorization-config.json
+failed-transactions.json
+word-mappings.json
