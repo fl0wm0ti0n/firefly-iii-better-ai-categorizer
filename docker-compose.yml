@@ -9,29 +9,14 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3000"
-    environment:
-      # Required environment variables
-      - FIREFLY_URL=${FIREFLY_URL}
-      - FIREFLY_PERSONAL_TOKEN=${FIREFLY_PERSONAL_TOKEN}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      
-      # Optional environment variables with defaults
-      - ENABLE_UI=${ENABLE_UI:-true}
-      - PORT=${PORT:-3000}
-      - FIREFLY_TAG=${FIREFLY_TAG:-AI categorized}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
-      - NODE_ENV=production
-    
+    env_file: .env
     # Volume mounts for persistent data
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      # Configuration files (optional - will be created if not exist)
-      - ./failed-transactions.json:/app/failed-transactions.json
-      - ./word-mappings.json:/app/word-mappings.json
-      - ./auto-categorization-config.json:/app/auto-categorization-config.json
-      - ./category-mappings.json:/app/category-mappings.json
-    
+    environment:
+      # Override for Docker environment
+      - NODE_ENV=production
     # Health check
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]

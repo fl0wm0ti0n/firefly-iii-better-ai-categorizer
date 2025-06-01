@@ -11,20 +11,11 @@ services:
     ports:
       - "3000:3000"
       - "9229:9229"  # Node.js debugging port
+    env_file: .env
+    # Volume mounts for persistent data
     environment:
-      # Required environment variables
-      - FIREFLY_URL=${FIREFLY_URL}
-      - FIREFLY_PERSONAL_TOKEN=${FIREFLY_PERSONAL_TOKEN}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      
-      # Development environment variables
-      - NODE_ENV=development
-      - ENABLE_UI=${ENABLE_UI:-true}
-      - PORT=${PORT:-3000}
-      - FIREFLY_TAG=${FIREFLY_TAG:-AI categorized}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
-      - DEBUG=firefly:*
-    
+      # Override for Docker environment
+      - NODE_ENV=production
     # Volume mounts for development (enable hot reloading)
     volumes:
       - .:/app
