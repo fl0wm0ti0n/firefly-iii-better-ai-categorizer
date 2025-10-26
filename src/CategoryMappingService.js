@@ -1,8 +1,9 @@
 import fs from 'fs/promises';
+import { ensureDataDir, dataFile } from './storage.js';
 import { v4 as uuid } from 'uuid';
 
 export default class CategoryMappingService {
-    #CONFIG_FILE = 'category-mappings.json';
+    #CONFIG_FILE = dataFile('category-mappings.json');
     #mappings = [];
 
     constructor() {
@@ -11,6 +12,7 @@ export default class CategoryMappingService {
 
     async loadMappings() {
         try {
+            await ensureDataDir();
             const data = await fs.readFile(this.#CONFIG_FILE, 'utf8');
             this.#mappings = JSON.parse(data);
             console.info(`🗂️ Loaded ${this.#mappings.length} category mappings`);
@@ -58,6 +60,7 @@ export default class CategoryMappingService {
 
     async saveMappings() {
         try {
+            await ensureDataDir();
             await fs.writeFile(this.#CONFIG_FILE, JSON.stringify(this.#mappings, null, 2));
             console.info(`💾 Saved ${this.#mappings.length} category mappings`);
         } catch (error) {

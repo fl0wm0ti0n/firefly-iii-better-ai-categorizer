@@ -159,6 +159,38 @@ Rules:
         };
         console.info("📊 OpenAI statistics reset");
     }
+
+    async extractTransactionsFromText(text, options = {}) {
+        try {
+            const currency = options.accountCurrency || 'EUR';
+            const messages = [
+                { role: 'system', content: `You extract individual purchase transactions from statement text (language/layout varies). Return ONLY a JSON array of objects {"description": string, "destination_name": string, "amount": number, "date": "YYYY-MM-DD"|null}. Amount must be the billed/charged amount in ${currency} (account currency), not the original foreign currency. Include small conversion fee rows. Amounts must be positive for purchases. No additional text.` },
+                { role: 'user', content: text.substring(0, 12000) }
+            ];
+            const response = await this.#openAi.createChatCompletion({
+                model: this.#model,
+                messages,
+                temperature: 0.1,
+                max_tokens: 800
+            });
+            const content = response.data.choices?.[0]?.message?.content || '[]';
+            const jsonText = this.#safeExtractJson(content);
+            const parsed = JSON.parse(jsonText);
+            if (options.returnRaw) {
+                return { transactions: Array.isArray(parsed) ? parsed : [], raw: content, prompt: text.substring(0, 12000) };
+            }
+            if (Array.isArray(parsed)) return parsed;
+            return [];
+        } catch (e) {
+            console.error('extractTransactionsFromText error:', e.message);
+            return [];
+        }
+    }
+
+    #safeExtractJson(text) {
+        const match = text.match(/\[([\s\S]*?)\]$/m) || text.match(/\[([\s\S]*?)\]/m);
+        return match ? match[0] : '[]';
+    }
 }
 
 class OpenAiException extends Error {

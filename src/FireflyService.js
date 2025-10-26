@@ -34,6 +34,85 @@ export default class FireflyService {
         return categories;
     }
 
+    async getTags() {
+        const tags = [];
+        let page = 1;
+        const limit = 50;
+
+        while (true) {
+            const response = await fetch(`${this.#BASE_URL}/api/v1/tags?limit=${limit}&page=${page}`, {
+                headers: {
+                    Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                }
+            });
+
+            if (!response.ok) {
+                throw new FireflyException(response.status, response, await response.text());
+            }
+
+            const data = await response.json();
+            for (const t of data.data) {
+                if (t && t.attributes && t.attributes.tag) {
+                    tags.push(t.attributes.tag);
+                } else if (t && t.attributes && t.attributes.name) {
+                    tags.push(t.attributes.name);
+                }
+            }
+
+            if (data.data.length < limit) break;
+            page++;
+        }
+
+        // unique & sorted
+        return Array.from(new Set(tags)).sort((a, b) => a.localeCompare(b));
+    }
+
+    async getTransactionsByCategoryName(categoryName, { limit = 200 } = {}) {
+        const categories = await this.getCategories();
+        const categoryId = categories.get(categoryName);
+        if (!categoryId) {
+            throw new Error(`Category "${categoryName}" not found in Firefly III`);
+        }
+        const results = [];
+        let page = 1;
+        const perPage = Math.min(Math.max(parseInt(limit) || 200, 1), 500);
+        while (true) {
+            const url = `${this.#BASE_URL}/api/v1/categories/${categoryId}/transactions?limit=${perPage}&page=${page}`;
+            const response = await fetch(url, {
+                headers: { Authorization: `Bearer ${this.#PERSONAL_TOKEN}` }
+            });
+            if (!response.ok) {
+                throw new FireflyException(response.status, response, await response.text());
+            }
+            const data = await response.json();
+            results.push(...data.data);
+            if (data.data.length < perPage) break;
+            page++;
+        }
+        return results;
+    }
+
+    async getTransactionsByTag(tag, { limit = 200 } = {}) {
+        const results = [];
+        let page = 1;
+        const perPage = Math.min(Math.max(parseInt(limit) || 200, 1), 500);
+        const tagPath = encodeURIComponent(tag);
+        while (true) {
+            const url = `${this.#BASE_URL}/api/v1/tags/${tagPath}/transactions?limit=${perPage}&page=${page}`;
+            const response = await fetch(url, {
+                headers: { Authorization: `Bearer ${this.#PERSONAL_TOKEN}` }
+            });
+            if (!response.ok) {
+                throw new FireflyException(response.status, response, await response.text());
+            }
+            const data = await response.json();
+            results.push(...data.data);
+            if (data.data.length < perPage) break;
+            page++;
+        }
+        return results;
+    }
+
     async setCategory(transactionId, transactions, categoryId) {
         // Skip actual API call for test transactions
         if (transactionId.toString().startsWith('test-')) {
@@ -324,6 +403,57 @@ export default class FireflyService {
 
     async getAllTransactionsByType(transactionType) {
         return await this.#getAllTransactionsByType(transactionType);
+    }
+
+    // Generic helpers for advanced flows
+    async getTransaction(transactionId) {
+        const response = await fetch(`${this.#BASE_URL}/api/v1/transactions/${transactionId}`, {
+            headers: { Authorization: `Bearer ${this.#PERSONAL_TOKEN}` }
+        });
+        if (!response.ok) {
+            throw new FireflyException(response.status, response, await response.text());
+        }
+        return await response.json();
+    }
+
+    async createTransactions(transactions) {
+        const body = {
+            apply_rules: true,
+            fire_webhooks: true,
+            transactions
+        };
+        const response = await fetch(`${this.#BASE_URL}/api/v1/transactions`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) {
+            throw new FireflyException(response.status, response, await response.text());
+        }
+        return await response.json();
+    }
+
+    async updateTransactions(transactionId, transactions) {
+        const body = {
+            apply_rules: true,
+            fire_webhooks: true,
+            transactions
+        };
+        const response = await fetch(`${this.#BASE_URL}/api/v1/transactions/${transactionId}`, {
+            method: 'PUT',
+            headers: {
+                Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) {
+            throw new FireflyException(response.status, response, await response.text());
+        }
+        return await response.json();
     }
 
     // Enhanced method with date filtering support using Firefly III API parameters

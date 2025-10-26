@@ -6,6 +6,8 @@ import WordMappingService from "./WordMappingService.js";
 import FailedTransactionService from "./FailedTransactionService.js";
 import AutoCategorizationService from "./AutoCategorizationService.js";
 import CategoryMappingService from "./CategoryMappingService.js";
+import TransactionExtractionService from "./TransactionExtractionService.js";
+import multer from 'multer';
 import {Server} from "socket.io";
 import * as http from "http";
 import Queue from "queue";
@@ -21,6 +23,7 @@ export default class App {
     #failedTransactionService;
     #autoCategorizationService;
     #categoryMappingService;
+    #transactionExtractionService;
 
     #server;
     #io;
@@ -42,6 +45,7 @@ export default class App {
         this.#failedTransactionService = new FailedTransactionService();
         this.#autoCategorizationService = new AutoCategorizationService();
         this.#categoryMappingService = new CategoryMappingService();
+        this.#transactionExtractionService = new TransactionExtractionService();
 
         this.#queue = new Queue({
             timeout: 30 * 1000,
@@ -65,8 +69,17 @@ export default class App {
         this.#jobList.on('batch job updated', data => this.#io.emit('batch job updated', data));
 
         this.#express.use(express.json());
+        const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
         if (this.#ENABLE_UI) {
+        // Basic CORS for cross-origin frontends (no external dep)
+        this.#express.use((req, res, next) => {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+            if (req.method === 'OPTIONS') return res.sendStatus(204);
+            next();
+        });
             this.#express.use('/', express.static('public'))
         }
 
@@ -74,6 +87,14 @@ export default class App {
         this.#express.post('/api/process-uncategorized', this.#onProcessUncategorized.bind(this))
         this.#express.post('/api/process-all', this.#onProcessAll.bind(this))
         this.#express.post('/api/test-webhook', this.#onTestWebhook.bind(this))
+        
+        // Extraction endpoints
+        this.#express.post('/api/extraction/upload', upload.single('file'), this.#onExtractionUpload.bind(this))
+        this.#express.post('/api/extraction/confirm', this.#onExtractionConfirm.bind(this))
+        this.#express.post('/api/extraction/upload-batch', upload.array('files'), this.#onExtractionUploadBatch.bind(this))
+        this.#express.post('/api/extraction/confirm-batch', this.#onExtractionConfirmBatch.bind(this))
+        this.#express.get('/api/extraction/config', this.#onGetExtractionConfig.bind(this))
+        this.#express.post('/api/extraction/config', this.#onUpdateExtractionConfig.bind(this))
         
         // Word mapping endpoints
         this.#express.get('/api/word-mappings', this.#onGetWordMappings.bind(this))
@@ -106,6 +127,8 @@ export default class App {
         this.#express.post('/api/transactions/update-categories', this.#updateTransactionCategories.bind(this));
         this.#express.post('/api/transactions/remove-categories', this.#removeTransactionCategories.bind(this));
         this.#express.get('/api/transactions/filter', this.#filterTransactions.bind(this));
+        this.#express.get('/api/tags', this.#getTags.bind(this));
+        this.#express.get('/api/categories', this.#getCategories.bind(this));
 
         // Health check endpoint
         this.#express.get("/", (req, res) => {
@@ -121,6 +144,26 @@ export default class App {
             socket.emit('jobs', Array.from(this.#jobList.getJobs().values()));
             socket.emit('batch jobs', Array.from(this.#jobList.getBatchJobs().values()));
         })
+    }
+    async #getTags(req, res) {
+        try {
+            const tags = await this.#firefly.getTags();
+            res.json({ success: true, tags });
+        } catch (error) {
+            console.error('Error getting tags:', error);
+            res.json({ success: false, error: error.message });
+        }
+    }
+
+    async #getCategories(req, res) {
+        try {
+            const categoriesMap = await this.#firefly.getCategories();
+            const categories = Array.from(categoriesMap.keys());
+            res.json({ success: true, categories });
+        } catch (error) {
+            console.error('Error getting categories:', error);
+            res.json({ success: false, error: error.message });
+        }
     }
 
     #onWebhook(req, res) {
@@ -830,6 +873,369 @@ export default class App {
         }
     }
 
+    // ===== Extraction: Upload & Preview =====
+    async #onExtractionUpload(req, res) {
+        try {
+            const file = req.file;
+            const { originalTransactionId, tag = this.#transactionExtractionService.getConfig().defaultTag } = req.body || {};
+            if (!file) return res.status(400).json({ success: false, error: 'file is required (csv or pdf)' });
+            if (!originalTransactionId) return res.status(400).json({ success: false, error: 'originalTransactionId is required' });
+
+            let items = [];
+            if (file.mimetype.includes('csv') || file.originalname.toLowerCase().endsWith('.csv')) {
+                items = this.#transactionExtractionService.parseCsv(file.buffer, this.#transactionExtractionService.getConfig().headerMapping);
+            } else if (file.mimetype.includes('pdf') || file.originalname.toLowerCase().endsWith('.pdf')) {
+                items = await this.#transactionExtractionService.parsePdf(file.buffer, this.#openAi);
+            } else {
+                return res.status(400).json({ success: false, error: 'Unsupported file type. Use CSV or PDF.' });
+            }
+            try { console.info('extraction-upload-ok', { mimetype: file.mimetype, name: file.originalname, items: items.length }); } catch(_) {}
+
+            // Fetch original for comparison
+            const originalData = await this.#firefly.getTransaction(originalTransactionId);
+            const firstTx = originalData.data.attributes.transactions[0];
+            const originalAbs = Math.abs(parseFloat(firstTx.amount));
+
+            const sum = items.reduce((s, i) => s + Math.abs(Number(i.amount || 0)), 0);
+            const diff = Number((originalAbs - sum).toFixed(2));
+            const parentTag = this.#transactionExtractionService.sanitizeTag(firstTx.description || `tx-${originalTransactionId}`);
+            const tagClean = this.#transactionExtractionService.sanitizeTag(tag);
+
+            res.json({ success: true, preview: { items, totals: { original: originalAbs, sum, diff }, meta: { originalTransactionId, parentTag, tag: tagClean } } });
+        } catch (e) {
+            console.error('Extraction upload error:', e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    // ===== Extraction: Confirm & Save =====
+    async #onExtractionConfirm(req, res) {
+        try {
+            const { originalTransactionId, items, tag, proceedOnMismatch = false } = req.body || {};
+            if (!originalTransactionId || !Array.isArray(items) || items.length === 0) {
+                return res.status(400).json({ success: false, error: 'originalTransactionId and items[] are required' });
+            }
+
+            // Get categories once (for optional categorization later) — here we just prepare list
+            const categories = await this.#firefly.getCategories();
+
+            // Load original transaction
+            const data = await this.#firefly.getTransaction(originalTransactionId);
+            const firstTx = data.data.attributes.transactions[0];
+            const originalAbs = Math.abs(parseFloat(firstTx.amount));
+
+            const total = items.reduce((s, i) => s + Math.abs(Number(i.amount || 0)), 0);
+            const diff = Number((originalAbs - total).toFixed(2));
+            if (Math.abs(diff) >= 0.01 && !proceedOnMismatch) {
+                return res.status(400).json({ success: false, error: `Sum mismatch: ${diff}`, diff });
+            }
+
+            const parentTag = this.#transactionExtractionService.sanitizeTag(firstTx.description || `tx-${originalTransactionId}`);
+            const userTag = this.#transactionExtractionService.sanitizeTag(tag || this.#transactionExtractionService.getConfig().defaultTag);
+
+            // Create child transactions (withdrawals) with tags
+            for (const it of items) {
+                await this.#firefly.createTransactions([
+                    {
+                        type: 'withdrawal',
+                        date: it.date || firstTx.date,
+                        description: it.description,
+                        destination_name: it.destination_name || it.description,
+                        amount: Math.abs(Number(it.amount)).toFixed(2),
+                        currency_code: firstTx.currency_code,
+                        tags: [userTag, parentTag]
+                    }
+                ]);
+            }
+
+            // Tag original and create correcting clone
+            await this.#tagTransaction(originalTransactionId, ['already-extracted-original']);
+            await this.#createCorrectionClone(data.data, 'value-correction-clone');
+
+            res.json({ success: true, created: items.length, diff });
+        } catch (e) {
+            console.error('Extraction confirm error:', e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    // ===== Extraction: Batch Upload =====
+    async #onExtractionUploadBatch(req, res) {
+        try {
+            const files = req.files || [];
+            let { candidateTransactionIds = [], dateWindowDays = 60 } = req.body || {};
+            if (!files.length) return res.status(400).json({ success: false, error: 'files[] is required' });
+
+            // Normalize candidateTransactionIds from form-data (may be string/CSV/JSON)
+            if (typeof candidateTransactionIds === 'string') {
+                try {
+                    const parsed = JSON.parse(candidateTransactionIds);
+                    if (Array.isArray(parsed)) candidateTransactionIds = parsed;
+                    else candidateTransactionIds = String(candidateTransactionIds).split(',').map(s => s.trim()).filter(Boolean);
+                } catch (_) {
+                    candidateTransactionIds = String(candidateTransactionIds).split(',').map(s => s.trim()).filter(Boolean);
+                }
+            }
+            dateWindowDays = parseInt(dateWindowDays) || 60;
+
+            // Parse all files first, collect date hints
+            const tempGroups = [];
+            let hintMinDate = null;
+            let hintMaxDate = null;
+            for (const file of files) {
+                let items = [];
+                if (file.mimetype.includes('csv') || file.originalname.toLowerCase().endsWith('.csv')) {
+                    items = this.#transactionExtractionService.parseCsv(file.buffer, this.#transactionExtractionService.getConfig().headerMapping);
+                } else if (file.mimetype.includes('pdf') || file.originalname.toLowerCase().endsWith('.pdf')) {
+                    items = await this.#transactionExtractionService.parsePdf(file.buffer, this.#openAi);
+                } else {
+                    continue;
+                }
+                const sum = items.reduce((s, i) => s + Math.abs(Number(i.amount || 0)), 0);
+                // collect date hints
+                for (const it of items) {
+                    if (!it.date) continue;
+                    const d = new Date(it.date);
+                    if (isFinite(d)) {
+                        if (!hintMinDate || d < hintMinDate) hintMinDate = d;
+                        if (!hintMaxDate || d > hintMaxDate) hintMaxDate = d;
+                    }
+                }
+                tempGroups.push({ file, fileName: file.originalname, items, sum });
+            }
+
+            // Build candidate originals: either provided IDs or auto-search by date window
+            const candidates = [];
+            for (const id of Array.isArray(candidateTransactionIds) ? candidateTransactionIds : []) {
+                try {
+                    const tx = await this.#firefly.getTransaction(id);
+                    const t = tx.data.attributes.transactions[0];
+                    candidates.push({ id, amountAbs: Math.abs(parseFloat(t.amount)), date: new Date(t.date), currency: t.currency_code, raw: tx.data });
+                } catch (e) { /* ignore invalid ids */ }
+            }
+
+            if (candidates.length === 0) {
+                // Auto-search globally by date window around detected items (or around today if none)
+                const baseMin = hintMinDate || new Date(Date.now() - dateWindowDays * 24 * 3600 * 1000);
+                const baseMax = hintMaxDate || new Date(Date.now() + dateWindowDays * 24 * 3600 * 1000);
+                const from = new Date(baseMin.getTime() - dateWindowDays * 24 * 3600 * 1000);
+                const to = new Date(baseMax.getTime() + dateWindowDays * 24 * 3600 * 1000);
+                const toIso = d => `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+                const scoped = await this.#firefly.getTransactionsWithFilters({ type: 'all', dateFrom: toIso(from), dateTo: toIso(to) });
+                for (const tr of scoped) {
+                    const ft = tr.attributes.transactions[0];
+                    const d = ft?.date ? new Date(ft.date) : null;
+                    const validDate = d && !isNaN(d.getTime()) ? d : null;
+                    candidates.push({ id: tr.id, amountAbs: Math.abs(parseFloat(ft.amount)), date: validDate, currency: ft.currency_code, raw: tr });
+                }
+            }
+
+            const groups = [];
+
+            // Matching thresholds (to avoid clearly wrong matches)
+            const MAX_ABS_DIFF = 2.0;          // € 2 tolerance
+            const MAX_REL_DIFF = 0.005;        // 0.5%
+
+            if ((Array.isArray(candidateTransactionIds) && candidateTransactionIds.length > 0) && candidates.length > 0) {
+                // Priority mode: prioritize existing transactions (candidates). Assign files to candidates greedily.
+                // Build all candidate-file pairs with scores
+                const pairs = [];
+                tempGroups.forEach((g, gidx) => {
+                    // compute group reference date
+                    let refDate = null;
+                    const dates = g.items
+                        .map(i => (i.date ? new Date(i.date) : null))
+                        .filter(d => d && !isNaN(d.getTime()));
+                    if (dates.length) {
+                        const minD = dates.reduce((a, b) => (a.getTime() < b.getTime() ? a : b));
+                        const maxD = dates.reduce((a, b) => (a.getTime() > b.getTime() ? a : b));
+                        refDate = new Date((minD.getTime() + maxD.getTime()) / 2);
+                    }
+                    for (const c of candidates) {
+                        const diff = Number((c.amountAbs - g.sum).toFixed(2));
+                        const rel = c.amountAbs ? Math.abs(diff) / c.amountAbs : 1;
+                        const days = (refDate && c.date && !isNaN(refDate.getTime()) && !isNaN(c.date.getTime()))
+                            ? Math.abs((refDate.getTime() - c.date.getTime()) / (1000*60*60*24))
+                            : 9999;
+                        const score = Math.abs(diff) + Math.min(days, dateWindowDays) / 100;
+                        const acceptable = (Math.abs(diff) <= MAX_ABS_DIFF) || (rel <= MAX_REL_DIFF);
+                        pairs.push({ gidx, candidate: c, diff, rel, score, acceptable });
+                    }
+                });
+                pairs.sort((a, b) => a.score - b.score);
+
+                const usedFiles = new Set();
+                const usedCands = new Set();
+                const assignment = new Map(); // candidateId -> gidx
+                for (const p of pairs) {
+                    if (!p.acceptable) continue;
+                    if (usedFiles.has(p.gidx)) continue;
+                    if (usedCands.has(p.candidate.id)) continue;
+                    usedFiles.add(p.gidx);
+                    usedCands.add(p.candidate.id);
+                    assignment.set(p.candidate.id, p.gidx);
+                }
+
+                // Build groups per candidate (existing transactions take precedence)
+                for (const c of candidates) {
+                    const gidx = assignment.get(c.id);
+                    if (gidx != null) {
+                        const g = tempGroups[gidx];
+                        groups.push({
+                            fileName: g.fileName,
+                            items: g.items,
+                            matched: { originalTransactionId: c.id, original: c.amountAbs, sum: g.sum, diff: Number((c.amountAbs - g.sum).toFixed(2)) },
+                            selectable: true,
+                        });
+                    } else {
+                        // Candidate with no matching file – still show as empty group so user sees it
+                        groups.push({
+                            fileName: null,
+                            items: [],
+                            matched: { originalTransactionId: c.id, original: c.amountAbs, sum: 0, diff: Number(c.amountAbs.toFixed(2)) },
+                            selectable: false,
+                        });
+                    }
+                }
+
+                // Add any remaining unmatched files as their own groups without a match
+                tempGroups.forEach((g, gidx) => {
+                    if (!usedFiles.has(gidx)) {
+                        groups.push({ fileName: g.fileName, items: g.items, matched: null, selectable: true });
+                    }
+                });
+            } else {
+                // No explicit candidates – fallback to per-file best match, but only accept within threshold
+                for (const g of tempGroups) {
+                    let best = null;
+                    // compute group reference date
+                    let refDate = null;
+                    const dates = g.items
+                        .map(i => (i.date ? new Date(i.date) : null))
+                        .filter(d => d && !isNaN(d.getTime()));
+                    if (dates.length) {
+                        const minD = dates.reduce((a, b) => (a.getTime() < b.getTime() ? a : b));
+                        const maxD = dates.reduce((a, b) => (a.getTime() > b.getTime() ? a : b));
+                        refDate = new Date((minD.getTime() + maxD.getTime()) / 2);
+                    }
+                    for (const c of candidates) {
+                        const diff = Number((c.amountAbs - g.sum).toFixed(2));
+                        const rel = c.amountAbs ? Math.abs(diff) / c.amountAbs : 1;
+                        const days = (refDate && c.date && !isNaN(refDate.getTime()) && !isNaN(c.date.getTime()))
+                            ? Math.abs((refDate.getTime() - c.date.getTime()) / (1000 * 60 * 60 * 24))
+                            : 9999;
+                        const score = Math.abs(diff) + Math.min(days, dateWindowDays) / 100;
+                        if (!best || score < best.score) best = { candidate: c, diff, rel, sum: g.sum, score };
+                    }
+                    const acceptable = best && ((Math.abs(best.diff) <= MAX_ABS_DIFF) || (best.rel <= MAX_REL_DIFF));
+                    groups.push({
+                        fileName: g.fileName,
+                        items: g.items,
+                        matched: acceptable ? { originalTransactionId: best.candidate.id, original: best.candidate.amountAbs, sum: best.sum, diff: best.diff } : null,
+                        selectable: true,
+                    });
+                }
+            }
+
+            res.json({ success: true, groups });
+        } catch (e) {
+            console.error('Extraction upload-batch error:', e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onExtractionConfirmBatch(req, res) {
+        try {
+            const { groups = [], proceedOnMismatch = false, tag } = req.body || {};
+            if (!Array.isArray(groups) || groups.length === 0) return res.status(400).json({ success: false, error: 'groups[] required' });
+
+            let created = 0;
+            for (const g of groups) {
+                if (!g || !g.matched || !Array.isArray(g.items) || g.items.length === 0) continue;
+                const originalTransactionId = g.matched.originalTransactionId;
+
+                // Load original
+                const data = await this.#firefly.getTransaction(originalTransactionId);
+                const firstTx = data.data.attributes.transactions[0];
+                const originalAbs = Math.abs(parseFloat(firstTx.amount));
+
+                const total = g.items.reduce((s, i) => s + Math.abs(Number(i.amount || 0)), 0);
+                const diff = Number((originalAbs - total).toFixed(2));
+                if (Math.abs(diff) >= 0.01 && !proceedOnMismatch) {
+                    continue; // skip this group if not allowed
+                }
+
+                const parentTag = this.#transactionExtractionService.sanitizeTag(firstTx.description || `tx-${originalTransactionId}`);
+                const userTag = this.#transactionExtractionService.sanitizeTag(tag || this.#transactionExtractionService.getConfig().defaultTag);
+
+                for (const it of g.items) {
+                    await this.#firefly.createTransactions([
+                        {
+                            type: 'withdrawal',
+                            date: it.date || firstTx.date,
+                            description: it.description,
+                            destination_name: it.destination_name || it.description,
+                            amount: Math.abs(Number(it.amount)).toFixed(2),
+                            currency_code: firstTx.currency_code,
+                            tags: [userTag, parentTag]
+                        }
+                    ]);
+                    created++;
+                }
+
+                await this.#tagTransaction(originalTransactionId, ['already-extracted-original']);
+                await this.#createCorrectionClone(data.data, 'value-correction-clone');
+            }
+
+            res.json({ success: true, created });
+        } catch (e) {
+            console.error('Extraction confirm-batch error:', e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #tagTransaction(transactionId, extraTags) {
+        const tx = await this.#firefly.getTransaction(transactionId);
+        const transactions = tx.data.attributes.transactions.map(t => ({
+            transaction_journal_id: t.transaction_journal_id,
+            category_id: t.category_id || null,
+            tags: Array.from(new Set([...(t.tags || []), ...extraTags]))
+        }));
+        await this.#firefly.updateTransactions(transactionId, transactions);
+    }
+
+    async #createCorrectionClone(original, tag) {
+        const t = original.attributes.transactions[0];
+        await this.#firefly.createTransactions([
+            {
+                type: 'deposit',
+                date: t.date,
+                description: `${t.description} (correction)` ,
+                source_name: t.destination_name || t.source_name || 'Correction',
+                amount: Math.abs(parseFloat(t.amount)).toFixed(2),
+                currency_code: t.currency_code,
+                tags: [tag]
+            }
+        ]);
+    }
+
+    async #onGetExtractionConfig(req, res) {
+        try {
+            res.json({ success: true, config: this.#transactionExtractionService.getConfig() });
+        } catch (e) {
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onUpdateExtractionConfig(req, res) {
+        try {
+            const updated = await this.#transactionExtractionService.updateConfig(req.body || {});
+            res.json({ success: true, config: updated });
+        } catch (e) {
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
     async #onGetCategoryMappings(req, res) {
         try {
             const mappings = this.#categoryMappingService.getAllMappings();
@@ -932,19 +1338,24 @@ export default class App {
 
     async #getTransactionsList(req, res) {
         try {
-            const { type = 'all', limit = 100, page = 1 } = req.query;
+            const { type = 'all', limit = 100, page = 1, categoryName = '', tag = '' } = req.query;
             
-            // Get all transactions based on type
+            // Choose efficient source
             let transactions = [];
-            
-            if (type === 'withdrawal') {
-                transactions = await this.#firefly.getAllWithdrawalTransactions();
-            } else if (type === 'deposit') {
-                transactions = await this.#firefly.getAllTransactionsByType('deposit');
-            } else if (type === 'uncategorized') {
-                transactions = await this.#firefly.getAllUncategorizedTransactions();
+            if (categoryName) {
+                transactions = await this.#firefly.getTransactionsByCategoryName(categoryName, { limit: 500 });
+            } else if (tag) {
+                transactions = await this.#firefly.getTransactionsByTag(tag, { limit: 500 });
             } else {
-                transactions = await this.#firefly.getAllTransactions();
+                if (type === 'withdrawal') {
+                    transactions = await this.#firefly.getAllWithdrawalTransactions();
+                } else if (type === 'deposit') {
+                    transactions = await this.#firefly.getAllTransactionsByType('deposit');
+                } else if (type === 'uncategorized') {
+                    transactions = await this.#firefly.getAllUncategorizedTransactions();
+                } else {
+                    transactions = await this.#firefly.getAllTransactions();
+                }
             }
             
             // Get categories for mapping
@@ -955,6 +1366,7 @@ export default class App {
             const transformedTransactions = transactions.map(transaction => {
                 const firstTx = transaction.attributes.transactions[0];
                 const categoryName = firstTx.category_name || null;
+                const tags = Array.isArray(firstTx.tags) ? firstTx.tags : [];
                 
                 return {
                     id: transaction.id,
@@ -965,6 +1377,7 @@ export default class App {
                     date: firstTx.date || transaction.attributes.updated_at || transaction.attributes.created_at,
                     type: firstTx.type,
                     category: categoryName,
+                    tags: tags,
                     categoryId: firstTx.category_id || null,
                     sourceId: firstTx.source_id,
                     destinationId: firstTx.destination_id,
@@ -972,15 +1385,17 @@ export default class App {
                 };
             });
             
+            const filteredByCatTag = transformedTransactions; // already scoped when using category/tag endpoints
+
             // Apply pagination
             const startIndex = (page - 1) * limit;
             const endIndex = startIndex + parseInt(limit);
-            const paginatedTransactions = transformedTransactions.slice(startIndex, endIndex);
+            const paginatedTransactions = filteredByCatTag.slice(startIndex, endIndex);
             
             res.json({
                 success: true,
                 transactions: paginatedTransactions,
-                totalCount: transformedTransactions.length,
+                totalCount: filteredByCatTag.length,
                 categories: categoryNames,
                 page: parseInt(page),
                 limit: parseInt(limit)
@@ -1093,6 +1508,7 @@ export default class App {
                 type = 'all',
                 hasCategory = 'all',
                 categoryName = '',
+                tag = '',
                 minAmount = null,
                 maxAmount = null,
                 dateFrom = null,
@@ -1129,6 +1545,7 @@ export default class App {
                 .map(transaction => {
                     const firstTx = transaction.attributes.transactions[0];
                     const categoryName = firstTx.category_name || null;
+                    const tags = Array.isArray(firstTx.tags) ? firstTx.tags : [];
                     
                     return {
                         id: transaction.id,
@@ -1139,6 +1556,7 @@ export default class App {
                         date: firstTx.date || transaction.attributes.updated_at || transaction.attributes.created_at,
                         type: firstTx.type,
                         category: categoryName,
+                        tags: tags,
                         categoryId: firstTx.category_id || null,
                         sourceId: firstTx.source_id,
                         destinationId: firstTx.destination_id,
@@ -1164,6 +1582,9 @@ export default class App {
                     
                     // Specific category filter
                     if (categoryName && transaction.category !== categoryName) return false;
+
+                    // Tag filter
+                    if (tag && !(transaction.tags || []).includes(tag)) return false;
                     
                     // Amount filter - use absolute values for comparison
                     const absoluteAmount = Math.abs(transaction.amount);

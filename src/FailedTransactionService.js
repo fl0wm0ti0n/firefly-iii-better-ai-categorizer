@@ -1,7 +1,8 @@
 import fs from 'fs/promises';
+import { ensureDataDir, dataFile } from './storage.js';
 
 export default class FailedTransactionService {
-    #FAILED_TRANSACTIONS_FILE = 'failed-transactions.json';
+    #FAILED_TRANSACTIONS_FILE = dataFile('failed-transactions.json');
     #failedTransactions = [];
 
     constructor() {
@@ -10,6 +11,7 @@ export default class FailedTransactionService {
 
     async loadFailedTransactions() {
         try {
+            await ensureDataDir();
             const data = await fs.readFile(this.#FAILED_TRANSACTIONS_FILE, 'utf8');
             this.#failedTransactions = JSON.parse(data);
             console.info(`📋 Loaded ${this.#failedTransactions.length} failed transactions`);
@@ -26,6 +28,7 @@ export default class FailedTransactionService {
 
     async saveFailedTransactions() {
         try {
+            await ensureDataDir();
             await fs.writeFile(this.#FAILED_TRANSACTIONS_FILE, JSON.stringify(this.#failedTransactions, null, 2));
             console.info(`💾 Saved ${this.#failedTransactions.length} failed transactions`);
         } catch (error) {

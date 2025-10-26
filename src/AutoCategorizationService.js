@@ -1,7 +1,8 @@
 import fs from 'fs/promises';
+import { ensureDataDir, dataFile } from './storage.js';
 
 export default class AutoCategorizationService {
-    #CONFIG_FILE = 'auto-categorization-config.json';
+    #CONFIG_FILE = dataFile('auto-categorization-config.json');
     #config = {
         enabled: true,
         skipDeposits: true,
@@ -37,6 +38,7 @@ export default class AutoCategorizationService {
 
     async loadConfig() {
         try {
+            await ensureDataDir();
             const data = await fs.readFile(this.#CONFIG_FILE, 'utf8');
             const loadedConfig = JSON.parse(data);
             this.#config = { ...this.#config, ...loadedConfig };
@@ -53,6 +55,7 @@ export default class AutoCategorizationService {
 
     async saveConfig() {
         try {
+            await ensureDataDir();
             await fs.writeFile(this.#CONFIG_FILE, JSON.stringify(this.#config, null, 2));
             console.info(`💾 Saved auto-categorization config`);
         } catch (error) {

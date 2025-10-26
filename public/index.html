@@ -2584,8 +2584,8 @@ Check the individual jobs section below to see the categorization result.`);
         element.innerHTML = renderJob(e.job);
         const oldElement = document.querySelector(`[data-job-id="${e.job.id}"]`);
         if (oldElement) {
-            oldElement.before(element);
-            oldElement.remove();
+        oldElement.before(element);
+        oldElement.remove();
         }
     });
 
@@ -2639,9 +2639,9 @@ Check the individual jobs section below to see the categorization result.`);
             <div><strong>Status:</strong> <span>${job.status}</span></div>
             <div><strong>Created:</strong>
                 <time>${Intl.DateTimeFormat(undefined, {
-                    dateStyle: 'medium',
-                    timeStyle: 'medium'
-                }).format(new Date(job.created))}</time>
+            dateStyle: 'medium',
+            timeStyle: 'medium'
+        }).format(new Date(job.created))}</time>
             </div>
             <div><strong>Destination name:</strong> <span>${job.data?.destinationName || ''}</span></div>
             <div><strong>Description:</strong> <span>${job.data?.description || ''}</span>
@@ -3073,6 +3073,605 @@ Check the individual jobs section below to see the categorization result.`);
             }, 300);
         }, 4000);
     }
+// --- Extraction UI ---
+try {
+  const extractionSection = document.createElement('section');
+  extractionSection.id = 'extraction';
+  extractionSection.className = 'controls';
+  extractionSection.innerHTML = `
+    <h2>Credit Card Statement Splitter</h2>
+    <div class="test-form">
+      <div style="margin-bottom: 10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
+          <label for="selectByCategory">Select by category:</label>
+          <select id="selectByCategory" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
+        </div>
+        <div style="flex:1; min-width:220px;">
+          <label for="selectByTag">Select by tag:</label>
+          <select id="selectByTag" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
+        </div>
+        <div style="flex:1; min-width:220px;">
+          <label for="quickSearch">Quick search (text filter):</label>
+          <input type="text" id="quickSearch" placeholder="e.g. amazon, pizza, ..." style="width: 100%; padding: 5px; margin-top: 5px;">
+        </div>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label for="pickOriginalFromList">Select transaction:</label>
+        <select id="pickOriginalFromList" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
+        <div id="txPickerInfo" style="margin-top:6px; font-size:12px; color:#6c757d;"></div>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label for="originalTxId">Original Transaction ID:</label>
+        <input type="text" id="originalTxId" placeholder="e.g. 12345" style="width: 100%; padding: 5px; margin-top: 5px;">
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label for="extractionTag">Tag for new transactions (optional):</label>
+        <input type="text" id="extractionTag" placeholder="e.g. card-split" style="width: 100%; padding: 5px; margin-top: 5px;">
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label>File (CSV or PDF):</label>
+        <div style="display:flex; gap:8px; align-items:center; margin-top: 5px;">
+          <button id="btnChooseFile" class="btn btn-secondary" type="button">Choose file</button>
+          <span id="selectedFileName" style="font-size:12px; color:#6c757d;">No file selected</span>
+        </div>
+        <input id="fileInput" type="file" accept=".csv,.pdf" style="display:none;" />
+      </div>
+      <div class="button-group" style="margin-top: 8px;">
+        <button id="btnPreview" class="btn btn-primary">Create preview</button>
+        <button id="btnCancelSingle" class="btn btn-warning" type="button" disabled>Cancel</button>
+        <button id="btnConfirm" class="btn btn-success" disabled>Apply and save</button>
+      </div>
+      <label style="display:block; margin-top:8px;"><input type="checkbox" id="proceedMismatch" /> Proceed despite amount mismatch</label>
+      <div id="preview" style="margin-top:12px;"></div>
+    </div>
+
+    <hr style="margin:20px 0;">
+    <h3>Batch mode (multiple statements)</h3>
+    <div class="test-form">
+      <div style="margin-bottom: 10px;">
+        <label for="pickCandidates">Candidate originals (optional, multi-select):</label>
+        <select id="pickCandidates" multiple size="6" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
+        <div style="margin-top:6px; font-size:12px; color:#6c757d;">If empty, auto-search by date window.</div>
+      </div>
+
+      <div style="margin-bottom: 10px;">
+        <label>Files (multiple CSV/PDF):</label>
+        <div style="display:flex; gap:8px; align-items:center; margin-top: 5px; flex-wrap:wrap;">
+          <button id="btnChooseFilesBatch" class="btn btn-secondary" type="button">Choose files</button>
+          <span id="selectedFilesBatch" style="font-size:12px; color:#6c757d;">No files selected</span>
+          <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+            <label for="dateWindowDays" style="font-size:12px; color:#6c757d;">Date window (days):</label>
+            <input id="dateWindowDays" type="number" min="1" max="365" value="60" style="width:80px; padding:5px;">
+          </div>
+        </div>
+        <input id="filesBatch" type="file" accept=".csv,.pdf" style="display:none;" multiple />
+      </div>
+      <div class="button-group" style="margin-top: 8px;">
+        <button id="btnUploadBatch" class="btn btn-primary" type="button">Create batch preview</button>
+        <button id="btnCancelBatch" class="btn btn-warning" type="button" disabled>Cancel</button>
+        <button id="btnConfirmBatch" class="btn btn-success" type="button" disabled>Apply selected</button>
+      </div>
+      <label style="display:block; margin-top:8px;"><input type="checkbox" id="batchProceedMismatch" /> Proceed despite amount mismatch (all selected)</label>
+      <div id="batchPreview" style="margin-top:12px;"></div>
+    </div>
+  `;
+  const container = document.querySelector('.container');
+  const firstControls = container.querySelector('.controls');
+  container.insertBefore(extractionSection, firstControls);
+
+  const fileInput = extractionSection.querySelector('#fileInput');
+  const btnChooseFile = extractionSection.querySelector('#btnChooseFile');
+  const selectedFileName = extractionSection.querySelector('#selectedFileName');
+  const btnPreview = extractionSection.querySelector('#btnPreview');
+  const btnCancelSingle = extractionSection.querySelector('#btnCancelSingle');
+  const btnConfirm = extractionSection.querySelector('#btnConfirm');
+  const originalTxId = extractionSection.querySelector('#originalTxId');
+  const extractionTag = extractionSection.querySelector('#extractionTag');
+  const previewDiv = extractionSection.querySelector('#preview');
+  const proceedMismatch = extractionSection.querySelector('#proceedMismatch');
+  const selectByCategory = extractionSection.querySelector('#selectByCategory');
+  const selectByTag = extractionSection.querySelector('#selectByTag');
+  const quickSearch = extractionSection.querySelector('#quickSearch');
+  const pickOriginal = extractionSection.querySelector('#pickOriginalFromList');
+  const txPickerInfo = extractionSection.querySelector('#txPickerInfo');
+  const pickCandidates = extractionSection.querySelector('#pickCandidates');
+  const btnChooseFilesBatch = extractionSection.querySelector('#btnChooseFilesBatch');
+  const filesBatch = extractionSection.querySelector('#filesBatch');
+  const selectedFilesBatch = extractionSection.querySelector('#selectedFilesBatch');
+  const dateWindowDays = extractionSection.querySelector('#dateWindowDays');
+  const btnUploadBatch = extractionSection.querySelector('#btnUploadBatch');
+  const btnConfirmBatch = extractionSection.querySelector('#btnConfirmBatch');
+  const btnCancelBatch = extractionSection.querySelector('#btnCancelBatch');
+  const batchPreviewDiv = extractionSection.querySelector('#batchPreview');
+  const batchProceedMismatch = extractionSection.querySelector('#batchProceedMismatch');
+  let lastPreview = null;
+  let loadedTx = [];
+  const pickerState = { query: '', selectedId: '', category: '', tag: '' };
+  let pickerAbort = null;
+  let pickerReqId = 0;
+  // Safe file picker: only open when explicit button clicked
+  btnChooseFile.addEventListener('click', () => {
+    try { fileInput.showPicker ? fileInput.showPicker() : fileInput.click(); } catch(_) { fileInput.click(); }
+  });
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files && fileInput.files[0];
+    selectedFileName.textContent = f ? `${f.name} (${Math.round(f.size/1024)} KB)` : 'No file selected';
+  });
+
+  // Batch file choose
+  btnChooseFilesBatch?.addEventListener('click', () => {
+    try { filesBatch.showPicker ? filesBatch.showPicker() : filesBatch.click(); } catch(_) { filesBatch.click(); }
+  });
+  filesBatch?.addEventListener('change', () => {
+    const names = Array.from(filesBatch.files || []).map(f => f.name).join(', ');
+    selectedFilesBatch.textContent = names || 'No files selected';
+  });
+
+  // Batch file choose
+  btnChooseFilesBatch?.addEventListener('click', () => {
+    try { filesBatch.showPicker ? filesBatch.showPicker() : filesBatch.click(); } catch(_) { filesBatch.click(); }
+  });
+  filesBatch?.addEventListener('change', () => {
+    const names = Array.from(filesBatch.files || []).map(f => f.name).join(', ');
+    selectedFilesBatch.textContent = names || 'No files selected';
+  });
+
+  // Upload batch
+  let batchAbort = null;
+
+  btnUploadBatch?.addEventListener('click', async () => {
+    try {
+      const fs = Array.from(filesBatch.files || []);
+      if (!fs.length) return showToast('Please choose files', 'warning');
+      btnUploadBatch.disabled = true;
+      btnCancelBatch.disabled = false;
+      batchPreviewDiv.innerHTML = '<div>Uploading and analyzing…</div>';
+      const form = new FormData();
+      fs.forEach(f => form.append('files', f));
+      const selectedIds = Array.from((pickCandidates?.selectedOptions) || []).map(o => o.value);
+      if (selectedIds.length) form.append('candidateTransactionIds', JSON.stringify(selectedIds));
+      form.append('dateWindowDays', String(dateWindowDays.value || '60'));
+      // Abortable fetch
+      batchAbort = new AbortController();
+      const r = await apiFetch('api/extraction/upload-batch', { method: 'POST', body: form, signal: batchAbort.signal });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || 'Batch preview failed');
+      batchPreviewDiv.innerHTML = renderBatchPreview(j.groups || []);
+      btnConfirmBatch.disabled = !(Array.isArray(j.groups) && j.groups.length);
+      showToast('Batch preview created', 'success');
+    } catch (e) {
+      batchPreviewDiv.innerHTML = '';
+      btnConfirmBatch.disabled = true;
+      if (e.name === 'AbortError') {
+        showToast('Batch upload cancelled', 'warning');
+      } else {
+        showToast(e.message, 'error');
+      }
+    }
+    finally {
+      btnUploadBatch.disabled = false;
+      btnCancelBatch.disabled = true;
+      batchAbort = null;
+    }
+  });
+
+  btnCancelBatch?.addEventListener('click', () => {
+    try {
+      if (batchAbort) batchAbort.abort();
+    } catch(_) {}
+  });
+
+  // Confirm batch
+  btnConfirmBatch?.addEventListener('click', async () => {
+    try {
+      const groups = collectBatchEdits();
+      if (!groups.length) return showToast('No groups selected', 'warning');
+      const body = { groups, proceedOnMismatch: !!batchProceedMismatch.checked, tag: extractionTag.value || '' };
+      const r = await apiFetch('api/extraction/confirm-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || 'Batch save failed');
+      showToast(`Created: ${j.created} transactions`, 'success');
+      btnConfirmBatch.disabled = true;
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  });
+
+  function renderBatchPreview(groups) {
+    if (!groups.length) return '<div>No groups</div>';
+    return groups.map((g, idx) => {
+      const rows = (g.items || []).map((i, r) => `
+        <tr>
+          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="date" value="${escapeHtml(i.date||'')}" style="width:120px;"></td>
+          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="destination_name" value="${escapeHtml(i.destination_name||'')}" style="width:220px;"></td>
+          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="description" value="${escapeHtml(i.description||'')}" style="width:100%;"></td>
+          <td style="text-align:right;"><input data-gidx="${idx}" data-ridx="${r}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;"></td>
+        </tr>`).join('');
+      const original = g.matched ? Number(g.matched.original).toFixed(2) : '-';
+      const sum = g.matched ? Number(g.matched.sum).toFixed(2) : Number((g.items||[]).reduce((s,i)=>s+Math.abs(Number(i.amount||0)),0)).toFixed(2);
+      const diff = g.matched ? Number(g.matched.diff).toFixed(2) : (original !== '-' ? (Number(original)-Number(sum)).toFixed(2) : '-');
+      const warn = (diff !== '-' && Math.abs(Number(diff)) >= 0.01) ? `<span style="color:#f90;">Difference: ${diff}</span>` : `<span style="color:#28a745;">OK</span>`;
+      const matchedInfo = g.matched ? `Matched original: <span class="bg-oid" data-gidx="${idx}">${g.matched.originalTransactionId}</span>` : 'No match';
+      return `
+      <div class="batch-group" data-gidx="${idx}" style="border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div><strong>${escapeHtml(g.fileName||'')}</strong> · ${matchedInfo}</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label><input type="checkbox" class="bg-select" data-gidx="${idx}" checked> Include</label>
+            <button type="button" class="btn btn-secondary bg-recalc" data-gidx="${idx}">Recalculate</button>
+          </div>
+        </div>
+        <div style="margin-top:6px; font-size:12px; color:#6c757d;">Original: ${original} | Sum: <span class="bg-sum" data-gidx="${idx}">${sum}</span> | ${warn}</div>
+        <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
+          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Amount</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }).join('');
+  }
+
+  function collectBatchEdits() {
+    const groups = [];
+    const containers = Array.from(batchPreviewDiv.querySelectorAll('.batch-group'));
+    containers.forEach(div => {
+      const include = !!div.querySelector('.bg-select')?.checked;
+      if (!include) return;
+      const oid = div.querySelector('.bg-oid')?.textContent?.trim();
+      if (!oid) return;
+      const rows = Array.from(div.querySelectorAll('tbody tr'));
+      const items = rows.map(tr => {
+        const inputs = tr.querySelectorAll('input');
+        const r = {};
+        inputs.forEach(inp => { const f = inp.getAttribute('data-field'); r[f] = inp.value; });
+        if (r.amount != null) r.amount = Number(r.amount);
+        return r;
+      }).filter(x => x.description || x.destination_name || x.amount);
+      if (items.length) groups.push({ matched: { originalTransactionId: oid }, items });
+    });
+    return groups;
+  }
+
+  function escapeHtml(value) {
+    const str = value == null ? '' : String(value);
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return str.replace(/[&<>"']/g, ch => map[ch]);
+  }
+
+  function buildApiCandidates(path) {
+    const clean = (path || '').replace(/^\/+/, '');
+    const leading = '/' + clean;
+    const origin = window.location.origin && window.location.origin.replace(/\/$/, '');
+    const { protocol, hostname, port } = window.location;
+    const host = hostname || 'localhost';
+    // optional override via query/localStorage/global
+    const qs = new URLSearchParams(window.location.search);
+    const qsBase = qs.get('apiBase');
+    if (qsBase) { try { localStorage.setItem('apiBase', qsBase); } catch(_) {} }
+    const storedBase = (() => { try { return localStorage.getItem('apiBase'); } catch(_) { return null; } })();
+    const overrideBase = (window.API_BASE || qsBase || storedBase || '').replace(/\/$/, '');
+    const ports = Array.from(new Set([
+      port || '',
+      '3001',
+      '3000',
+      '8080'
+    ])).filter(Boolean);
+    const candidates = [];
+    if (overrideBase) {
+      try { candidates.push(new URL(leading, overrideBase).toString()); } catch(_) { candidates.push(`${overrideBase}${leading}`); }
+    }
+    // same page href-relative first (preserves subpaths)
+    try { candidates.push(new URL(clean, window.location.href).toString()); } catch(_) {}
+    // same origin root
+    if (origin) candidates.push(`${origin}${leading}`);
+    // common same-host ports
+    for (const p of ports) {
+      const base = `${protocol}//${host}:${p}`;
+      if (!candidates.includes(base + leading)) candidates.push(base + leading);
+    }
+    // explicit localhost fallbacks
+    const localhostBases = [
+      `http://localhost:3001`,
+      `http://127.0.0.1:3001`
+    ];
+    for (const base of localhostBases) {
+      if (!candidates.includes(base + leading)) candidates.push(base + leading);
+    }
+    return candidates;
+  }
+
+  async function apiFetch(path, init) {
+    const urls = buildApiCandidates(path);
+    let lastError = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, init);
+        if (res.ok) return res;
+        lastError = new Error(`HTTP ${res.status} for ${url}`);
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    try { console.error('API fetch failed for', path, 'tried:', urls); } catch(_) {}
+    throw lastError || new Error('API request failed');
+  }
+
+  // Load categories and tags
+  (async () => {
+    try {
+      // show loading placeholders
+      selectByCategory.innerHTML = `<option value="">(Loading categories ...)</option>`;
+      selectByTag.innerHTML = `<option value="">(Loading tags ...)</option>`;
+
+      const [catsR, tagsR] = await Promise.all([
+        apiFetch('api/categories'),
+        apiFetch('api/tags')
+      ]);
+      const catsJ = await catsR.json();
+      const tagsJ = await tagsR.json();
+      if (!catsJ.success) throw new Error(catsJ.error || 'Failed to load categories');
+      if (!tagsJ.success) throw new Error(tagsJ.error || 'Failed to load tags');
+      const categories = catsJ.categories || [];
+      const tags = tagsJ.tags || [];
+      selectByCategory.innerHTML = `<option value="">(Select category)</option>` + (categories.length ? categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('') : `<option value="" disabled>(No categories)</option>`);
+      selectByTag.innerHTML = `<option value="">(Select tag)</option>` + (tags.length ? tags.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('') : `<option value="" disabled>(No tags)</option>`);
+      // initial load
+      await loadTransactionsForPicker();
+    } catch (e) {
+      showToast(e.message || 'Failed to load categories/tags', 'error');
+      selectByCategory.innerHTML = `<option value="" disabled>(Load error)</option>`;
+      selectByTag.innerHTML = `<option value="" disabled>(Load error)</option>`;
+    }
+  })();
+
+  async function loadTransactionsForPicker() {
+    try {
+      const myId = ++pickerReqId;
+      if (pickerAbort) { try { pickerAbort.abort(); } catch(_) {} }
+      pickerAbort = new AbortController();
+      // UI loading state
+      pickOriginal.disabled = true;
+      txPickerInfo.textContent = 'Loading transactions...';
+      pickOriginal.innerHTML = `<option value="">(Loading transactions ...)</option>`;
+      // keep current filter text and selection
+      if (quickSearch && typeof quickSearch.value === 'string') pickerState.query = quickSearch.value;
+      if (pickOriginal && pickOriginal.value) pickerState.selectedId = pickOriginal.value;
+      const params = new URLSearchParams();
+      params.set('type', 'all');
+      params.set('limit', '200');
+      if (selectByCategory.value) params.set('categoryName', selectByCategory.value);
+      if (selectByTag.value) params.set('tag', selectByTag.value);
+      const r = await apiFetch(`api/transactions/list?${params.toString()}`, { signal: pickerAbort.signal });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || 'Failed to load transactions');
+      if (myId !== pickerReqId) return; // stale response
+      loadedTx = j.transactions || [];
+      // restore UI state before render
+      if (quickSearch && pickerState.query != null) quickSearch.value = pickerState.query;
+      renderPicker();
+      // try restoring selection
+      if (pickerState.selectedId) {
+        const opt = pickOriginal.querySelector(`option[value="${pickerState.selectedId}"]`);
+        if (opt) {
+          pickOriginal.value = pickerState.selectedId;
+          originalTxId.value = pickerState.selectedId;
+        }
+      }
+      txPickerInfo.textContent = `Loaded: ${loadedTx.length} transactions${(quickSearch.value||'').trim()? ' (after filter: ' + pickOriginal.options.length + ')' : ''}`;
+      pickOriginal.disabled = false;
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        // ignore aborted request
+        return;
+      }
+      showToast(e.message, 'error');
+      txPickerInfo.textContent = 'Load error';
+      pickOriginal.disabled = false;
+    }
+  }
+
+  function renderPicker() {
+    const txt = ((quickSearch && quickSearch.value) || pickerState.query || '').toLowerCase();
+    const filt = !txt ? loadedTx : loadedTx.filter(t =>
+      (t.description || '').toLowerCase().includes(txt) ||
+      (t.destinationName || '').toLowerCase().includes(txt)
+    );
+    pickOriginal.innerHTML = `<option value="">(Select transaction)</option>` +
+      filt.map(t => `<option value="${t.id}">${escapeHtml(t.date || '')} | ${escapeHtml(t.description || '')} | ${escapeHtml(t.destinationName || '')} | ${Number(t.amount).toFixed(2)} ${escapeHtml(t.currency || '')}</option>`).join('');
+    // Update info while typing filter
+    if (txPickerInfo) {
+      txPickerInfo.textContent = `Loaded: ${loadedTx.length} · Shown: ${filt.length}`;
+    }
+    if (pickCandidates) {
+      pickCandidates.innerHTML = filt.map(t => `<option value="${t.id}">${escapeHtml(t.date || '')} | ${escapeHtml(t.description || '')} | ${escapeHtml(t.destinationName || '')} | ${Number(t.amount).toFixed(2)} ${escapeHtml(t.currency || '')}</option>`).join('');
+    }
+  }
+
+  selectByCategory.addEventListener('change', () => {
+    pickerState.category = selectByCategory.value;
+    txPickerInfo.textContent = 'Loading transactions...';
+    loadTransactionsForPicker();
+  });
+  selectByTag.addEventListener('change', () => {
+    pickerState.tag = selectByTag.value;
+    txPickerInfo.textContent = 'Loading transactions...';
+    loadTransactionsForPicker();
+  });
+  quickSearch.addEventListener('input', () => {
+    pickerState.query = quickSearch.value;
+    renderPicker();
+  });
+  pickOriginal.addEventListener('change', () => {
+    if (pickOriginal.value) {
+      originalTxId.value = pickOriginal.value;
+      pickerState.selectedId = pickOriginal.value;
+    }
+  });
+
+  let singleAbort = null;
+
+  btnPreview.addEventListener('click', async () => {
+    try {
+      if (!fileInput.files[0]) return showToast('Please select a file', 'warning');
+      if (!originalTxId.value) return showToast('Please enter the original transaction ID', 'warning');
+      btnPreview.disabled = true;
+      btnCancelSingle.disabled = true; // enabled after request is started
+      const form = new FormData();
+      form.append('file', fileInput.files[0]);
+      form.append('originalTransactionId', originalTxId.value);
+      if (extractionTag.value) form.append('tag', extractionTag.value);
+      singleAbort = new AbortController();
+      btnCancelSingle.disabled = false;
+      const r = await apiFetch('api/extraction/upload', { method: 'POST', body: form, signal: singleAbort.signal });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || 'Preview failed');
+      lastPreview = j.preview;
+      previewDiv.innerHTML = renderPreview(j.preview);
+      btnConfirm.disabled = false;
+      showToast('Preview created', 'success');
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        showToast('Preview cancelled', 'warning');
+      } else {
+        showToast(e.message, 'error');
+      }
+    }
+    finally {
+      btnPreview.disabled = false;
+      btnCancelSingle.disabled = true;
+      singleAbort = null;
+    }
+  });
+
+  btnCancelSingle?.addEventListener('click', () => {
+    try { if (singleAbort) singleAbort.abort(); } catch(_) {}
+  });
+
+  btnConfirm.addEventListener('click', async () => {
+    try {
+      if (!lastPreview) return;
+      const body = {
+        originalTransactionId: lastPreview.meta.originalTransactionId,
+        items: lastPreview.items,
+        tag: extractionTag.value || lastPreview.meta.tag,
+        proceedOnMismatch: proceedMismatch.checked
+      };
+      const r = await apiFetch('api/extraction/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || 'Save failed');
+      showToast(`Created: ${j.created} transactions${j.diff ? `, difference: ${j.diff}` : ''}`, 'success');
+      btnConfirm.disabled = true;
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  });
+
+  // Upload batch
+  btnUploadBatch?.addEventListener('click', async () => {
+    try {
+      const fs = Array.from(filesBatch.files || []);
+      if (!fs.length) return showToast('Please choose files', 'warning');
+      const form = new FormData();
+      fs.forEach(f => form.append('files', f));
+      const selectedIds = Array.from((pickCandidates?.selectedOptions) || []).map(o => o.value);
+      if (selectedIds.length) form.append('candidateTransactionIds', JSON.stringify(selectedIds));
+      form.append('dateWindowDays', String(dateWindowDays.value || '60'));
+      const r = await apiFetch('api/extraction/upload-batch', { method: 'POST', body: form });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || 'Batch preview failed');
+      batchPreviewDiv.innerHTML = renderBatchPreview(j.groups || []);
+      btnConfirmBatch.disabled = !(Array.isArray(j.groups) && j.groups.length);
+      showToast('Batch preview created', 'success');
+    } catch (e) {
+      batchPreviewDiv.innerHTML = '';
+      btnConfirmBatch.disabled = true;
+      showToast(e.message, 'error');
+    }
+  });
+
+  // Confirm batch
+  btnConfirmBatch?.addEventListener('click', async () => {
+    try {
+      const groups = collectBatchEdits();
+      if (!groups.length) return showToast('No groups selected', 'warning');
+      const body = { groups, proceedOnMismatch: !!batchProceedMismatch.checked, tag: extractionTag.value || '' };
+      const r = await apiFetch('api/extraction/confirm-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || 'Batch save failed');
+      showToast(`Created: ${j.created} transactions`, 'success');
+      btnConfirmBatch.disabled = true;
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  });
+
+  function renderBatchPreview(groups) {
+    if (!groups.length) return '<div>No groups</div>';
+    return groups.map((g, idx) => {
+      const rows = (g.items || []).map((i, r) => `
+        <tr>
+          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="date" value="${escapeHtml(i.date||'')}" style="width:120px;"></td>
+          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="destination_name" value="${escapeHtml(i.destination_name||'')}" style="width:220px;"></td>
+          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="description" value="${escapeHtml(i.description||'')}" style="width:100%;"></td>
+          <td style="text-align:right;"><input data-gidx="${idx}" data-ridx="${r}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;"></td>
+        </tr>`).join('');
+      const original = g.matched ? Number(g.matched.original).toFixed(2) : '-';
+      const sum = g.matched ? Number(g.matched.sum).toFixed(2) : Number((g.items||[]).reduce((s,i)=>s+Math.abs(Number(i.amount||0)),0)).toFixed(2);
+      const diff = g.matched ? Number(g.matched.diff).toFixed(2) : (original !== '-' ? (Number(original)-Number(sum)).toFixed(2) : '-');
+      const warn = (diff !== '-' && Math.abs(Number(diff)) >= 0.01) ? `<span style="color:#f90;">Difference: ${diff}</span>` : `<span style="color:#28a745;">OK</span>`;
+      const matchedInfo = g.matched ? `Matched original: <span class="bg-oid" data-gidx="${idx}">${g.matched.originalTransactionId}</span>` : 'No match';
+      return `
+      <div class="batch-group" data-gidx="${idx}" style="border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div><strong>${escapeHtml(g.fileName||'')}</strong> · ${matchedInfo}</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label><input type="checkbox" class="bg-select" data-gidx="${idx}" checked> Include</label>
+            <button type="button" class="btn btn-secondary bg-recalc" data-gidx="${idx}">Recalculate</button>
+          </div>
+        </div>
+        <div style="margin-top:6px; font-size:12px; color:#6c757d;">Original: ${original} | Sum: <span class="bg-sum" data-gidx="${idx}">${sum}</span> | ${warn}</div>
+        <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
+          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Amount</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }).join('');
+  }
+
+  function collectBatchEdits() {
+    const groups = [];
+    const containers = Array.from(batchPreviewDiv.querySelectorAll('.batch-group'));
+    containers.forEach(div => {
+      const include = !!div.querySelector('.bg-select')?.checked;
+      if (!include) return;
+      const oid = div.querySelector('.bg-oid')?.textContent?.trim();
+      if (!oid) return;
+      const rows = Array.from(div.querySelectorAll('tbody tr'));
+      const items = rows.map(tr => {
+        const inputs = tr.querySelectorAll('input');
+        const r = {};
+        inputs.forEach(inp => { const f = inp.getAttribute('data-field'); r[f] = inp.value; });
+        if (r.amount != null) r.amount = Number(r.amount);
+        return r;
+      }).filter(x => x.description || x.destination_name || x.amount);
+      if (items.length) groups.push({ matched: { originalTransactionId: oid }, items });
+    });
+    return groups;
+  }
+
+  function renderPreview(p) {
+    const rows = p.items.map(i => `<tr><td>${escapeHtml(i.date||'')}</td><td>${escapeHtml(i.destination_name||'')}</td><td>${escapeHtml(i.description||'')}</td><td style="text-align:right;">${Number(i.amount).toFixed(2)}</td></tr>`).join('');
+    const warn = Math.abs(p.totals.diff) >= 0.01 ? `<div style="color:#f90;">Warning: total differs by ${p.totals.diff}</div>` : '';
+    return `
+      <div>
+        <div>Original: ${p.totals.original.toFixed(2)} | Preview total: ${p.totals.sum.toFixed(2)} | Difference: ${p.totals.diff.toFixed(2)}</div>
+        ${warn}
+        <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
+          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Amount</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+} catch(e) { /* ignore UI errors on minimal builds */ }
 </script>
 </body>
 </html>

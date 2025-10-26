@@ -1,0 +1,7 @@
+{
+  "defaultTag": "card-statement-split",
+  "useAIForParsing": true,
+  "headerMapping": {},
+  "accountCurrency": "EUR",
+  "lastUsed": null
+}

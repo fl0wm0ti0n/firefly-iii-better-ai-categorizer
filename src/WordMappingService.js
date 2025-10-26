@@ -1,8 +1,8 @@
 import fs from 'fs/promises';
-import path from 'path';
+import { ensureDataDir, dataFile } from './storage.js';
 
 export default class WordMappingService {
-    #MAPPINGS_FILE = 'word-mappings.json';
+    #MAPPINGS_FILE = dataFile('word-mappings.json');
     #mappings = new Map();
 
     constructor() {
@@ -11,6 +11,7 @@ export default class WordMappingService {
 
     async loadMappings() {
         try {
+            await ensureDataDir();
             const data = await fs.readFile(this.#MAPPINGS_FILE, 'utf8');
             const mappingsArray = JSON.parse(data);
             this.#mappings = new Map(mappingsArray);
@@ -28,6 +29,7 @@ export default class WordMappingService {
 
     async saveMappings() {
         try {
+            await ensureDataDir();
             const mappingsArray = Array.from(this.#mappings.entries());
             await fs.writeFile(this.#MAPPINGS_FILE, JSON.stringify(mappingsArray, null, 2));
             console.info(`💾 Saved ${this.#mappings.size} word mappings`);
