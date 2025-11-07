@@ -426,14 +426,31 @@ export default class FireflyService {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(body)
         });
         if (!response.ok) {
             throw new FireflyException(response.status, response, await response.text());
         }
-        return await response.json();
+        // Some reverse proxies may return non-JSON on success (e.g., HTML login if misconfigured). Guard parsing.
+        const ctype = (response.headers.get('content-type') || '').toLowerCase();
+        if (ctype.includes('application/json')) {
+            return await response.json();
+        }
+        // Try to parse JSON even if header is wrong (seen behind some proxies)
+        const text = await response.text();
+        if (!text) return { ok: true };
+        const trimmed = text.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            try {
+                return JSON.parse(trimmed);
+            } catch (_) {
+                // fallthrough to error
+            }
+        }
+        throw new FireflyException(200, response, `Non-JSON response from Firefly (check FIREFLY_URL/token): ${text.substring(0, 500)}`);
     }
 
     async updateTransactions(transactionId, transactions) {
@@ -446,14 +463,43 @@ export default class FireflyService {
             method: 'PUT',
             headers: {
                 Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(body)
         });
         if (!response.ok) {
             throw new FireflyException(response.status, response, await response.text());
         }
-        return await response.json();
+        const ctype = (response.headers.get('content-type') || '').toLowerCase();
+        if (ctype.includes('application/json')) {
+            return await response.json();
+        }
+        const text = await response.text();
+        if (!text) return { ok: true };
+        const trimmed = text.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            try {
+                return JSON.parse(trimmed);
+            } catch (_) {
+                // fallthrough to error
+            }
+        }
+        throw new FireflyException(200, response, `Non-JSON response from Firefly (check FIREFLY_URL/token): ${text.substring(0, 500)}`);
+    }
+
+    async deleteTransaction(transactionId) {
+        const response = await fetch(`${this.#BASE_URL}/api/v1/transactions/${transactionId}`, {
+            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                'Accept': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            throw new FireflyException(response.status, response, await response.text());
+        }
+        return true;
     }
 
     // Enhanced method with date filtering support using Firefly III API parameters
@@ -525,6 +571,170 @@ export default class FireflyService {
         }
 
         return transactions;
+    }
+
+    async #listAccountsByType(type = 'expense') {
+        const results = [];
+        let page = 1;
+        const limit = 50;
+        while (true) {
+            const url = `${this.#BASE_URL}/api/v1/accounts?type=${encodeURIComponent(type)}&limit=${limit}&page=${page}`;
+            const response = await fetch(url, {
+                headers: {
+                    Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                throw new FireflyException(response.status, response, await response.text());
+            }
+            const data = await response.json();
+            results.push(...data.data);
+            if (data.data.length < limit) break;
+            page++;
+        }
+        return results;
+    }
+
+    async findAccountIdByName(name, type) {
+        if (!name) return null;
+        const accounts = await this.#listAccountsByType(type);
+        const found = accounts.find(a => (a?.attributes?.name || '').toLowerCase() === String(name).toLowerCase());
+        return found ? found.id : null;
+    }
+
+    #normalizeName(name) {
+        return String(name || '')
+            .toLowerCase()
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '') // accents
+            .replace(/[^a-z0-9]+/g, ' ')
+            .replace(/\b(gmbh|ag|kg|co|inc|llc|ltd|the)\b/g, ' ') // common suffixes
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    }
+
+    #bigrams(s) {
+        const arr = [];
+        for (let i = 0; i < s.length - 1; i++) arr.push(s.slice(i, i + 2));
+        return arr;
+    }
+
+    #diceCoefficient(a, b) {
+        const A = this.#bigrams(a);
+        const B = this.#bigrams(b);
+        if (A.length === 0 || B.length === 0) return a === b ? 1 : 0;
+        const setB = new Map();
+        for (const token of B) setB.set(token, (setB.get(token) || 0) + 1);
+        let matches = 0;
+        for (const token of A) {
+            const c = setB.get(token) || 0;
+            if (c > 0) { matches++; setB.set(token, c - 1); }
+        }
+        return (2 * matches) / (A.length + B.length);
+    }
+
+    async #findBestAccountBySimilarity(name, type, threshold = 0.9) {
+        const normTarget = this.#normalizeName(name);
+        if (!normTarget) return null;
+        const accounts = await this.#listAccountsByType(type);
+        let best = null;
+        for (const acc of accounts) {
+            const accName = acc?.attributes?.name || '';
+            const normAcc = this.#normalizeName(accName);
+            if (!normAcc) continue;
+            // quick exact checks
+            if (normAcc === normTarget || normAcc.includes(normTarget) || normTarget.includes(normAcc)) {
+                return acc.id;
+            }
+            const sim = this.#diceCoefficient(normAcc, normTarget);
+            if (sim >= threshold && (!best || sim > best.sim)) best = { id: acc.id, sim };
+        }
+        return best ? best.id : null;
+    }
+
+    async getAccount(accountId) {
+        if (!accountId) return null;
+        const response = await fetch(`${this.#BASE_URL}/api/v1/accounts/${accountId}`, {
+            headers: {
+                Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                'Accept': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            return null;
+        }
+        try {
+            const json = await response.json();
+            return json?.data || null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async findAccountIdByNameAcrossTypes(name, types = ['asset', 'liability']) {
+        if (!name) return null;
+        const lower = String(name).toLowerCase();
+        for (const t of types) {
+            const list = await this.#listAccountsByType(t);
+            const exact = list.find(a => (a?.attributes?.name || '').toLowerCase() === lower);
+            if (exact) return exact.id;
+        }
+        return null;
+    }
+
+    async createAccount(name, type) {
+        const body = { name, type };
+        const response = await fetch(`${this.#BASE_URL}/api/v1/accounts`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) {
+            // Surface server message; caller may fallback
+            throw new FireflyException(response.status, response, await response.text());
+        }
+        const json = await response.json();
+        return json?.data?.id || null;
+    }
+
+    async ensureAccount(name, type) {
+        if (!name) return null;
+        // Try find first
+        const existing = await this.findAccountIdByName(name, type);
+        if (existing) return existing;
+        // Try fuzzy match (90%) to avoid duplicates when names differ slightly
+        const fuzzy = await this.#findBestAccountBySimilarity(name, type, 0.9);
+        if (fuzzy) return fuzzy;
+        try {
+            const id = await this.createAccount(name, type);
+            return id;
+        } catch (e) {
+            // If creation failed due to duplicate or validation, try listing again (race conditions)
+            const id = await this.findAccountIdByName(name, type) || await this.#findBestAccountBySimilarity(name, type, 0.9);
+            if (id) return id;
+            throw e;
+        }
+    }
+
+    async ensureAccountDetailed(name, type) {
+        if (!name) return { id: null, created: false, matched: null };
+        const exact = await this.findAccountIdByName(name, type);
+        if (exact) return { id: exact, created: false, matched: 'exact' };
+        const fuzzy = await this.#findBestAccountBySimilarity(name, type, 0.9);
+        if (fuzzy) return { id: fuzzy, created: false, matched: 'fuzzy' };
+        try {
+            const id = await this.createAccount(name, type);
+            return { id, created: true, matched: null };
+        } catch (e) {
+            const retry = await this.findAccountIdByName(name, type) || await this.#findBestAccountBySimilarity(name, type, 0.9);
+            if (retry) return { id: retry, created: false, matched: 'race' };
+            throw e;
+        }
     }
 
     async removeTransactionCategory(transactionId) {

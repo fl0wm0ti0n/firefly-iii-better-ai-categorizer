@@ -88,6 +88,15 @@ export default class App {
         this.#express.post('/api/process-all', this.#onProcessAll.bind(this))
         this.#express.post('/api/test-webhook', this.#onTestWebhook.bind(this))
         
+        // Prevent caching for API responses (especially POST previews)
+        this.#express.use('/api', (req, res, next) => {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.setHeader('Surrogate-Control', 'no-store');
+            next();
+        });
+
         // Extraction endpoints
         this.#express.post('/api/extraction/upload', upload.single('file'), this.#onExtractionUpload.bind(this))
         this.#express.post('/api/extraction/confirm', this.#onExtractionConfirm.bind(this))
@@ -129,6 +138,10 @@ export default class App {
         this.#express.get('/api/transactions/filter', this.#filterTransactions.bind(this));
         this.#express.get('/api/tags', this.#getTags.bind(this));
         this.#express.get('/api/categories', this.#getCategories.bind(this));
+
+        // Duplicate management endpoints
+        this.#express.get('/api/duplicates/find', this.#findDuplicates.bind(this));
+        this.#express.post('/api/duplicates/delete', this.#deleteDuplicates.bind(this));
 
         // Health check endpoint
         this.#express.get("/", (req, res) => {
@@ -877,7 +890,7 @@ export default class App {
     async #onExtractionUpload(req, res) {
         try {
             const file = req.file;
-            const { originalTransactionId, tag = this.#transactionExtractionService.getConfig().defaultTag } = req.body || {};
+            const { originalTransactionId, tag = this.#transactionExtractionService.getConfig().defaultTag, force, forceAI } = req.body || {};
             if (!file) return res.status(400).json({ success: false, error: 'file is required (csv or pdf)' });
             if (!originalTransactionId) return res.status(400).json({ success: false, error: 'originalTransactionId is required' });
 
@@ -885,7 +898,7 @@ export default class App {
             if (file.mimetype.includes('csv') || file.originalname.toLowerCase().endsWith('.csv')) {
                 items = this.#transactionExtractionService.parseCsv(file.buffer, this.#transactionExtractionService.getConfig().headerMapping);
             } else if (file.mimetype.includes('pdf') || file.originalname.toLowerCase().endsWith('.pdf')) {
-                items = await this.#transactionExtractionService.parsePdf(file.buffer, this.#openAi);
+                items = await this.#transactionExtractionService.parsePdf(file.buffer, this.#openAi, { forceAI: Boolean(forceAI || force) });
             } else {
                 return res.status(400).json({ success: false, error: 'Unsupported file type. Use CSV or PDF.' });
             }
@@ -896,7 +909,16 @@ export default class App {
             const firstTx = originalData.data.attributes.transactions[0];
             const originalAbs = Math.abs(parseFloat(firstTx.amount));
 
-            const sum = items.reduce((s, i) => s + Math.abs(Number(i.amount || 0)), 0);
+            const settlementRe = /(abbuchung\s+kartenabrechnung|zahlung\s*vormonat|alter\s+kartensaldo)/i;
+            const baseSum = items.reduce((s, i) => {
+                const text = `${i.description || ''} ${i.destination_name || ''}`;
+                if (settlementRe.test(text)) return s;
+                const v = Number(i.amount || 0);
+                const dir = i.direction || 'out';
+                return s + (dir === 'out' ? Math.abs(v) : -Math.abs(v));
+            }, 0);
+            const metaTotal = (items && typeof items._statementTotal === 'number') ? Number(items._statementTotal) : null;
+            const sum = Number((metaTotal != null ? metaTotal : baseSum).toFixed(2));
             const diff = Number((originalAbs - sum).toFixed(2));
             const parentTag = this.#transactionExtractionService.sanitizeTag(firstTx.description || `tx-${originalTransactionId}`);
             const tagClean = this.#transactionExtractionService.sanitizeTag(tag);
@@ -911,7 +933,8 @@ export default class App {
     // ===== Extraction: Confirm & Save =====
     async #onExtractionConfirm(req, res) {
         try {
-            const { originalTransactionId, items, tag, proceedOnMismatch = false } = req.body || {};
+            console.info('extraction-confirm-start', { hasBody: !!req.body, items: Array.isArray(req.body?.items) ? req.body.items.length : 0, originalTransactionId: req.body?.originalTransactionId });
+            const { originalTransactionId, items, tag, proceedOnMismatch = false, force = false } = req.body || {};
             if (!originalTransactionId || !Array.isArray(items) || items.length === 0) {
                 return res.status(400).json({ success: false, error: 'originalTransactionId and items[] are required' });
             }
@@ -922,9 +945,18 @@ export default class App {
             // Load original transaction
             const data = await this.#firefly.getTransaction(originalTransactionId);
             const firstTx = data.data.attributes.transactions[0];
+            // Idempotency guard: block double-apply unless forced
+            const alreadyExtracted = Array.isArray(firstTx.tags) && firstTx.tags.includes('already-extracted-original');
+            if (alreadyExtracted && !force) {
+                return res.status(409).json({ success: false, error: 'This original transaction was already extracted (tag present). Use force to proceed.' });
+            }
             const originalAbs = Math.abs(parseFloat(firstTx.amount));
 
-            const total = items.reduce((s, i) => s + Math.abs(Number(i.amount || 0)), 0);
+            const total = items.reduce((s, i) => {
+                const v = Number(i.amount || 0);
+                const dir = i.direction || 'out';
+                return s + (dir === 'out' ? Math.abs(v) : -Math.abs(v));
+            }, 0);
             const diff = Number((originalAbs - total).toFixed(2));
             if (Math.abs(diff) >= 0.01 && !proceedOnMismatch) {
                 return res.status(400).json({ success: false, error: `Sum mismatch: ${diff}`, diff });
@@ -933,38 +965,127 @@ export default class App {
             const parentTag = this.#transactionExtractionService.sanitizeTag(firstTx.description || `tx-${originalTransactionId}`);
             const userTag = this.#transactionExtractionService.sanitizeTag(tag || this.#transactionExtractionService.getConfig().defaultTag);
 
-            // Create child transactions (withdrawals) with tags
+            // Create child transactions with proper account linkage
+            const createdTransactions = [];
+            const merchantEvents = new Map();
             for (const it of items) {
-                await this.#firefly.createTransactions([
-                    {
-                        type: 'withdrawal',
-                        date: it.date || firstTx.date,
-                        description: it.description,
-                        destination_name: it.destination_name || it.description,
-                        amount: Math.abs(Number(it.amount)).toFixed(2),
-                        currency_code: firstTx.currency_code,
-                        tags: [userTag, parentTag]
+                const isDeposit = (it.direction === 'in');
+                const base = {
+                    type: isDeposit ? 'deposit' : 'withdrawal',
+                    date: it.date || firstTx.date,
+                    description: it.description,
+                    amount: Math.abs(Number(it.amount)).toFixed(2),
+                    currency_code: firstTx.currency_code,
+                    tags: [userTag, parentTag]
+                };
+                // Set counterparty side (merchant revenue/expense) and resolve asset binding from original
+                if (isDeposit) {
+                    // deposit: revenue -> asset
+                    base.source_name = it.destination_name || it.description; // revenue by name
+                    Object.assign(base, await this.#resolveAssetBinding(firstTx, true)); // sets destination_id/name
+                } else {
+                    // withdrawal: asset -> expense
+                    base.destination_name = it.destination_name || it.description; // expense by name
+                    Object.assign(base, await this.#resolveAssetBinding(firstTx, false)); // sets source_id/name
+                }
+                try {
+                    const resp = await this.#firefly.createTransactions([ base ]);
+                    const tid = resp?.data?.[0]?.id || null;
+                    if (tid) createdTransactions.push({ id: tid, ...base });
+                } catch (e) {
+                    const msg = String(e?.body || e?.message || '').toLowerCase();
+                    if ((e?.code === 422) && (msg.includes('destination') || msg.includes('source'))) {
+                        const retry = { ...base };
+                        if ((msg.includes('destination') && !isDeposit) || (msg.includes('source') && isDeposit)) {
+                            // merchant side invalid → ensure merchant account (expense/revenue)
+                            const merchant = it.destination_name || it.description;
+                            const acctType = isDeposit ? 'revenue' : 'expense';
+                            const details = await this.#firefly.ensureAccountDetailed(merchant, acctType);
+                            if (details && details.id) {
+                                merchantEvents.set(merchant, { name: merchant, type: acctType, created: !!details.created, matched: details.matched || null, id: details.id });
+                            }
+                            if (isDeposit) {
+                                retry.source_id = details.id;
+                                delete retry.source_name;
+                            } else {
+                                retry.destination_id = details.id;
+                                delete retry.destination_name;
+                            }
+                        } else {
+                            // asset side invalid → re-resolve from original
+                            const assetResolved = await this.#resolveAssetBinding(firstTx, isDeposit);
+                            // Clear previous asset fields
+                            if (isDeposit) {
+                                delete retry.destination_id; delete retry.destination_name;
+                            } else {
+                                delete retry.source_id; delete retry.source_name;
+                            }
+                            Object.assign(retry, assetResolved);
+                        }
+                        const resp2 = await this.#firefly.createTransactions([ retry ]);
+                        const tid2 = resp2?.data?.[0]?.id || null;
+                        if (tid2) createdTransactions.push({ id: tid2, ...retry });
+                    } else {
+                        throw e;
                     }
-                ]);
+                }
             }
 
             // Tag original and create correcting clone
             await this.#tagTransaction(originalTransactionId, ['already-extracted-original']);
             await this.#createCorrectionClone(data.data, 'value-correction-clone');
 
-            res.json({ success: true, created: items.length, diff });
+            const responsePayload = { success: true, created: items.length, diff, merchants: Array.from(merchantEvents.values()), transactions: createdTransactions };
+            try { console.info('extraction-confirm-success', { originalTransactionId, created: items.length, txIds: createdTransactions.map(t => t.id) }); } catch(_) {}
+            res.json(responsePayload);
         } catch (e) {
-            console.error('Extraction confirm error:', e);
-            res.status(500).json({ success: false, error: e.message });
+            try { console.error('Extraction confirm error:', e?.message || e, e?.body || ''); } catch(_) {}
+            res.status(500).json({ success: false, error: e?.body || e?.message || 'Confirm failed' });
         }
+    }
+
+    async #resolveAssetBinding(firstTx, isDeposit) {
+        // For deposits: need destination (asset). For withdrawals: need source (asset/liability).
+        const want = isDeposit ? 'destination' : 'source';
+        const other = isDeposit ? 'source' : 'destination';
+        const candidates = [
+            { id: firstTx[`${want}_id`], name: firstTx[`${want}_name`] },
+            { id: firstTx[`${other}_id`], name: firstTx[`${other}_name`] },
+        ];
+        // Try by ID first
+        for (const c of candidates) {
+            if (c.id) {
+                const acc = await this.#firefly.getAccount(c.id);
+                if (acc) {
+                    return { [`${want}_id`]: c.id };
+                }
+            }
+        }
+        // Try by name across asset/liability
+        for (const c of candidates) {
+            if (c.name) {
+                const foundId = await this.#firefly.findAccountIdByNameAcrossTypes(c.name, ['asset', 'liability']);
+                if (foundId) {
+                    return { [`${want}_id`]: foundId };
+                }
+            }
+        }
+        // Fallback to name if present
+        for (const c of candidates) {
+            if (c.name) {
+                return { [`${want}_name`]: c.name };
+            }
+        }
+        return {};
     }
 
     // ===== Extraction: Batch Upload =====
     async #onExtractionUploadBatch(req, res) {
         try {
             const files = req.files || [];
-            let { candidateTransactionIds = [], dateWindowDays = 60 } = req.body || {};
+			let { candidateTransactionIds = [], dateWindowDays = 60, graceBeforeDays = 2 } = req.body || {};
             if (!files.length) return res.status(400).json({ success: false, error: 'files[] is required' });
+            try { console.info('batch-start', { files: files.length, dateWindowDays, graceBeforeDays }); } catch(_) {}
 
             // Normalize candidateTransactionIds from form-data (may be string/CSV/JSON)
             if (typeof candidateTransactionIds === 'string') {
@@ -976,32 +1097,71 @@ export default class App {
                     candidateTransactionIds = String(candidateTransactionIds).split(',').map(s => s.trim()).filter(Boolean);
                 }
             }
-            dateWindowDays = parseInt(dateWindowDays) || 60;
+			dateWindowDays = parseInt(dateWindowDays) || 60;
+			graceBeforeDays = parseInt(graceBeforeDays);
+			if (!Number.isFinite(graceBeforeDays) || graceBeforeDays < 0) graceBeforeDays = 2;
 
             // Parse all files first, collect date hints
             const tempGroups = [];
             let hintMinDate = null;
             let hintMaxDate = null;
+            const force = req.body?.force || req.query?.force;
+            // Helper to parse a YYYY-MM-DD or YYYYMMDD date from filename
+            const parseDateFromName = (name) => {
+                if (!name) return null;
+                const m1 = name.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
+                if (m1) {
+                    const d = new Date(`${m1[1]}-${m1[2]}-${m1[3]}T00:00:00Z`);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+                return null;
+            };
+
             for (const file of files) {
                 let items = [];
                 if (file.mimetype.includes('csv') || file.originalname.toLowerCase().endsWith('.csv')) {
                     items = this.#transactionExtractionService.parseCsv(file.buffer, this.#transactionExtractionService.getConfig().headerMapping);
                 } else if (file.mimetype.includes('pdf') || file.originalname.toLowerCase().endsWith('.pdf')) {
-                    items = await this.#transactionExtractionService.parsePdf(file.buffer, this.#openAi);
+                    // Use deterministic-only parsing in batch for stability (no AI) to avoid nondeterministic sums
+                    items = await this.#transactionExtractionService.parsePdf(file.buffer, null, { forceAI: false });
                 } else {
                     continue;
                 }
-                const sum = items.reduce((s, i) => s + Math.abs(Number(i.amount || 0)), 0);
+                const settlementRe = /(abbuchung\s+kartenabrechnung|zahlung\s*vormonat|alter\s+kartensaldo)/i;
+                const baseSum = items.reduce((s, i) => {
+                    const text = `${i.description || ''} ${i.destination_name || ''}`;
+                    if (settlementRe.test(text)) return s;
+                    const v = Number(i.amount || 0);
+                    const dir = i.direction || 'out';
+                    return s + (dir === 'out' ? Math.abs(v) : -Math.abs(v));
+                }, 0);
+                const metaTotal = (items && typeof items._statementTotal === 'number') ? Number(items._statementTotal) : null;
+                const sum = Number((metaTotal != null ? metaTotal : baseSum).toFixed(2));
                 // collect date hints
+                let fMin = null, fMax = null;
                 for (const it of items) {
                     if (!it.date) continue;
                     const d = new Date(it.date);
                     if (isFinite(d)) {
                         if (!hintMinDate || d < hintMinDate) hintMinDate = d;
                         if (!hintMaxDate || d > hintMaxDate) hintMaxDate = d;
+                        if (!fMin || d < fMin) fMin = d;
+                        if (!fMax || d > fMax) fMax = d;
                     }
                 }
-                tempGroups.push({ file, fileName: file.originalname, items, sum });
+                const fileDate = parseDateFromName(file.originalname);
+                tempGroups.push({ file, fileName: file.originalname, items, sum, fileDate });
+                try {
+                    console.info('batch-file-parsed', {
+                        file: file.originalname,
+                        items: items.length,
+                        sum: Number(sum.toFixed(2)),
+                        hasDates: !!(fMin || fMax),
+                        minDate: fMin ? fMin.toISOString().slice(0,10) : null,
+                        maxDate: fMax ? fMax.toISOString().slice(0,10) : null,
+                        fileDate: fileDate ? fileDate.toISOString().slice(0,10) : null
+                    });
+                } catch(_) {}
             }
 
             // Build candidate originals: either provided IDs or auto-search by date window
@@ -1033,16 +1193,21 @@ export default class App {
             const groups = [];
 
             // Matching thresholds (to avoid clearly wrong matches)
-            const MAX_ABS_DIFF = 2.0;          // € 2 tolerance
-            const MAX_REL_DIFF = 0.005;        // 0.5%
+			const MAX_ABS_DIFF = 3.5;          // € tolerance
+			const MAX_REL_DIFF = 0.01;         // 1%
+			const GRACE_BEFORE_DAYS = graceBeforeDays; // allow small negative drift before last PDF date
+            try { console.info('batch-thresholds', { MAX_ABS_DIFF, MAX_REL_DIFF, GRACE_BEFORE_DAYS, dateWindowDays }); } catch(_) {}
 
             if ((Array.isArray(candidateTransactionIds) && candidateTransactionIds.length > 0) && candidates.length > 0) {
                 // Priority mode: prioritize existing transactions (candidates). Assign files to candidates greedily.
                 // Build all candidate-file pairs with scores
                 const pairs = [];
+                const bestByFile = new Map(); // gidx -> { candId, diff, rel, days, acceptable, score }
+                const bestAnyByFile = new Map(); // ignoring date gating
                 tempGroups.forEach((g, gidx) => {
                     // compute group reference date
                     let refDate = null;
+					let maxDForGroup = null;
                     const dates = g.items
                         .map(i => (i.date ? new Date(i.date) : null))
                         .filter(d => d && !isNaN(d.getTime()));
@@ -1050,8 +1215,20 @@ export default class App {
                         const minD = dates.reduce((a, b) => (a.getTime() < b.getTime() ? a : b));
                         const maxD = dates.reduce((a, b) => (a.getTime() > b.getTime() ? a : b));
                         refDate = new Date((minD.getTime() + maxD.getTime()) / 2);
+						maxDForGroup = maxD;
+                    } else if (g.fileDate) {
+                        // fallback to filename date if no item dates present
+                        refDate = g.fileDate;
+                        maxDForGroup = g.fileDate;
                     }
                     for (const c of candidates) {
+						// Enforce date gating: candidate must not be older than last PDF txn (with small grace)
+						let dateAcceptable = true; // default to true when no dates available
+						if (c.date && maxDForGroup && !isNaN(c.date.getTime()) && !isNaN(maxDForGroup.getTime())) {
+							const minAllowed = new Date(maxDForGroup.getTime() - GRACE_BEFORE_DAYS * 24 * 60 * 60 * 1000);
+							const maxAllowed = new Date(maxDForGroup.getTime() + dateWindowDays * 24 * 60 * 60 * 1000);
+							dateAcceptable = (c.date.getTime() >= minAllowed.getTime()) && (c.date.getTime() <= maxAllowed.getTime());
+						}
                         const diff = Number((c.amountAbs - g.sum).toFixed(2));
                         const rel = c.amountAbs ? Math.abs(diff) / c.amountAbs : 1;
                         const days = (refDate && c.date && !isNaN(refDate.getTime()) && !isNaN(c.date.getTime()))
@@ -1059,7 +1236,18 @@ export default class App {
                             : 9999;
                         const score = Math.abs(diff) + Math.min(days, dateWindowDays) / 100;
                         const acceptable = (Math.abs(diff) <= MAX_ABS_DIFF) || (rel <= MAX_REL_DIFF);
-                        pairs.push({ gidx, candidate: c, diff, rel, score, acceptable });
+                        if (dateAcceptable) {
+                            pairs.push({ gidx, candidate: c, diff, rel, score, acceptable, days });
+                            const prev = bestByFile.get(gidx);
+                            if (!prev || score < prev.score) {
+                                bestByFile.set(gidx, { candId: c.id, diff, rel, days, acceptable, score });
+                            }
+                        }
+                        // always update bestAny (ignoring date gating)
+                        const prevAny = bestAnyByFile.get(gidx);
+                        if (!prevAny || score < prevAny.score) {
+                            bestAnyByFile.set(gidx, { candId: c.id, diff, rel, days, acceptable, score });
+                        }
                     }
                 });
                 pairs.sort((a, b) => a.score - b.score);
@@ -1076,40 +1264,43 @@ export default class App {
                     assignment.set(p.candidate.id, p.gidx);
                 }
 
-                // Build groups per candidate (existing transactions take precedence)
+                // Build groups only for assigned candidates; skip unmatched placeholders to avoid duplicate tables
                 for (const c of candidates) {
                     const gidx = assignment.get(c.id);
-                    if (gidx != null) {
-                        const g = tempGroups[gidx];
-                        groups.push({
-                            fileName: g.fileName,
-                            items: g.items,
-                            matched: { originalTransactionId: c.id, original: c.amountAbs, sum: g.sum, diff: Number((c.amountAbs - g.sum).toFixed(2)) },
-                            selectable: true,
-                        });
-                    } else {
-                        // Candidate with no matching file – still show as empty group so user sees it
-                        groups.push({
-                            fileName: null,
-                            items: [],
-                            matched: { originalTransactionId: c.id, original: c.amountAbs, sum: 0, diff: Number(c.amountAbs.toFixed(2)) },
-                            selectable: false,
-                        });
-                    }
+                    if (gidx == null) continue;
+                    const g = tempGroups[gidx];
+                    groups.push({
+                        fileName: g.fileName,
+                        items: g.items,
+                        matched: { originalTransactionId: c.id, original: c.amountAbs, sum: g.sum, diff: Number((c.amountAbs - g.sum).toFixed(2)) },
+                        selectable: true,
+                    });
+                    try { console.info('batch-match', { file: g.fileName, matchedId: c.id, original: c.amountAbs, sum: g.sum }); } catch(_) {}
                 }
 
                 // Add any remaining unmatched files as their own groups without a match
                 tempGroups.forEach((g, gidx) => {
                     if (!usedFiles.has(gidx)) {
-                        groups.push({ fileName: g.fileName, items: g.items, matched: null, selectable: true });
+                        // Fallback: try bestAny (ignoring date gating) if amount is within thresholds
+                        const bestAny = bestAnyByFile.get(gidx);
+                        if (bestAny && ((Math.abs(bestAny.diff) <= MAX_ABS_DIFF) || (bestAny.rel <= MAX_REL_DIFF))) {
+                            groups.push({ fileName: g.fileName, items: g.items, matched: { originalTransactionId: bestAny.candId, original: Number((g.sum + bestAny.diff).toFixed(2)), sum: g.sum, diff: bestAny.diff }, selectable: true });
+                            try { console.info('batch-match-fallback', { file: g.fileName, matchedId: bestAny.candId, sum: g.sum, diff: bestAny.diff }); } catch(_) {}
+                        } else {
+                            groups.push({ fileName: g.fileName, items: g.items, matched: null, selectable: true });
+                            const best = bestByFile.get(gidx) || bestAny;
+                            try { console.info('batch-file-best-rejected', { file: g.fileName, items: g.items.length, sum: g.sum, best }); } catch(_) {}
+                        }
                     }
                 });
-            } else {
+			} else {
                 // No explicit candidates – fallback to per-file best match, but only accept within threshold
                 for (const g of tempGroups) {
                     let best = null;
+                    let bestAny = null;
                     // compute group reference date
                     let refDate = null;
+					let maxDForGroup = null;
                     const dates = g.items
                         .map(i => (i.date ? new Date(i.date) : null))
                         .filter(d => d && !isNaN(d.getTime()));
@@ -1117,23 +1308,75 @@ export default class App {
                         const minD = dates.reduce((a, b) => (a.getTime() < b.getTime() ? a : b));
                         const maxD = dates.reduce((a, b) => (a.getTime() > b.getTime() ? a : b));
                         refDate = new Date((minD.getTime() + maxD.getTime()) / 2);
+						maxDForGroup = maxD;
+                    } else if (g.fileDate) {
+                        refDate = g.fileDate;
+                        maxDForGroup = g.fileDate;
                     }
                     for (const c of candidates) {
+						// Enforce date gating (skip only when both sides have dates and are outside window)
+						let dateAcceptable = true;
+						if (c.date && maxDForGroup && !isNaN(c.date.getTime()) && !isNaN(maxDForGroup.getTime())) {
+							const minAllowed = new Date(maxDForGroup.getTime() - GRACE_BEFORE_DAYS * 24 * 60 * 60 * 1000);
+							const maxAllowed = new Date(maxDForGroup.getTime() + dateWindowDays * 24 * 60 * 60 * 1000);
+							dateAcceptable = (c.date.getTime() >= minAllowed.getTime()) && (c.date.getTime() <= maxAllowed.getTime());
+						}
+						if (!dateAcceptable) continue;
                         const diff = Number((c.amountAbs - g.sum).toFixed(2));
                         const rel = c.amountAbs ? Math.abs(diff) / c.amountAbs : 1;
                         const days = (refDate && c.date && !isNaN(refDate.getTime()) && !isNaN(c.date.getTime()))
                             ? Math.abs((refDate.getTime() - c.date.getTime()) / (1000 * 60 * 60 * 24))
                             : 9999;
                         const score = Math.abs(diff) + Math.min(days, dateWindowDays) / 100;
-                        if (!best || score < best.score) best = { candidate: c, diff, rel, sum: g.sum, score };
+                        if (!best || score < best.score) best = { candidate: c, diff, rel, sum: g.sum, score, days };
+                    }
+                    // Retry ignoring date gating if none found
+                    if (!best) {
+                        for (const c of candidates) {
+                            const diff = Number((c.amountAbs - g.sum).toFixed(2));
+                            const rel = c.amountAbs ? Math.abs(diff) / c.amountAbs : 1;
+                            const days = (refDate && c.date && !isNaN(refDate.getTime()) && !isNaN(c.date.getTime()))
+                                ? Math.abs((refDate.getTime() - c.date.getTime()) / (1000 * 60 * 60 * 24))
+                                : 9999;
+                            const score = Math.abs(diff) + Math.min(days, dateWindowDays) / 100;
+                            if (!bestAny || score < bestAny.score) bestAny = { candidate: c, diff, rel, sum: g.sum, score, days };
+                        }
                     }
                     const acceptable = best && ((Math.abs(best.diff) <= MAX_ABS_DIFF) || (best.rel <= MAX_REL_DIFF));
-                    groups.push({
+                    const groupEntry = {
                         fileName: g.fileName,
                         items: g.items,
                         matched: acceptable ? { originalTransactionId: best.candidate.id, original: best.candidate.amountAbs, sum: best.sum, diff: best.diff } : null,
                         selectable: true,
-                    });
+                    };
+                    groups.push(groupEntry);
+                    try {
+                        console.info('batch-file-result', {
+                            file: g.fileName,
+                            sum: g.sum,
+                            matched: !!groupEntry.matched,
+                            matchedId: groupEntry.matched?.originalTransactionId || null,
+                            diff: groupEntry.matched?.diff || null
+                        });
+                        if (!acceptable && bestAny && ((Math.abs(bestAny.diff) <= MAX_ABS_DIFF) || (bestAny.rel <= MAX_REL_DIFF))) {
+                            console.info('batch-file-best-rejected', {
+                                file: g.fileName,
+                                items: g.items.length,
+                                sum: g.sum,
+                                best: { candId: bestAny.candidate.id, diff: bestAny.diff, rel: bestAny.rel, days: bestAny.days, ignoredDateGating: true }
+                            });
+                        } else if (!acceptable && best) {
+                            console.info('batch-file-best-rejected', {
+                                file: g.fileName,
+                                items: g.items.length,
+                                sum: g.sum,
+                                best: { candId: best.candidate.id, diff: best.diff, rel: best.rel, days: best.days }
+                            });
+                        }
+                        if ((g.items || []).length && Math.abs(Number(g.sum || 0)) < 0.001) {
+                            console.info('batch-file-zero-sum', { file: g.fileName, items: g.items.length });
+                        }
+                    } catch(_) {}
                 }
             }
 
@@ -1146,10 +1389,12 @@ export default class App {
 
     async #onExtractionConfirmBatch(req, res) {
         try {
-            const { groups = [], proceedOnMismatch = false, tag } = req.body || {};
+            const { groups = [], proceedOnMismatch = false, tag, force = false } = req.body || {};
             if (!Array.isArray(groups) || groups.length === 0) return res.status(400).json({ success: false, error: 'groups[] required' });
 
             let created = 0;
+            const createdTransactions = [];
+            const merchantEvents = new Map();
             for (const g of groups) {
                 if (!g || !g.matched || !Array.isArray(g.items) || g.items.length === 0) continue;
                 const originalTransactionId = g.matched.originalTransactionId;
@@ -1157,9 +1402,17 @@ export default class App {
                 // Load original
                 const data = await this.#firefly.getTransaction(originalTransactionId);
                 const firstTx = data.data.attributes.transactions[0];
+                const alreadyExtracted = Array.isArray(firstTx.tags) && firstTx.tags.includes('already-extracted-original');
+                if (alreadyExtracted && !force) {
+                    continue; // skip silently when not forced
+                }
                 const originalAbs = Math.abs(parseFloat(firstTx.amount));
 
-                const total = g.items.reduce((s, i) => s + Math.abs(Number(i.amount || 0)), 0);
+                const total = g.items.reduce((s, i) => {
+                    const v = Number(i.amount || 0);
+                    const dir = i.direction || 'out';
+                    return s + (dir === 'out' ? Math.abs(v) : -Math.abs(v));
+                }, 0);
                 const diff = Number((originalAbs - total).toFixed(2));
                 if (Math.abs(diff) >= 0.01 && !proceedOnMismatch) {
                     continue; // skip this group if not allowed
@@ -1169,17 +1422,59 @@ export default class App {
                 const userTag = this.#transactionExtractionService.sanitizeTag(tag || this.#transactionExtractionService.getConfig().defaultTag);
 
                 for (const it of g.items) {
-                    await this.#firefly.createTransactions([
-                        {
-                            type: 'withdrawal',
-                            date: it.date || firstTx.date,
-                            description: it.description,
-                            destination_name: it.destination_name || it.description,
-                            amount: Math.abs(Number(it.amount)).toFixed(2),
-                            currency_code: firstTx.currency_code,
-                            tags: [userTag, parentTag]
+                    const isDeposit = (it.direction === 'in');
+                    const base = {
+                        type: isDeposit ? 'deposit' : 'withdrawal',
+                        date: it.date || firstTx.date,
+                        description: it.description,
+                        amount: Math.abs(Number(it.amount)).toFixed(2),
+                        currency_code: firstTx.currency_code,
+                        tags: [userTag, parentTag]
+                    };
+                    if (isDeposit) {
+                        base.source_name = it.destination_name || it.description;
+                        Object.assign(base, await this.#resolveAssetBinding(firstTx, true));
+                    } else {
+                        base.destination_name = it.destination_name || it.description;
+                        Object.assign(base, await this.#resolveAssetBinding(firstTx, false));
+                    }
+                    try {
+                        const resp = await this.#firefly.createTransactions([ base ]);
+                        const tid = resp?.data?.[0]?.id || null;
+                        if (tid) createdTransactions.push({ id: tid, ...base });
+                    } catch (e) {
+                        const msg = String(e?.body || e?.message || '').toLowerCase();
+                        if ((e?.code === 422) && (msg.includes('destination') || msg.includes('source'))) {
+                            const retry = { ...base };
+                            if ((msg.includes('destination') && !isDeposit) || (msg.includes('source') && isDeposit)) {
+                                // merchant side invalid
+                                const merchant = it.destination_name || it.description;
+                                const acctType = isDeposit ? 'revenue' : 'expense';
+                                const details = await this.#firefly.ensureAccountDetailed(merchant, acctType);
+                                if (details && details.id) {
+                                    merchantEvents.set(merchant, { name: merchant, type: acctType, created: !!details.created, matched: details.matched || null, id: details.id });
+                                }
+                                if (isDeposit) {
+                                    retry.source_id = details.id;
+                                    delete retry.source_name;
+                                } else {
+                                    retry.destination_id = details.id;
+                                    delete retry.destination_name;
+                                }
+                            } else {
+                                // asset side invalid
+                                const assetResolved = await this.#resolveAssetBinding(firstTx, isDeposit);
+                                if (isDeposit) { delete retry.destination_id; delete retry.destination_name; }
+                                else { delete retry.source_id; delete retry.source_name; }
+                                Object.assign(retry, assetResolved);
+                            }
+                            const resp2 = await this.#firefly.createTransactions([ retry ]);
+                            const tid2 = resp2?.data?.[0]?.id || null;
+                            if (tid2) createdTransactions.push({ id: tid2, ...retry });
+                        } else {
+                            throw e;
                         }
-                    ]);
+                    }
                     created++;
                 }
 
@@ -1187,10 +1482,10 @@ export default class App {
                 await this.#createCorrectionClone(data.data, 'value-correction-clone');
             }
 
-            res.json({ success: true, created });
+            res.json({ success: true, created, merchants: Array.from(merchantEvents.values()), transactions: createdTransactions });
         } catch (e) {
-            console.error('Extraction confirm-batch error:', e);
-            res.status(500).json({ success: false, error: e.message });
+            try { console.error('Extraction confirm-batch error:', e?.message || e, e?.body || ''); } catch(_) {}
+            res.status(500).json({ success: false, error: e?.body || e?.message || 'Confirm-batch failed' });
         }
     }
 
@@ -1206,17 +1501,21 @@ export default class App {
 
     async #createCorrectionClone(original, tag) {
         const t = original.attributes.transactions[0];
-        await this.#firefly.createTransactions([
-            {
-                type: 'deposit',
-                date: t.date,
-                description: `${t.description} (correction)` ,
-                source_name: t.destination_name || t.source_name || 'Correction',
-                amount: Math.abs(parseFloat(t.amount)).toFixed(2),
-                currency_code: t.currency_code,
-                tags: [tag]
-            }
-        ]);
+        const isOriginalDeposit = (t.type === 'deposit');
+        const assetId = isOriginalDeposit ? (t.destination_id || null) : (t.source_id || null);
+        const assetName = isOriginalDeposit ? (t.destination_name || null) : (t.source_name || null);
+        const correction = {
+            type: 'deposit',
+            date: t.date,
+            description: `${t.description} (correction)` ,
+            source_name: t.destination_name || t.source_name || 'Correction',
+            amount: Math.abs(parseFloat(t.amount)).toFixed(2),
+            currency_code: t.currency_code,
+            tags: [tag]
+        };
+        if (assetId) correction.destination_id = assetId;
+        else if (assetName) correction.destination_name = assetName;
+        await this.#firefly.createTransactions([ correction ]);
     }
 
     async #onGetExtractionConfig(req, res) {
@@ -1627,6 +1926,89 @@ export default class App {
                 success: false,
                 error: error.message
             });
+        }
+    }
+
+    // ===== Duplicate detection & cleanup =====
+    async #findDuplicates(req, res) {
+        try {
+            const { tag = '', dateFrom = '', dateTo = '', type = 'all' } = req.query || {};
+
+            let raw = [];
+            if (tag) {
+                raw = await this.#firefly.getTransactionsByTag(tag, { limit: 1000 });
+            } else if (dateFrom || dateTo) {
+                raw = await this.#firefly.getTransactionsWithFilters({ type: type || 'all', dateFrom: dateFrom || null, dateTo: dateTo || null });
+            } else {
+                // fallback: scan all (paginated via helper)
+                raw = await this.#firefly.getAllTransactions();
+            }
+
+            const normalize = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+
+            const groupsMap = new Map();
+            for (const t of raw) {
+                const ft = t.attributes.transactions[0];
+                const id = t.id;
+                const date = ft.date ? ft.date.slice(0,10) : (t.attributes.created_at || '').slice(0,10);
+                const type = ft.type;
+                const amountAbs = Math.abs(parseFloat(ft.amount || '0')).toFixed(2);
+                const payee = type === 'deposit' ? (ft.source_name || ft.description) : (ft.destination_name || ft.description);
+                const norm = normalize(payee || '');
+                const key = `${type}|${date}|${amountAbs}|${norm}`;
+                const entry = {
+                    id,
+                    date,
+                    type,
+                    amount: parseFloat(ft.amount),
+                    currency: ft.currency_code,
+                    description: ft.description || '',
+                    source: ft.source_name || '',
+                    destination: ft.destination_name || '',
+                    tags: Array.isArray(ft.tags) ? ft.tags : [],
+                    isOriginal: Array.isArray(ft.tags) && ft.tags.includes('already-extracted-original'),
+                    isCorrection: Array.isArray(ft.tags) && ft.tags.includes('value-correction-clone')
+                };
+                if (!groupsMap.has(key)) groupsMap.set(key, []);
+                groupsMap.get(key).push(entry);
+            }
+
+            const groups = [];
+            for (const [key, list] of groupsMap.entries()) {
+                if (list.length <= 1) continue;
+                const [type, date, amountAbs] = key.split('|');
+                groups.push({ key, summary: { type, date, amountAbs: parseFloat(amountAbs), count: list.length }, items: list });
+            }
+
+            // Sort groups by size desc
+            groups.sort((a, b) => b.summary.count - a.summary.count);
+            res.json({ success: true, groups });
+        } catch (e) {
+            console.error('Find duplicates error:', e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #deleteDuplicates(req, res) {
+        try {
+            const { transactionIds } = req.body || {};
+            if (!Array.isArray(transactionIds) || transactionIds.length === 0) {
+                return res.status(400).json({ success: false, error: 'transactionIds[] required' });
+            }
+            let deleted = 0;
+            const errors = [];
+            for (const id of transactionIds) {
+                try {
+                    await this.#firefly.deleteTransaction(id);
+                    deleted++;
+                } catch (e) {
+                    errors.push({ id, error: e.message || String(e) });
+                }
+            }
+            res.json({ success: true, deleted, errors: errors.length ? errors : undefined });
+        } catch (e) {
+            console.error('Delete duplicates error:', e);
+            res.status(500).json({ success: false, error: e.message });
         }
     }
 }

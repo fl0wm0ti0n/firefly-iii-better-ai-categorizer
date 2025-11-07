@@ -48,7 +48,7 @@ If it cannot detect the category, it will not update anything.
 - **Comma-separated keywords**: Easy bulk input like "bangkok, hotel, usd, paris, london"
 - **API savings**: Reduces OpenAI API calls for obvious foreign transactions
 
-### **📋 Manual Processing**
+### **📋 Bulk Categorization**
 - **Process Uncategorized Transactions**: Categorizes only transactions without existing categories
 - **Process All Transactions**: Re-categorizes ALL transactions (with deposit filtering option)
 - **Real-time monitoring**: Progress bars, statistics, and error tracking
@@ -261,12 +261,44 @@ To enable this UI set the environment variable `ENABLE_UI` to `true`.
 After a restart of the application the UI can be accessed at `http://localhost:3000/` (or any other URL that allows you
 to reach the container).
 
+### **🧭 Side Panel & Feature Overview**
+The UI is organized by a left side panel with these groups (in order):
+- **Categorizer**:
+  - Auto-Categorization (Foreign/Travel Detection)
+  - General Settings
+  - Category Mappings (Custom Rules)
+  - Word Mappings & Failed Transactions
+  - Transaction Management (Interactive)
+  - Bulk Categorization (run AI for all/uncategorized)
+- **Special tools**:
+  - Credit Card Statement Splitter (CSV/PDF → split into child transactions)
+- **Maintenance**:
+  - Duplicate cleanup (find/select/delete duplicates, with “keep one per group”)
+  - Test Webhook
+
+Tips:
+- Each item is a dedicated panel; only one is visible at a time.
+- Duplicate cleanup protects originals/corrections by default and can keep one per group.
+
+### **🧾 Credit Card Statement Splitter (Special tools)**
+Split a statement (CSV or PDF) into multiple child transactions linked to the original Firefly III transaction.
+- Deterministic PDF parsing with robust description/amount pairing
+- Inline editing (date, payee, description, type, amount)
+- Recalculate sums and validate against the original
+- Tagging of created transactions and correcting clone
+
+### **🧹 Duplicate cleanup (Maintenance)**
+Find duplicate transactions grouped by type + date + absolute amount + normalized payee.
+- Per-group select, “Select group”, and “Keep one per group” safeguard
+- Originals/corrections are labeled and protected from accidental deletion
+- Bulk delete selected items
+
 ### **🎛️ General Settings**
 Configure system-wide options:
 - **Skip Deposits**: Exclude deposit transactions from all categorization processes
 - Useful for salary, refunds, and other income transactions that don't need categorization
 
-### **🔧 Manual Processing**
+### **📋 Bulk Categorization**
 Control batch operations with real-time monitoring:
 - **Process Uncategorized Transactions**: Safely categorizes only transactions without existing categories
 - **Process All Transactions**: Re-categorizes ALL transactions (with confirmation dialog)
@@ -487,7 +519,7 @@ For detailed instructions, see **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_M
 - **Comma-separated keywords**: Easy bulk input like "bangkok, hotel, usd, paris, london"
 - **API savings**: Reduces OpenAI API calls for obvious foreign transactions
 
-### **📋 Manual Processing**
+### **📋 Bulk Categorization**
 - **Process Uncategorized Transactions**: Categorizes only transactions without existing categories
 - **Process All Transactions**: Re-categorizes ALL transactions (with deposit filtering option)
 - **Real-time monitoring**: Progress bars, statistics, and error tracking
@@ -509,6 +541,9 @@ For detailed instructions, see **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_M
 - **[WORD_MAPPING_GUIDE.md](WORD_MAPPING_GUIDE.md)** - Advanced word-to-category mapping configuration
 - **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_MANAGEMENT_GUIDE.md)** - Interactive drag & drop transaction management interface
 - **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)** - Production Docker deployment with docker-compose
+ - **[CREDIT_CARD_STATEMENT_SPLITTER.md](CREDIT_CARD_STATEMENT_SPLITTER.md)** - Split statements (CSV/PDF) into child transactions
+ - **[DUPLICATE_CLEANUP_GUIDE.md](DUPLICATE_CLEANUP_GUIDE.md)** - Find and safely remove duplicates (keep one per group)
+ - **[BULK_CATEGORIZATION_GUIDE.md](BULK_CATEGORIZATION_GUIDE.md)** - Run AI across uncategorized or all transactions
 
 **Quick References:**
 - Setup and configuration

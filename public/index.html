@@ -777,6 +777,16 @@
         .transaction-item .drag-handle:active {
             cursor: grabbing;
         }
+        /* Side panel layout */
+        .app-shell { display: flex; gap: 16px; }
+        .app-side { width: 240px; flex: 0 0 240px; position: sticky; top: 12px; align-self: flex-start; }
+        .app-content { flex: 1; min-width: 0; }
+        .side-group { margin-bottom: 16px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; }
+        .side-group-title { font-weight: 700; padding:10px 12px; border-bottom:1px solid #dee2e6; color:#495057; }
+        .side-list { padding: 8px; display: grid; gap: 6px; }
+        .side-btn { background:#fff; border:1px solid #dee2e6; border-radius:4px; padding:8px 10px; cursor:pointer; text-align:left; }
+        .side-btn:hover { background:#e9ecef; }
+        .side-btn.active { background:#007bff; color:#fff; border-color:#007bff; }
     </style>
 </head>
 <body>
@@ -797,8 +807,8 @@
         <button id="btn-save-general-settings" class="btn btn-success">💾 Save General Settings</button>
     </section>
 
-    <section class="controls">
-        <h2>Manual Processing</h2>
+    <section class="controls" id="panel-manual">
+        <h2>Bulk Categorization</h2>
         <div class="button-group">
             <button id="btn-process-uncategorized" class="btn btn-primary">
                 Process Uncategorized Transactions
@@ -808,8 +818,8 @@
             </button>
         </div>
         <p><small>
-            <strong>Process Uncategorized:</strong> Categorizes only transactions without existing categories.<br>
-            <strong>Process All:</strong> Re-categorizes ALL transactions (withdrawals and deposits), overwriting existing categories.
+            <strong>Process Uncategorized:</strong> Runs automatic categorization for transactions without categories.<br>
+            <strong>Process All:</strong> Runs automatic categorization for ALL transactions (withdrawals and deposits), overwriting existing categories.
         </small></p>
     </section>
 
@@ -3141,7 +3151,7 @@ try {
           <span id="selectedFilesBatch" style="font-size:12px; color:#6c757d;">No files selected</span>
           <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
             <label for="dateWindowDays" style="font-size:12px; color:#6c757d;">Date window (days):</label>
-            <input id="dateWindowDays" type="number" min="1" max="365" value="60" style="width:80px; padding:5px;">
+            <input id="dateWindowDays" type="number" min="1" max="365" value="10" style="width:80px; padding:5px;">
           </div>
         </div>
         <input id="filesBatch" type="file" accept=".csv,.pdf" style="display:none;" multiple />
@@ -3150,6 +3160,11 @@ try {
         <button id="btnUploadBatch" class="btn btn-primary" type="button">Create batch preview</button>
         <button id="btnCancelBatch" class="btn btn-warning" type="button" disabled>Cancel</button>
         <button id="btnConfirmBatch" class="btn btn-success" type="button" disabled>Apply selected</button>
+      </div>
+      <div style="margin-top:10px;">
+        <label for="batchExtractionTag">Tag for new transactions (optional, batch):</label>
+        <input type="text" id="batchExtractionTag" placeholder="e.g. card-split" style="width: 100%; padding: 5px; margin-top: 5px;">
+        <div style="margin-top:6px; font-size:12px; color:#6c757d;">If empty, the single-mode tag above will be used.</div>
       </div>
       <label style="display:block; margin-top:8px;"><input type="checkbox" id="batchProceedMismatch" /> Proceed despite amount mismatch (all selected)</label>
       <div id="batchPreview" style="margin-top:12px;"></div>
@@ -3184,6 +3199,7 @@ try {
   const btnCancelBatch = extractionSection.querySelector('#btnCancelBatch');
   const batchPreviewDiv = extractionSection.querySelector('#batchPreview');
   const batchProceedMismatch = extractionSection.querySelector('#batchProceedMismatch');
+  const batchExtractionTag = extractionSection.querySelector('#batchExtractionTag');
   let lastPreview = null;
   let loadedTx = [];
   const pickerState = { query: '', selectedId: '', category: '', tag: '' };
@@ -3221,6 +3237,8 @@ try {
 
   btnUploadBatch?.addEventListener('click', async () => {
     try {
+      if (window.__BATCH_UPLOAD_IN_FLIGHT__) { return showToast('Batch upload already in progress', 'warning'); }
+      window.__BATCH_UPLOAD_IN_FLIGHT__ = true;
       const fs = Array.from(filesBatch.files || []);
       if (!fs.length) return showToast('Please choose files', 'warning');
       btnUploadBatch.disabled = true;
@@ -3230,10 +3248,11 @@ try {
       fs.forEach(f => form.append('files', f));
       const selectedIds = Array.from((pickCandidates?.selectedOptions) || []).map(o => o.value);
       if (selectedIds.length) form.append('candidateTransactionIds', JSON.stringify(selectedIds));
-      form.append('dateWindowDays', String(dateWindowDays.value || '60'));
+      form.append('dateWindowDays', String(dateWindowDays.value || '10'));
       // Abortable fetch
       batchAbort = new AbortController();
-      const r = await apiFetch('api/extraction/upload-batch', { method: 'POST', body: form, signal: batchAbort.signal });
+      form.append('force', '1');
+      const r = await apiFetch(`api/extraction/upload-batch?ts=${Date.now()}`, { method: 'POST', body: form, signal: batchAbort.signal });
       const j = await r.json();
       if (!j.success) throw new Error(j.error || 'Batch preview failed');
       batchPreviewDiv.innerHTML = renderBatchPreview(j.groups || []);
@@ -3249,6 +3268,7 @@ try {
       }
     }
     finally {
+      window.__BATCH_UPLOAD_IN_FLIGHT__ = false;
       btnUploadBatch.disabled = false;
       btnCancelBatch.disabled = true;
       batchAbort = null;
@@ -3266,7 +3286,7 @@ try {
     try {
       const groups = collectBatchEdits();
       if (!groups.length) return showToast('No groups selected', 'warning');
-      const body = { groups, proceedOnMismatch: !!batchProceedMismatch.checked, tag: extractionTag.value || '' };
+      const body = { groups, proceedOnMismatch: !!batchProceedMismatch.checked, tag: (batchExtractionTag.value || extractionTag.value || '') };
       const r = await apiFetch('api/extraction/confirm-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!j.success) throw new Error(j.error || 'Batch save failed');
@@ -3277,6 +3297,63 @@ try {
     }
   });
 
+  // Delegate recalc per batch group
+  batchPreviewDiv.addEventListener('click', (e) => {
+    const btn = e.target.closest('.bg-recalc');
+    if (!btn) return;
+    const gidx = btn.getAttribute('data-gidx');
+    if (gidx == null) return;
+    try { recalcBatchGroup(Number(gidx)); showToast('Recalculated', 'success'); } catch(_) {}
+  });
+
+  // Add row in batch group
+  batchPreviewDiv.addEventListener('click', (e) => {
+    const btn = e.target.closest('.bg-add-row');
+    if (!btn) return;
+    const gidx = btn.getAttribute('data-gidx');
+    if (gidx == null) return;
+    addBatchRow(Number(gidx));
+    try { recalcBatchGroup(Number(gidx)); } catch(_) {}
+  });
+
+  // Remove entire batch group table
+  batchPreviewDiv.addEventListener('click', (e) => {
+    const btn = e.target.closest('.bg-remove-group');
+    if (!btn) return;
+    const gidx = btn.getAttribute('data-gidx');
+    if (gidx == null) return;
+    const container = batchPreviewDiv.querySelector(`.batch-group[data-gidx="${gidx}"]`);
+    if (container) container.remove();
+  });
+
+  function recalcBatchGroup(gidx) {
+    const container = batchPreviewDiv.querySelector(`.batch-group[data-gidx="${gidx}"]`);
+    if (!container) return;
+    const rows = Array.from(container.querySelectorAll('tbody tr'));
+    const items = rows.map(tr => {
+      const r = {};
+      tr.querySelectorAll('input').forEach(inp => { const f = inp.getAttribute('data-field'); r[f] = inp.value; });
+      if (r.amount != null) r.amount = Number(r.amount);
+      return r;
+    });
+    const sum = items.reduce((s, i) => s + ((i.direction === 'in') ? -Math.abs(Number(i.amount||0)) : Math.abs(Number(i.amount||0))), 0);
+    const sumEl = container.querySelector('.bg-sum');
+    if (sumEl) sumEl.textContent = sum.toFixed(2);
+    const diffSpanHost = container.querySelector('div[style*="font-size:12px"]');
+    const originalAttr = container.getAttribute('data-original');
+    const original = originalAttr ? Number(originalAttr) : null;
+    if (original != null && diffSpanHost) {
+      const diff = (original - sum).toFixed(2);
+      // rewrite warning/ok part
+      const warnHtml = Math.abs(Number(diff)) >= 0.01 ? `<span style="color:#f90;">Difference: ${diff}</span>` : `<span style="color:#28a745;">OK</span>`;
+      const parts = diffSpanHost.innerHTML.split('|');
+      // The structure is: Original: X | Sum: <span>Y</span> | <warn/ok>
+      if (parts.length >= 3) {
+        diffSpanHost.innerHTML = `Original: ${original.toFixed(2)} | Sum: <span class="bg-sum" data-gidx="${gidx}">${sum.toFixed(2)}</span> | ${warnHtml}`;
+      }
+    }
+  }
+
   function renderBatchPreview(groups) {
     if (!groups.length) return '<div>No groups</div>';
     return groups.map((g, idx) => {
@@ -3285,25 +3362,38 @@ try {
           <td><input data-gidx="${idx}" data-ridx="${r}" data-field="date" value="${escapeHtml(i.date||'')}" style="width:120px;"></td>
           <td><input data-gidx="${idx}" data-ridx="${r}" data-field="destination_name" value="${escapeHtml(i.destination_name||'')}" style="width:220px;"></td>
           <td><input data-gidx="${idx}" data-ridx="${r}" data-field="description" value="${escapeHtml(i.description||'')}" style="width:100%;"></td>
-          <td style="text-align:right;"><input data-gidx="${idx}" data-ridx="${r}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;"></td>
+          <td><select data-gidx="${idx}" data-ridx="${r}" data-field="direction" style="width:120px;">
+                <option value="out" ${i.direction === 'out' ? 'selected' : ''}>withdrawal</option>
+                <option value="in" ${i.direction === 'in' ? 'selected' : ''}>deposit</option>
+              </select></td>
+          <td style="text-align:right; white-space:nowrap;">
+            <input data-gidx="${idx}" data-ridx="${r}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;">
+            <button type="button" class="btn btn-secondary bg-del-row" data-gidx="${idx}" data-ridx="${r}" title="Remove row" style="margin-left:6px;">✕</button>
+          </td>
         </tr>`).join('');
+      const calcSum = Number((g.items||[]).reduce((s,i)=>s+((i.direction==='in')?-Math.abs(Number(i.amount||0)):Math.abs(Number(i.amount||0))),0)).toFixed(2);
       const original = g.matched ? Number(g.matched.original).toFixed(2) : '-';
-      const sum = g.matched ? Number(g.matched.sum).toFixed(2) : Number((g.items||[]).reduce((s,i)=>s+Math.abs(Number(i.amount||0)),0)).toFixed(2);
+      const sum = g.matched ? Number(g.matched.sum).toFixed(2) : calcSum;
       const diff = g.matched ? Number(g.matched.diff).toFixed(2) : (original !== '-' ? (Number(original)-Number(sum)).toFixed(2) : '-');
       const warn = (diff !== '-' && Math.abs(Number(diff)) >= 0.01) ? `<span style="color:#f90;">Difference: ${diff}</span>` : `<span style="color:#28a745;">OK</span>`;
-      const matchedInfo = g.matched ? `Matched original: <span class="bg-oid" data-gidx="${idx}">${g.matched.originalTransactionId}</span>` : 'No match';
+      const hasItems = (g.items||[]).length > 0;
+      const canSelect = g.selectable !== false && hasItems;
+      const matchedInfo = (g.matched && hasItems) ? `Matched original: <span class="bg-oid" data-gidx="${idx}">${g.matched.originalTransactionId}</span>` : 'No match';
+      const fileLabel = g.fileName ? escapeHtml(g.fileName) : '(no file matched)';
       return `
-      <div class="batch-group" data-gidx="${idx}" style="border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:12px;">
+      <div class="batch-group" data-gidx="${idx}" data-original="${original !== '-' ? original : ''}" style="border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-          <div><strong>${escapeHtml(g.fileName||'')}</strong> · ${matchedInfo}</div>
+          <div><strong>${fileLabel}</strong> · ${matchedInfo}</div>
           <div style="display:flex; gap:8px; align-items:center;">
-            <label><input type="checkbox" class="bg-select" data-gidx="${idx}" checked> Include</label>
+            <label><input type="checkbox" class="bg-select" data-gidx="${idx}" ${canSelect ? 'checked' : 'disabled'}> Include</label>
+            <button type="button" class="btn btn-secondary bg-add-row" data-gidx="${idx}">Add row</button>
             <button type="button" class="btn btn-secondary bg-recalc" data-gidx="${idx}">Recalculate</button>
+            <button type="button" class="btn btn-secondary bg-remove-group" data-gidx="${idx}">Remove</button>
           </div>
         </div>
         <div style="margin-top:6px; font-size:12px; color:#6c757d;">Original: ${original} | Sum: <span class="bg-sum" data-gidx="${idx}">${sum}</span> | ${warn}</div>
         <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
-          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Amount</th></tr></thead>
+          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th>Amount</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -3323,12 +3413,32 @@ try {
         const inputs = tr.querySelectorAll('input');
         const r = {};
         inputs.forEach(inp => { const f = inp.getAttribute('data-field'); r[f] = inp.value; });
+        const sel = tr.querySelector('select[data-field="direction"]');
+        if (sel) r.direction = sel.value;
         if (r.amount != null) r.amount = Number(r.amount);
         return r;
       }).filter(x => x.description || x.destination_name || x.amount);
       if (items.length) groups.push({ matched: { originalTransactionId: oid }, items });
     });
     return groups;
+  }
+
+  function addBatchRow(gidx) {
+    const container = batchPreviewDiv.querySelector(`.batch-group[data-gidx="${gidx}"]`);
+    if (!container) return;
+    const tbody = container.querySelector('tbody');
+    const ridx = tbody.querySelectorAll('tr').length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input data-gidx="${gidx}" data-ridx="${ridx}" data-field="date" value="" style="width:120px;"></td>
+      <td><input data-gidx="${gidx}" data-ridx="${ridx}" data-field="destination_name" value="" style="width:220px;"></td>
+      <td><input data-gidx="${gidx}" data-ridx="${ridx}" data-field="description" value="" style="width:100%;"></td>
+      <td><select data-gidx="${gidx}" data-ridx="${ridx}" data-field="direction" style="width:120px;">
+            <option value="out" selected>withdrawal</option>
+            <option value="in">deposit</option>
+          </select></td>
+      <td style="text-align:right;"><input data-gidx="${gidx}" data-ridx="${ridx}" data-field="amount" value="0.00" style="width:100px; text-align:right;"></td>`;
+    tbody.appendChild(tr);
   }
 
   function escapeHtml(value) {
@@ -3421,6 +3531,135 @@ try {
       selectByCategory.innerHTML = `<option value="" disabled>(Load error)</option>`;
       selectByTag.innerHTML = `<option value="" disabled>(Load error)</option>`;
     }
+  })();
+
+  // ===== Side panel & feature organization =====
+  (function setupSidePanel(){
+    try {
+      const container = document.querySelector('.container');
+      if (!container) return;
+
+      // Build shell
+      const shell = document.createElement('div');
+      shell.className = 'app-shell';
+      const side = document.createElement('aside');
+      side.className = 'app-side';
+      const content = document.createElement('div');
+      content.className = 'app-content';
+
+      // Move existing children into content (except <h1>, keep at top)
+      const header = container.querySelector('h1');
+      const nodes = Array.from(container.children).filter(n => n !== header);
+      container.textContent = '';
+      container.appendChild(header);
+      container.appendChild(shell);
+      shell.appendChild(side);
+      shell.appendChild(content);
+      nodes.forEach(n => content.appendChild(n));
+
+      function findPanelByH2(startsWith) {
+        const h2s = Array.from(content.querySelectorAll('section.controls > h2, section > h2'));
+        const h = h2s.find(x => (x.textContent || '').trim().toLowerCase().startsWith(startsWith.toLowerCase()));
+        return h ? h.parentElement : null;
+      }
+
+      // Identify panels (per requested groups)
+      let panels = [
+        // Categorizer group
+        { cat: 'Categorizer', id: 'panel-auto', title: 'Auto-Categorization', el: findPanelByH2('Auto-Categorization') },
+        { cat: 'Categorizer', id: 'panel-general', title: 'General Settings', el: findPanelByH2('General Settings') },
+        { cat: 'Categorizer', id: 'panel-cmap', title: 'Category Mappings', el: findPanelByH2('Category Mappings') },
+        { cat: 'Categorizer', id: 'panel-failed', title: 'Word Mappings & Failed', el: findPanelByH2('Word Mappings & Failed Transactions') },
+        { cat: 'Categorizer', id: 'panel-txm', title: 'Transaction Management', el: findPanelByH2('Transaction Management') },
+        { cat: 'Categorizer', id: 'panel-manual', title: 'Bulk Categorization', el: document.getElementById('panel-manual') },
+
+        // Maintenance group
+        { cat: 'Maintenance', id: 'panel-duplicates', title: 'Duplicate cleanup', el: document.getElementById('panel-duplicates') },
+        { cat: 'Maintenance', id: 'panel-webhook', title: 'Test Webhook', el: findPanelByH2('Test Webhook') },
+
+        // Special tools group
+        { cat: 'Special tools', id: 'extraction', title: 'Credit Card Statement Splitter', el: document.getElementById('extraction') }
+      ].filter(p => p.el);
+
+      // Hide unneeded headings-only sections
+      const unused = [findPanelByH2('Batch Jobs'), findPanelByH2('Individual Jobs')].filter(Boolean);
+      unused.forEach(sec => { sec.style.display = 'none'; });
+
+      // Mark and hide all but first
+      panels.forEach(p => { p.el.setAttribute('data-panel-id', p.id); });
+
+      function showPanel(id) {
+        panels.forEach(p => { p.el.style.display = (p.id === id) ? '' : 'none'; });
+        Array.from(side.querySelectorAll('.side-btn')).forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-target') === id));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // Render side nav
+      let cats = Array.from(new Set(panels.map(p => p.cat)));
+      const sortOrder = ['Categorizer', 'Special tools', 'Maintenance'];
+      cats = cats.sort((a, b) => {
+        const ia = sortOrder.indexOf(a);
+        const ib = sortOrder.indexOf(b);
+        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      });
+      cats.forEach(cat => {
+        const group = document.createElement('div');
+        group.className = 'side-group';
+        const title = document.createElement('div');
+        title.className = 'side-group-title';
+        title.textContent = cat;
+        const list = document.createElement('div');
+        list.className = 'side-list';
+        panels.filter(p => p.cat === cat).forEach(p => {
+          const b = document.createElement('button');
+          b.className = 'side-btn';
+          b.textContent = p.title;
+          b.setAttribute('data-target', p.id);
+          b.addEventListener('click', () => showPanel(p.id));
+          list.appendChild(b);
+        });
+        group.appendChild(title);
+        group.appendChild(list);
+        side.appendChild(group);
+      });
+
+      // Listen for dynamically added panels (e.g., Duplicate cleanup if created later)
+      window.addEventListener('panel-added', (ev) => {
+        try {
+          const detail = ev.detail || {};
+          if (!detail.id || !detail.title || !detail.cat) return;
+          if (panels.find(p => p.id === detail.id)) return; // already present
+          const el = content.querySelector(`#${detail.id}`);
+          if (!el) return;
+          el.setAttribute('data-panel-id', detail.id);
+          panels.push({ cat: detail.cat, id: detail.id, title: detail.title, el });
+          // find or create group
+          let group = Array.from(side.querySelectorAll('.side-group')).find(g => g.querySelector('.side-group-title')?.textContent === detail.cat);
+          if (!group) {
+            group = document.createElement('div');
+            group.className = 'side-group';
+            const title = document.createElement('div');
+            title.className = 'side-group-title';
+            title.textContent = detail.cat;
+            const list = document.createElement('div');
+            list.className = 'side-list';
+            group.appendChild(title); group.appendChild(list);
+            side.appendChild(group);
+          }
+          const list = group.querySelector('.side-list');
+          const b = document.createElement('button');
+          b.className = 'side-btn';
+          b.textContent = detail.title;
+          b.setAttribute('data-target', detail.id);
+          b.addEventListener('click', () => showPanel(detail.id));
+          list.appendChild(b);
+        } catch(_) {}
+      });
+
+      // Default view
+      const defaultId = panels.find(p => p.id === 'extraction')?.id || panels[0]?.id;
+      if (defaultId) showPanel(defaultId);
+    } catch(_) {}
   })();
 
   async function loadTransactionsForPicker() {
@@ -3521,7 +3760,8 @@ try {
       if (extractionTag.value) form.append('tag', extractionTag.value);
       singleAbort = new AbortController();
       btnCancelSingle.disabled = false;
-      const r = await apiFetch('api/extraction/upload', { method: 'POST', body: form, signal: singleAbort.signal });
+      form.append('force', '1');
+      const r = await apiFetch(`api/extraction/upload?ts=${Date.now()}`, { method: 'POST', body: form, signal: singleAbort.signal });
       const j = await r.json();
       if (!j.success) throw new Error(j.error || 'Preview failed');
       lastPreview = j.preview;
@@ -3549,9 +3789,12 @@ try {
   btnConfirm.addEventListener('click', async () => {
     try {
       if (!lastPreview) return;
+      // disable during request to prevent double submit
+      btnConfirm.disabled = true;
+      const edited = collectSingleEdits();
       const body = {
         originalTransactionId: lastPreview.meta.originalTransactionId,
-        items: lastPreview.items,
+        items: edited.length ? edited : lastPreview.items,
         tag: extractionTag.value || lastPreview.meta.tag,
         proceedOnMismatch: proceedMismatch.checked
       };
@@ -3559,23 +3802,44 @@ try {
       const j = await r.json();
       if (!j.success) throw new Error(j.error || 'Save failed');
       showToast(`Created: ${j.created} transactions${j.diff ? `, difference: ${j.diff}` : ''}`, 'success');
-      btnConfirm.disabled = true;
+      // Render result details
+      const details = [];
+      details.push(`<div><strong>Saved.</strong> Created ${j.created} rows${j.diff ? `, diff: ${j.diff}` : ''}.</div>`);
+      if (Array.isArray(j.merchants) && j.merchants.length) {
+        const list = j.merchants.map(m => `<li>${escapeHtml(m.name)} (${escapeHtml(m.type)}) — ${m.created ? 'created' : (m.matched ? 'matched ' + escapeHtml(m.matched) : 'existing')} [${escapeHtml(m.id||'')}]</li>`).join('');
+        details.push(`<div><strong>Merchants:</strong><ul>${list}</ul></div>`);
+      }
+      if (Array.isArray(j.transactions) && j.transactions.length) {
+        const list = j.transactions.map(t => `<li>${escapeHtml(t.id||'')} · ${escapeHtml(t.type)} · ${escapeHtml(t.date||'')} · ${escapeHtml(t.description||'')} · ${Number(t.amount||0).toFixed(2)}</li>`).join('');
+        details.push(`<div><strong>Created transaction IDs:</strong><ul>${list}</ul></div>`);
+      }
+      const host = document.createElement('div');
+      host.className = 'confirm-result';
+      host.innerHTML = details.join('');
+      previewDiv.appendChild(host);
+      // Re-enable to allow subsequent edits/apply if needed
+      btnConfirm.disabled = false;
     } catch (e) {
       showToast(e.message, 'error');
+      // re-enable to allow retry
+      btnConfirm.disabled = false;
     }
   });
 
   // Upload batch
   btnUploadBatch?.addEventListener('click', async () => {
     try {
+      if (window.__BATCH_UPLOAD_IN_FLIGHT__) { return showToast('Batch upload already in progress', 'warning'); }
+      window.__BATCH_UPLOAD_IN_FLIGHT__ = true;
       const fs = Array.from(filesBatch.files || []);
       if (!fs.length) return showToast('Please choose files', 'warning');
       const form = new FormData();
       fs.forEach(f => form.append('files', f));
       const selectedIds = Array.from((pickCandidates?.selectedOptions) || []).map(o => o.value);
       if (selectedIds.length) form.append('candidateTransactionIds', JSON.stringify(selectedIds));
-      form.append('dateWindowDays', String(dateWindowDays.value || '60'));
-      const r = await apiFetch('api/extraction/upload-batch', { method: 'POST', body: form });
+      form.append('dateWindowDays', String(dateWindowDays.value || '10'));
+      form.append('force', '1');
+      const r = await apiFetch(`api/extraction/upload-batch?ts=${Date.now()}`, { method: 'POST', body: form });
       const j = await r.json();
       if (!j.success) throw new Error(j.error || 'Batch preview failed');
       batchPreviewDiv.innerHTML = renderBatchPreview(j.groups || []);
@@ -3585,7 +3849,7 @@ try {
       batchPreviewDiv.innerHTML = '';
       btnConfirmBatch.disabled = true;
       showToast(e.message, 'error');
-    }
+    } finally { window.__BATCH_UPLOAD_IN_FLIGHT__ = false; }
   });
 
   // Confirm batch
@@ -3593,11 +3857,27 @@ try {
     try {
       const groups = collectBatchEdits();
       if (!groups.length) return showToast('No groups selected', 'warning');
-      const body = { groups, proceedOnMismatch: !!batchProceedMismatch.checked, tag: extractionTag.value || '' };
+      const body = { groups, proceedOnMismatch: !!batchProceedMismatch.checked, tag: (batchExtractionTag.value || extractionTag.value || '') };
       const r = await apiFetch('api/extraction/confirm-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!j.success) throw new Error(j.error || 'Batch save failed');
       showToast(`Created: ${j.created} transactions`, 'success');
+      // Render batch result details
+      const details = [];
+      if (Array.isArray(j.merchants) && j.merchants.length) {
+        const list = j.merchants.map(m => `<li>${escapeHtml(m.name)} (${escapeHtml(m.type)}) — ${m.created ? 'created' : (m.matched ? 'matched ' + escapeHtml(m.matched) : 'existing')} [${escapeHtml(m.id||'')}]</li>`).join('');
+        details.push(`<div><strong>Merchants:</strong><ul>${list}</ul></div>`);
+      }
+      if (Array.isArray(j.transactions) && j.transactions.length) {
+        const list = j.transactions.map(t => `<li>${escapeHtml(t.id||'')} · ${escapeHtml(t.type)} · ${escapeHtml(t.date||'')} · ${escapeHtml(t.description||'')} · ${Number(t.amount||0).toFixed(2)}</li>`).join('');
+        details.push(`<div><strong>Created transaction IDs:</strong><ul>${list}</ul></div>`);
+      }
+      if (details.length) {
+        const host = document.createElement('div');
+        host.className = 'confirm-result';
+        host.innerHTML = details.join('');
+        batchPreviewDiv.prepend(host);
+      }
       btnConfirmBatch.disabled = true;
     } catch (e) {
       showToast(e.message, 'error');
@@ -3612,25 +3892,35 @@ try {
           <td><input data-gidx="${idx}" data-ridx="${r}" data-field="date" value="${escapeHtml(i.date||'')}" style="width:120px;"></td>
           <td><input data-gidx="${idx}" data-ridx="${r}" data-field="destination_name" value="${escapeHtml(i.destination_name||'')}" style="width:220px;"></td>
           <td><input data-gidx="${idx}" data-ridx="${r}" data-field="description" value="${escapeHtml(i.description||'')}" style="width:100%;"></td>
+          <td><select data-gidx="${idx}" data-ridx="${r}" data-field="direction" style="width:120px;">
+                <option value="out" ${i.direction === 'out' ? 'selected' : ''}>withdrawal</option>
+                <option value="in" ${i.direction === 'in' ? 'selected' : ''}>deposit</option>
+              </select></td>
           <td style="text-align:right;"><input data-gidx="${idx}" data-ridx="${r}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;"></td>
         </tr>`).join('');
+      const calcSum = Number((g.items||[]).reduce((s,i)=>s+((i.direction==='in')?-Math.abs(Number(i.amount||0)):Math.abs(Number(i.amount||0))),0)).toFixed(2);
       const original = g.matched ? Number(g.matched.original).toFixed(2) : '-';
-      const sum = g.matched ? Number(g.matched.sum).toFixed(2) : Number((g.items||[]).reduce((s,i)=>s+Math.abs(Number(i.amount||0)),0)).toFixed(2);
+      const sum = g.matched ? Number(g.matched.sum).toFixed(2) : calcSum;
       const diff = g.matched ? Number(g.matched.diff).toFixed(2) : (original !== '-' ? (Number(original)-Number(sum)).toFixed(2) : '-');
       const warn = (diff !== '-' && Math.abs(Number(diff)) >= 0.01) ? `<span style="color:#f90;">Difference: ${diff}</span>` : `<span style="color:#28a745;">OK</span>`;
-      const matchedInfo = g.matched ? `Matched original: <span class="bg-oid" data-gidx="${idx}">${g.matched.originalTransactionId}</span>` : 'No match';
+      const hasItems = (g.items||[]).length > 0;
+      const canSelect = g.selectable !== false && hasItems;
+      const matchedInfo = (g.matched && hasItems) ? `Matched original: <span class="bg-oid" data-gidx="${idx}">${g.matched.originalTransactionId}</span>` : 'No match';
+      const fileLabel = g.fileName ? escapeHtml(g.fileName) : '(no file matched)';
       return `
-      <div class="batch-group" data-gidx="${idx}" style="border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:12px;">
+      <div class="batch-group" data-gidx="${idx}" data-original="${original !== '-' ? original : ''}" style="border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-          <div><strong>${escapeHtml(g.fileName||'')}</strong> · ${matchedInfo}</div>
+          <div><strong>${fileLabel}</strong> · ${matchedInfo}</div>
           <div style="display:flex; gap:8px; align-items:center;">
-            <label><input type="checkbox" class="bg-select" data-gidx="${idx}" checked> Include</label>
+            <label><input type="checkbox" class="bg-select" data-gidx="${idx}" ${canSelect ? 'checked' : 'disabled'}> Include</label>
+            <button type="button" class="btn btn-secondary bg-add-row" data-gidx="${idx}">Add row</button>
             <button type="button" class="btn btn-secondary bg-recalc" data-gidx="${idx}">Recalculate</button>
+            <button type="button" class="btn btn-secondary bg-remove-group" data-gidx="${idx}">Remove</button>
           </div>
         </div>
         <div style="margin-top:6px; font-size:12px; color:#6c757d;">Original: ${original} | Sum: <span class="bg-sum" data-gidx="${idx}">${sum}</span> | ${warn}</div>
         <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
-          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Amount</th></tr></thead>
+          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th>Amount</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -3650,6 +3940,8 @@ try {
         const inputs = tr.querySelectorAll('input');
         const r = {};
         inputs.forEach(inp => { const f = inp.getAttribute('data-field'); r[f] = inp.value; });
+        const sel = tr.querySelector('select[data-field="direction"]');
+        if (sel) r.direction = sel.value;
         if (r.amount != null) r.amount = Number(r.amount);
         return r;
       }).filter(x => x.description || x.destination_name || x.amount);
@@ -3659,18 +3951,255 @@ try {
   }
 
   function renderPreview(p) {
-    const rows = p.items.map(i => `<tr><td>${escapeHtml(i.date||'')}</td><td>${escapeHtml(i.destination_name||'')}</td><td>${escapeHtml(i.description||'')}</td><td style="text-align:right;">${Number(i.amount).toFixed(2)}</td></tr>`).join('');
-    const warn = Math.abs(p.totals.diff) >= 0.01 ? `<div style="color:#f90;">Warning: total differs by ${p.totals.diff}</div>` : '';
-    return `
-      <div>
-        <div>Original: ${p.totals.original.toFixed(2)} | Preview total: ${p.totals.sum.toFixed(2)} | Difference: ${p.totals.diff.toFixed(2)}</div>
-        ${warn}
+    const rows = p.items.map((i, idx) => `
+      <tr>
+        <td><input data-ridx="${idx}" data-field="date" value="${escapeHtml(i.date||'')}" style="width:120px;"></td>
+        <td><input data-ridx="${idx}" data-field="destination_name" value="${escapeHtml(i.destination_name||'')}" style="width:220px;"></td>
+        <td><input data-ridx="${idx}" data-field="description" value="${escapeHtml(i.description||'')}" style="width:100%;"></td>
+        <td>
+          <select data-ridx="${idx}" data-field="direction" style="width:120px;">
+            <option value="out" ${i.direction === 'out' ? 'selected' : ''}>withdrawal</option>
+            <option value="in" ${i.direction === 'in' ? 'selected' : ''}>deposit</option>
+          </select>
+        </td>
+        <td style="text-align:right; white-space:nowrap;">
+          <input data-ridx="${idx}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;">
+          <button type="button" class="btn btn-secondary sp-del" data-ridx="${idx}" title="Remove row" style="margin-left:6px;">✕</button>
+        </td>
+      </tr>`).join('');
+    const warn = Math.abs(p.totals.diff) >= 0.01 ? `<span style="color:#f90;">Warning: total differs by ${p.totals.diff.toFixed(2)}</span>` : `<span style="color:#28a745;">OK</span>`;
+    const html = `
+      <div class="single-preview" data-original="${Number(p.totals.original||0).toFixed(2)}">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <div>Original: <span class="sp-original">${p.totals.original.toFixed(2)}</span> | Sum: <span class="sp-sum">${p.totals.sum.toFixed(2)}</span> | Diff: <span class="sp-diff">${p.totals.diff.toFixed(2)}</span> · ${warn}</div>
+          <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+            <button type="button" class="btn btn-secondary sp-add-row">Add row</button>
+            <button type="button" class="btn btn-secondary sp-recalc">Recalculate</button>
+          </div>
+        </div>
         <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
-          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Amount</th></tr></thead>
+          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th>Amount</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
+    // Defer binding events until inserted
+    setTimeout(() => bindSinglePreviewControls(), 0);
+    return html;
   }
+
+  function bindSinglePreviewControls() {
+    const root = previewDiv.querySelector('.single-preview');
+    if (!root) return;
+    root.querySelector('.sp-add-row')?.addEventListener('click', () => addSingleRow());
+    root.querySelector('.sp-recalc')?.addEventListener('click', () => recalcSinglePreview());
+    root.querySelectorAll('.sp-del')?.forEach(btn => btn.addEventListener('click', (e) => {
+      const tr = e.currentTarget.closest('tr');
+      if (tr) tr.remove();
+      recalcSinglePreview();
+    }));
+  }
+
+  function addSingleRow() {
+    const tbody = previewDiv.querySelector('.single-preview tbody');
+    if (!tbody) return;
+    const ridx = tbody.querySelectorAll('tr').length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input data-ridx="${ridx}" data-field="date" value="" style="width:120px;"></td>
+      <td><input data-ridx="${ridx}" data-field="destination_name" value="" style="width:220px;"></td>
+      <td><input data-ridx="${ridx}" data-field="description" value="" style="width:100%;"></td>
+      <td>
+        <select data-ridx="${ridx}" data-field="direction" style="width:120px;">
+          <option value="out" selected>withdrawal</option>
+          <option value="in">deposit</option>
+        </select>
+      </td>
+      <td style="text-align:right; white-space:nowrap;">
+        <input data-ridx="${ridx}" data-field="amount" value="0.00" style="width:100px; text-align:right;">
+        <button type="button" class="btn btn-secondary sp-del" data-ridx="${ridx}" title="Remove row" style="margin-left:6px;">✕</button>
+      </td>`;
+    tbody.appendChild(tr);
+    tr.querySelector('.sp-del')?.addEventListener('click', () => { tr.remove(); recalcSinglePreview(); });
+    recalcSinglePreview();
+  }
+
+  function collectSingleEdits() {
+    const root = previewDiv.querySelector('.single-preview');
+    const rows = Array.from(root?.querySelectorAll('tbody tr') || []);
+    const items = rows.map(tr => {
+      const r = {};
+      tr.querySelectorAll('input').forEach(inp => { r[inp.getAttribute('data-field')] = inp.value; });
+      const sel = tr.querySelector('select[data-field="direction"]');
+      if (sel) r.direction = sel.value;
+      if (r.amount != null) r.amount = Number(r.amount);
+      return r;
+    }).filter(x => x.description || x.destination_name || x.amount);
+    return items;
+  }
+
+  function recalcSinglePreview() {
+    const root = previewDiv.querySelector('.single-preview');
+    if (!root || !lastPreview) return;
+    const items = collectSingleEdits();
+    const sum = items.reduce((s, i) => s + ((i.direction === 'in') ? -Math.abs(Number(i.amount||0)) : Math.abs(Number(i.amount||0))), 0);
+    const original = Number(lastPreview.totals.original || 0);
+    const diff = original - sum;
+    root.querySelector('.sp-sum').textContent = sum.toFixed(2);
+    root.querySelector('.sp-diff').textContent = diff.toFixed(2);
+  }
+  
+  // ===== Duplicates: UI injection =====
+  (function setupDuplicatesUI(){
+    try {
+      const container = document.querySelector('.container');
+      if (!container) return;
+      const sect = document.createElement('section');
+      sect.className = 'controls';
+      sect.id = 'panel-duplicates';
+      sect.innerHTML = `
+        <h2>Duplicate cleanup</h2>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+          <div>
+            <label>Tag (optional)<br><input id="dup-tag" placeholder="e.g. creditcard-split" style="width:220px"></label>
+          </div>
+          <div>
+            <label>Date from<br><input id="dup-date-from" type="date" style="width:150px"></label>
+          </div>
+          <div>
+            <label>Date to<br><input id="dup-date-to" type="date" style="width:150px"></label>
+          </div>
+          <div>
+            <button id="btn-find-duplicates" class="btn btn-warning">Find duplicates</button>
+            <button id="btn-delete-duplicates" class="btn btn-danger" disabled>Delete selected</button>
+            <label style="margin-left:8px; font-size:12px; color:#6c757d;"><input id="dup-keep-one" type="checkbox" checked style="margin-right:6px;">Keep one per group</label>
+          </div>
+        </div>
+        <div id="dup-results" style="margin-top:12px;"></div>
+      `;
+      const host = document.querySelector('.app-content') || container;
+      host.appendChild(sect);
+      // hide by default; side panel will show on selection
+      sect.style.display = 'none';
+
+      const dupTag = sect.querySelector('#dup-tag');
+      const dupFrom = sect.querySelector('#dup-date-from');
+      const dupTo = sect.querySelector('#dup-date-to');
+      const btnFind = sect.querySelector('#btn-find-duplicates');
+      const btnDelete = sect.querySelector('#btn-delete-duplicates');
+      const keepOne = sect.querySelector('#dup-keep-one');
+      const dupResults = sect.querySelector('#dup-results');
+
+      function selectedIds(){
+        const ids = [];
+        const groups = Array.from(dupResults.querySelectorAll('.dup-group'));
+        groups.forEach(g => {
+          const enabled = Array.from(g.querySelectorAll('input.dup-item:not(:disabled)'));
+          const checked = enabled.filter(ch => ch.checked);
+          if (keepOne?.checked && checked.length === enabled.length && enabled.length > 0) {
+            // Drop one item from deletion to keep one
+            checked.shift();
+          }
+          checked.forEach(ch => ids.push(ch.value));
+        });
+        return ids;
+      }
+
+      function updateDeleteState(){
+        btnDelete.disabled = selectedIds().length === 0;
+      }
+
+      dupResults.addEventListener('change', (e)=>{
+        if (e.target && e.target.classList.contains('dup-group-toggle')) {
+          const group = e.target.closest('.dup-group');
+          const checks = Array.from(group.querySelectorAll('input.dup-item'));
+          checks.forEach(c => { if (!c.disabled) c.checked = e.target.checked; });
+          // If selecting all and keep-one is enabled, uncheck the first enabled to keep one
+          if (e.target.checked && keepOne?.checked) {
+            const firstEnabled = checks.find(c => !c.disabled);
+            if (firstEnabled) firstEnabled.checked = false;
+          }
+          updateDeleteState();
+        }
+        if (e.target && (e.target.classList.contains('dup-item') || e.target.classList.contains('dup-group-toggle'))) {
+          updateDeleteState();
+        }
+      });
+
+      btnFind.addEventListener('click', async ()=>{
+        try {
+          btnFind.disabled = true;
+          dupResults.innerHTML = '<div>Searching…</div>';
+          const params = new URLSearchParams();
+          if (dupTag.value) params.append('tag', dupTag.value.trim());
+          if (dupFrom.value) params.append('dateFrom', dupFrom.value);
+          if (dupTo.value) params.append('dateTo', dupTo.value);
+          const r = await apiFetch(`api/duplicates/find?${params.toString()}`);
+          const j = await r.json();
+          if (!j.success) throw new Error(j.error || 'Duplicate search failed');
+          if (!Array.isArray(j.groups) || j.groups.length === 0) {
+            dupResults.innerHTML = '<div>No duplicates found.</div>';
+            btnDelete.disabled = true;
+            return;
+          }
+          dupResults.innerHTML = j.groups.map((g, idx)=>{
+            const header = `<div style=\"display:flex;justify-content:space-between;align-items:center;\"><div><strong>${g.summary.date}</strong> · ${g.summary.type} · ${Number(g.summary.amountAbs||g.summary.amountAbs===0?g.summary.amountAbs:g.summary.amountAbs).toFixed?Number(g.summary.amountAbs).toFixed(2):Number(g.summary.amountAbs||0).toFixed(2)} · ${g.items.length} items</div><label><input type=\"checkbox\" class=\"dup-group-toggle\"> Select group</label></div>`;
+            const rows = (g.items||[]).map(it=>{
+              const disabled = (it.isOriginal || it.isCorrection) ? 'disabled' : '';
+              const badge = it.isOriginal ? '<span style=\"margin-left:6px;color:#17a2b8;\">original</span>' : (it.isCorrection ? '<span style=\"margin-left:6px;color:#6c757d;\">correction</span>' : '');
+              return `<tr>
+              <td style=\"width:28px; text-align:center;\"><input type=\"checkbox\" class=\"dup-item\" value=\"${it.id}\" ${disabled}></td>
+              <td>${escapeHtml(it.date||'')}</td>
+              <td>${escapeHtml(it.type||'')}</td>
+              <td style=\"text-align:right;\">${Number(it.amount||0).toFixed(2)}</td>
+              <td>${escapeHtml(it.source||'')}</td>
+              <td>${escapeHtml(it.destination||'')}</td>
+              <td>${escapeHtml(it.description||'')}${badge}</td>
+            </tr>`;
+            }).join('');
+            return `<div class=\"dup-group\" style=\"border:1px solid #eee; padding:8px; border-radius:6px; margin-bottom:10px;\">${header}<table border=\"1\" cellspacing=\"0\" cellpadding=\"6\" style=\"margin-top:6px; width:100%;\"><thead><tr><th></th><th>Date</th><th>Type</th><th>Amount</th><th>Source</th><th>Destination</th><th>Description</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+          }).join('');
+          updateDeleteState();
+          showToast(`Found ${j.groups.length} duplicate groups`, 'success');
+        } catch(e) {
+          dupResults.innerHTML = '';
+          btnDelete.disabled = true;
+          showToast(e.message, 'error');
+        } finally {
+          btnFind.disabled = false;
+        }
+      });
+
+      btnDelete.addEventListener('click', async ()=>{
+        const ids = selectedIds();
+        if (!ids.length) return;
+        if (!confirm(`Delete ${ids.length} selected transactions? This cannot be undone.`)) return;
+        btnDelete.disabled = true;
+        try {
+          const r = await apiFetch('api/duplicates/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transactionIds: ids }) });
+          const j = await r.json();
+          if (!j.success) throw new Error(j.error || 'Delete failed');
+          // Remove deleted rows from UI
+          ids.forEach(id => {
+            const cb = dupResults.querySelector(`input.dup-item[value="${id}"]`);
+            const tr = cb?.closest('tr');
+            if (tr) tr.remove();
+          });
+          // Clean empty groups
+          Array.from(dupResults.querySelectorAll('.dup-group')).forEach(g => {
+            if (!g.querySelector('tbody tr')) g.remove();
+          });
+          updateDeleteState();
+          showToast(`Deleted ${j.deleted} transactions`, 'success');
+        } catch(e) {
+          showToast(e.message, 'error');
+        } finally {
+          updateDeleteState();
+        }
+      });
+      // notify side nav if it exists to register the new panel
+      try { window.dispatchEvent(new CustomEvent('panel-added', { detail: { id: 'panel-duplicates', title: 'Duplicate cleanup', cat: 'Maintenance' } })); } catch(_) {}
+    } catch(_) {}
+  })();
 } catch(e) { /* ignore UI errors on minimal builds */ }
 </script>
 </body>
