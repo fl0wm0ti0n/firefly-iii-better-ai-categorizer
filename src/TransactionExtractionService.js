@@ -8,9 +8,9 @@ export default class TransactionExtractionService {
     // resolve config file path lazily to align with the final data dir
     #configFile() { return dataFile('extraction-config.json'); }
     #config = {
-        defaultTag: 'card-statement-split',
+        defaultTag: 'creditcard-split',
         useAIForParsing: true,
-        useAIPrimary: true,
+        useAIPrimary: false,
         aiMergeWithDeterministic: true,
         amountMergeTolerance: 0.02,
         dateMergeToleranceDays: 2,
@@ -19,10 +19,27 @@ export default class TransactionExtractionService {
         lastUsed: null
     };
 
+    /**
+     * Create a new TransactionExtractionService.
+     *
+     * How to use:
+     * @example
+     * const service = new TransactionExtractionService();
+     * await service.loadConfig();
+     */
     constructor() {
         this.loadConfig();
     }
 
+    /**
+     * Load configuration from disk into memory. Creates a default file if missing.
+     *
+     * How to use:
+     * @example
+     * await service.loadConfig();
+     *
+     * @returns {Promise<void>}
+     */
     async loadConfig() {
         try {
             await ensureDataDir();
@@ -37,21 +54,60 @@ export default class TransactionExtractionService {
         }
     }
 
+    /**
+     * Persist current configuration to disk.
+     *
+     * How to use:
+     * @example
+     * await service.saveConfig();
+     *
+     * @returns {Promise<void>}
+     */
     async saveConfig() {
         await ensureDataDir();
         await fs.writeFile(this.#configFile(), JSON.stringify(this.#config, null, 2));
     }
 
+    /**
+     * Get a snapshot of the current configuration.
+     *
+     * How to use:
+     * @example
+     * const cfg = service.getConfig();
+     * console.log(cfg.accountCurrency);
+     *
+     * @returns {object}
+     */
     getConfig() {
         return { ...this.#config };
     }
 
+    /**
+     * Merge and persist configuration updates.
+     *
+     * How to use:
+     * @example
+     * await service.updateConfig({ useAIForParsing: false });
+     *
+     * @param {object} update Partial configuration to merge
+     * @returns {Promise<object>} Updated configuration snapshot
+     */
     async updateConfig(update) {
         this.#config = { ...this.#config, ...update, lastUsed: new Date().toISOString() };
         await this.saveConfig();
         return this.getConfig();
     }
 
+    /**
+     * Normalize an arbitrary tag string to a safe, kebab-cased tag.
+     *
+     * How to use:
+     * @example
+     * service.sanitizeTag('My Fancy Tag!'); // 'my-fancy-tag'
+     *
+     * @param {string} value
+     * @returns {string}
+     */
     sanitizeTag(value) {
         if (!value) return '';
         return value
@@ -65,6 +121,19 @@ export default class TransactionExtractionService {
 
     // removed startup debug helper once logging verified
 
+    /**
+     * Parse a CSV buffer into normalized transaction candidates.
+     *
+     * How to use:
+     * @example
+     * import fs from 'fs/promises';
+     * const buf = await fs.readFile('statement.csv');
+     * const items = service.parseCsv(buf, { Amount: 'Betrag in EUR' });
+     *
+     * @param {Buffer} buffer CSV content
+     * @param {object} [headerMapping] Optional column mapping
+     * @returns {Array<{description:string,destination_name:string,amount:number,date:string|null,direction:'in'|'out'}>}
+     */
     parseCsv(buffer, headerMapping = {}) {
         const text = buffer.toString('utf8');
         const records = parse(text, {
@@ -89,6 +158,20 @@ export default class TransactionExtractionService {
         return mapped;
     }
 
+    /**
+     * Parse a PDF buffer using deterministic heuristics and optionally AI.
+     *
+     * How to use:
+     * @example
+     * import fs from 'fs/promises';
+     * const pdf = await fs.readFile('statement.pdf');
+     * const results = await service.parsePdf(pdf, openAiService, { forceAI: false });
+     *
+     * @param {Buffer} buffer PDF content
+     * @param {object} [openAiService] Service with extractTransactionsFromText(prompt,opts)
+     * @param {{forceAI?:boolean}} [options]
+     * @returns {Promise<Array<{description:string,destination_name:string,amount:number,date:string|null,direction:'in'|'out'}>&{_statementTotal?:number|null}>}
+     */
     async parsePdf(buffer, openAiService, options = {}) {
         const forceAI = Boolean(options.forceAI);
         const data = await pdfParse(buffer);
@@ -109,6 +192,12 @@ export default class TransactionExtractionService {
             try { await this.#writeDebug('deterministic-empty-after-filter', { found: deterministic.length }); } catch(_) {}
         } else {
             try { await this.#writeDebug('deterministic-empty', { reason: 'no matches found' }); } catch(_) {}
+        }
+
+        // Default: use deterministic rows when available (single + batch parity). AI only when forced or empty.
+        if (deterministicProcessed.length > 0 && !forceAI) {
+            deterministicProcessed._statementTotal = statementTotal;
+            return deterministicProcessed;
         }
 
         // Optionally run AI first and merge with deterministic for best of both
@@ -155,7 +244,7 @@ export default class TransactionExtractionService {
             deterministicProcessed._statementTotal = statementTotal;
             return deterministicProcessed;
         }
-        if (openAiService && this.#config.useAIForParsing) {
+        if (openAiService && this.#config.useAIForParsing && forceAI) {
             const promptSource = /(\d{2}\.\d{2}\.\d{4})/.test(tableOnly) && tableOnly.length > 200 ? tableOnly : text;
             const prompt = this.#buildPdfPrompt(promptSource);
             try { await this.#writeDebug('ai-request', { prompt }); } catch(_) {}
@@ -226,9 +315,19 @@ export default class TransactionExtractionService {
     }
 
     // Anchor-based parser for statements where amount+two dates are on one line and description is on the next line
+    /**
+     * Internal: Parse rows based on amount/date anchors followed by description lines.
+     *
+     * How to use:
+     * @example
+     * const rows = this.#parseAnchorRows(ocrText);
+     *
+     * @param {string} text
+     * @returns {Array<object>}
+     */
     #parseAnchorRows(text) {
         const items = [];
-        const raw = String(text || '').split(/\n+/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+        const raw = this.#stitchWrapContinuations(String(text || '').split(/\n+/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean));
         if (!raw.length) return items;
         const anchorRe = /(EUR|€)\s*([-+−]?\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})).*?(\d{2}\.\d{2}\.\d{4}).*?(\d{2}\.\d{2}\.\d{4})/i;
         const amountToken = /(EUR|€)\s*([-+−]?\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2}))/gi;
@@ -332,9 +431,69 @@ export default class TransactionExtractionService {
             const item = { description, destination_name, amount: cur.amount, direction: cur.direction, date: cur.date };
             if (!this.#shouldIgnore(item)) items.push(item);
         }
+        // Additional pass: include fee-only rows (e.g., Barbehebungsentgelt/Umrechnungsentgelt) even when the amount
+        // is not on the same line as the description (common in OCR where columns split). Use the previous anchor's date.
+        for (const cand of descs) {
+            if (usedDesc.has(cand.idx)) continue;
+            if (!feeRe.test(cand.text)) continue;
+            // Try to get amount from the same description line first
+            let amtWithDir = this.#extractEURAmountWithDirection(cand.text);
+            // If not found, scan forward within the window until the next anchor for a standalone amount line (no dates)
+            if (!amtWithDir) {
+                const nextIdx = (anchors.find(a => a.idx > cand.idx)?.idx) ?? Number.POSITIVE_INFINITY;
+                for (let k = cand.idx + 1; k < nextIdx; k++) {
+                    const probe = raw[k];
+                    if (!probe) continue;
+                    // Skip other anchors (amount+two dates on one line)
+                    if (anchorRe.test(probe)) continue;
+                    // Prefer lines that look like amount cells (contain a currency/amount but not obvious headers)
+                    const tryAmt = this.#extractAmountWithDirection(probe);
+                    if (tryAmt) { amtWithDir = tryAmt; break; }
+                }
+            }
+            // Still not found? Scan backward up to the previous anchor — some PDFs place the amount cell before the fee description
+            if (!amtWithDir) {
+                const prevIdxLimit = (anchors.slice().reverse().find(a => a.idx < cand.idx)?.idx) ?? -1;
+                for (let k = cand.idx - 1; k > prevIdxLimit; k--) {
+                    const probe = raw[k];
+                    if (!probe) continue;
+                    if (anchorRe.test(probe)) continue; // don't cross another anchor line
+                    if (this.#isNonTxnMarker(probe) || /^seite\b/i.test(probe)) break;
+                    const tryAmt = this.#extractAmountWithDirection(probe);
+                    if (!tryAmt) continue;
+                    // Prefer small amounts (<= 5 €) to avoid grabbing the main transaction amount
+                    const amtNum = this.#normalizeAmount(tryAmt.amountStr);
+                    if (amtNum != null && amtNum <= 5.01) { amtWithDir = tryAmt; break; }
+                }
+            }
+            if (!amtWithDir) continue;
+            // find previous anchor for date/direction fallback
+            const prevAnchor = anchors.slice().reverse().find(a => a.idx < cand.idx);
+            const date = prevAnchor ? prevAnchor.date : null;
+            const direction = amtWithDir.direction || (prevAnchor ? prevAnchor.direction : 'out');
+            const amount = this.#normalizeAmount(amtWithDir.amountStr);
+            // Clean description (remove amounts/currency remnants)
+            const description = cand.text
+                .replace(/(EUR|USD|CHF|UAH|€)\s*[-+−]?\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})/gi, ' ')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+            const destination_name = this.#extractPayeeFromDesc(description);
+            const item = { description, destination_name, amount, direction, date };
+            if (!this.#shouldIgnore(item)) items.push(item);
+        }
         return items;
     }
 
+    /**
+     * Internal: Build an AI prompt from OCR text.
+     *
+     * How to use:
+     * @example
+     * const prompt = this.#buildPdfPrompt(text);
+     *
+     * @param {string} text
+     * @returns {string}
+     */
     #buildPdfPrompt(text) {
         const currency = this.#config.accountCurrency || 'EUR';
         return `You will receive OCR text from a bank/credit card statement (language and table layout vary).
@@ -360,8 +519,29 @@ STRICT rules:
 Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}`;
     }
 
+    /**
+     * Internal: Legacy/deprecated JSON extractor.
+     *
+     * How to use:
+     * @example
+     * const res = this.#extractJson(text); // null
+     *
+     * @returns {null}
+     */
     #extractJson(text) { /* deprecated */ return null; }
 
+    /**
+     * Internal: Pick a field value from a CSV row using candidate names or mapping.
+     *
+     * How to use:
+     * @example
+     * const descr = this.#pickField(row, ['description','bezeichnung'], mapping);
+     *
+     * @param {object} row
+     * @param {string[]} candidates
+     * @param {object} mapping
+     * @returns {any}
+     */
     #pickField(row, candidates, mapping) {
         for (const key of Object.keys(row)) {
             const norm = key.toLowerCase();
@@ -371,6 +551,17 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return null;
     }
 
+    /**
+     * Internal: Choose the best numeric amount field from a CSV row.
+     *
+     * How to use:
+     * @example
+     * const amount = this.#pickAmount(row, mapping);
+     *
+     * @param {object} row
+     * @param {object} mapping
+     * @returns {string|number|null}
+     */
     #pickAmount(row, mapping) {
         // Prioritize billed/charged amount columns in account currency
         const priority = [
@@ -394,6 +585,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return null;
     }
 
+    /**
+     * Internal: Normalize a textual/number amount to a positive number (abs).
+     *
+     * How to use:
+     * @example
+     * this.#normalizeAmount('€-1.234,56'); // 1234.56
+     *
+     * @param {string|number} v
+     * @returns {number|null}
+     */
     #normalizeAmount(v) {
         if (typeof v === 'number') return Math.abs(v);
         if (!v) return null;
@@ -409,6 +610,17 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return Math.abs(num);
     }
 
+    /**
+     * Internal: Extract amount string from a line, preferring explicit account currency.
+     *
+     * How to use:
+     * @example
+     * const amt = this.#extractAmountFromLine('EUR -12,34 some text'); // '-12,34'
+     *
+     * @param {string} line
+     * @param {string} [currency='EUR']
+     * @returns {string|null}
+     */
     #extractAmountFromLine(line, currency = 'EUR') {
         // Prefer an amount that is explicitly marked as account currency
         const curRe = new RegExp(`(?:${currency}|€)\\s*[-+−]?\\s*(\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{2}))`, 'i');
@@ -420,12 +632,22 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return null;
     }
 
+    /**
+     * Internal: Parse statement-style tables from OCR text (date-first strategy).
+     *
+     * How to use:
+     * @example
+     * const rows = this.#parseStatementTable(ocrText);
+     *
+     * @param {string} text
+     * @returns {Array<object>}
+     */
     #parseStatementTable(text) {
         const rows = [];
-        const rawLines = (text || '')
+        const rawLines = this.#stitchWrapContinuations((text || '')
             .split(/\n+/)
             .map(s => s.replace(/\s+/g, ' ').trim())
-            .filter(Boolean);
+            .filter(Boolean));
         const dateRowRe = /^(\d{2}\.\d{2}\.\d{4})(?:\s+(\d{2}\.\d{2}\.\d{4}))?\b(.*)$/;
         // No trailing word-boundary: supports sequences like "EUR-12,00EUR-12,00"
         const amountRe = /(EUR|USD|CHF|UAH|€)\s*([-+−]?\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2}))/g;
@@ -449,6 +671,58 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
                 current += ' ' + next;
                 j++;
             }
+
+            // Extra: detect fee-only lines within this block and emit them as separate items
+            try {
+                const blockLines = [first].concat(rawLines.slice(i + 1, j));
+                for (const ln of blockLines) {
+                    const feeHint = /(umrechnungsentgelt|barbehebungsentgelt)/i.test(ln);
+                    if (!feeHint) continue;
+                    let amt = this.#extractAmountWithDirection(ln);
+                    // If the fee description line has no amount, look ahead within the same block for the amount cell
+                    if (!amt) {
+                        for (let probeIdx = blockLines.indexOf(ln) + 1; probeIdx < blockLines.length; probeIdx++) {
+                            const probe = blockLines[probeIdx];
+                            if (!probe) continue;
+                            // Stop on next date row (block should not contain another date, but be safe)
+                            if (/(\d{2}\.\d{2}\.\d{4})/.test(probe)) break;
+                            const tryAmt = this.#extractAmountWithDirection(probe);
+                            if (tryAmt) { amt = tryAmt; break; }
+                        }
+                    }
+                    // Still not found? Look backward inside the block (some OCR orders columns before description)
+                    if (!amt) {
+                        for (let probeIdx = blockLines.indexOf(ln) - 1; probeIdx >= 0; probeIdx--) {
+                            const probe = blockLines[probeIdx];
+                            if (!probe) continue;
+                            if (/(\d{2}\.\d{2}\.\d{4})/.test(probe)) break;
+                            const tryAmt = this.#extractAmountWithDirection(probe);
+                            if (!tryAmt) continue;
+                            const amtNum = this.#normalizeAmount(tryAmt.amountStr);
+                            if (amtNum != null && amtNum <= 5.01) { amt = tryAmt; break; }
+                        }
+                    }
+                    if (!amt) continue;
+                    let descFee = ln.replace(amt.amountStr, ' ')
+                        .replace(/\b(EUR|USD|CHF|UAH|€)\b/gi, ' ')
+                        .replace(/\s{2,}/g, ' ')
+                        .trim();
+                    if (descFee && /[A-Za-zÄÖÜäöü]/.test(descFee)) {
+                        const feeItem = {
+                            description: descFee,
+                            destination_name: this.#extractPayeeFromDesc(descFee),
+                            amount: this.#normalizeAmount(amt.amountStr),
+                            direction: amt.direction,
+                            date: trxDate
+                        };
+                        if (!this.#shouldIgnore(feeItem)) {
+                            rows.push(feeItem);
+                            // Remove this fee line content from current to avoid capturing its amount as the main item
+                            current = current.replace(ln, ' ');
+                        }
+                    }
+                }
+            } catch (_) {}
 
             // Find billed amount in account currency at the right-most side
             const all = [...current.matchAll(amountRe)];
@@ -545,6 +819,17 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return rows;
     }
 
+    /**
+     * Internal: Extract amount and direction from a line.
+     *
+     * How to use:
+     * @example
+     * const info = this.#extractAmountWithDirection('€ -12,34');
+     *
+     * @param {string} line
+     * @param {string} [currency='EUR']
+     * @returns {{amountStr:string,direction:'in'|'out'}|null}
+     */
     #extractAmountWithDirection(line, currency = 'EUR') {
         const curRe = new RegExp(`(?:${currency}|€)\\s*([-+−]?\\s*\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{2}))`, 'i');
         const mCur = line.match(curRe);
@@ -560,6 +845,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return null;
     }
 
+    /**
+     * Internal: Detect non-transaction markers (headers/footers/summaries).
+     *
+     * How to use:
+     * @example
+     * this.#isNonTxnMarker('Kontostand NEU EUR -2.838,15'); // true
+     *
+     * @param {string} line
+     * @returns {boolean}
+     */
     #isNonTxnMarker(line) {
         const l = String(line || '').toLowerCase();
         const markers = [
@@ -580,6 +875,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return markers.some(r => r.test(l));
     }
 
+    /**
+     * Internal: Heuristic to decide if a line looks like a description.
+     *
+     * How to use:
+     * @example
+     * this.#isLikelyDescription('AMAZON EU SARL LU'); // true
+     *
+     * @param {string} line
+     * @returns {boolean}
+     */
     #isLikelyDescription(line) {
         if (!line) return false;
         const s = String(line).trim();
@@ -593,6 +898,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return true;
     }
 
+    /**
+     * Internal: Compute adjustments from settlement/balance carry-overs.
+     *
+     * How to use:
+     * @example
+     * const adj = this.#computeSumAdjustment(ocrText);
+     *
+     * @param {string} text
+     * @returns {number}
+     */
     #computeSumAdjustment(text) {
         const lines = String(text || '')
             .split(/\n+/)
@@ -612,7 +927,25 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return Number(adj.toFixed(2));
     }
 
+    /**
+     * Internal: Extract statement ending balance (absolute value) if present.
+     *
+     * How to use:
+     * @example
+     * const total = this.#extractStatementTotal(ocrText); // number|null
+     *
+     * @param {string} text
+     * @returns {number|null}
+     */
     #extractStatementTotal(text) {
+        // Raiffeisen CardService: "Rechnungsbetrag von EUR 1.351,05" / "Rechnungsbetrag vonEUR 635,04"
+        const billMatch = String(text || '').match(
+            /rechnungsbetrag\s+von\s*(?:EUR|€)?\s*([-+−]?\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2}))/i
+        );
+        if (billMatch) {
+            const amount = this.#normalizeAmount(billMatch[1]);
+            if (amount != null) return Number(Math.abs(amount).toFixed(2));
+        }
         // Look for ending balance lines e.g. "Kontostand NEU EUR -2.838,15" or "Ending balance" etc.
         const lines = String(text || '')
             .split(/\n+/)
@@ -630,6 +963,17 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return null;
     }
 
+    /**
+     * Internal: Find a likely description line adjacent to an amount/date line.
+     *
+     * How to use:
+     * @example
+     * const desc = this.#findAdjacentDescription(i, lines);
+     *
+     * @param {number} idx
+     * @param {string[]} lines
+     * @returns {string}
+     */
     #findAdjacentDescription(idx, lines) {
         const isAmountDateLine = (t) => {
             if (!t) return false;
@@ -646,6 +990,60 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return '';
     }
 
+    /**
+     * Internal: Merge wrap-continuation fragments into the previous line.
+     *
+     * Targets the specific PDF parsing artifact where a long description column
+     * (e.g. "UmrechnungsentgeltOPENAI *CHATGPT SUBSCR" or
+     * "UmrechnungsentgeltCURSOR, AI POWERED IDE") is split by pdf-parse across
+     * two or more lines. Without this, the deterministic parsers emit a phantom
+     * second transaction with the same amount whose description is the leftover
+     * wrap fragment (e.g. "SUBSCR" / "IDE").
+     *
+     * To minimize risk of incorrectly merging unrelated rows, we only stitch
+     * when the previous line starts a known fee description keyword
+     * (Umrechnungsentgelt / Barbehebungsentgelt) and the current line is a
+     * short text fragment that contains no date, no currency/amount token, and
+     * no row delimiter. Multiple consecutive continuations are supported.
+     *
+     * @param {string[]} lines
+     * @returns {string[]}
+     */
+    #stitchWrapContinuations(lines) {
+        if (!Array.isArray(lines) || lines.length < 2) return Array.isArray(lines) ? lines : [];
+        const hasDate = (s) => /(\d{2}\.\d{2}\.\d{4})/.test(s);
+        const hasAmountToken = (s) => /(EUR|USD|CHF|UAH|€)\s*[-+−]?\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})/i.test(s);
+        const feeKeyword = /(umrechnungsentgelt|barbehebungsentgelt)/i;
+        const isContinuation = (s) => {
+            if (!s) return false;
+            if (!/[A-Za-zÄÖÜäöü0-9]/.test(s)) return false;
+            if (hasDate(s)) return false;
+            if (hasAmountToken(s)) return false;
+            if (s.length > 30) return false;
+            return true;
+        };
+        const out = [];
+        for (const line of lines) {
+            const prev = out.length ? out[out.length - 1] : null;
+            if (prev != null && feeKeyword.test(prev) && isContinuation(line)) {
+                out[out.length - 1] = (prev + ' ' + line).replace(/\s+/g, ' ').trim();
+            } else {
+                out.push(line);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Internal: Extract a compact, table-only slice from OCR text.
+     *
+     * How to use:
+     * @example
+     * const slice = this.#extractTableOnly(ocrText);
+     *
+     * @param {string} text
+     * @returns {string}
+     */
     #extractTableOnly(text) {
         const lines = String(text || '').split(/\n+/);
         const out = [];
@@ -676,6 +1074,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return out.join('\n');
     }
 
+    /**
+     * Internal: Extract the last explicit EUR amount in a line and its direction.
+     *
+     * How to use:
+     * @example
+     * const found = this.#extractEURAmountWithDirection('XYZ EUR -12,34');
+     *
+     * @param {string} line
+     * @returns {{amountStr:string,direction:'in'|'out',matchedToken:string}|null}
+     */
     #extractEURAmountWithDirection(line) {
         const eurTokenRe = /(EUR|€)\s*([-+−]?\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2}))/gi; // must be global for matchAll
         const all = [...line.matchAll(eurTokenRe)];
@@ -685,10 +1093,30 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return { amountStr, direction: this.#directionFromAmountStr(amountStr), matchedToken: last[0] };
     }
 
+    /**
+     * Internal: Determine direction ('in' or 'out') from an amount string sign.
+     *
+     * How to use:
+     * @example
+     * this.#directionFromAmountStr('-12,34'); // 'out'
+     *
+     * @param {string} amountStr
+     * @returns {'in'|'out'}
+     */
     #directionFromAmountStr(amountStr) {
         return /^\s*[-−]/.test(String(amountStr)) ? 'out' : 'in';
     }
 
+    /**
+     * Internal: Infer direction based on common description keywords.
+     *
+     * How to use:
+     * @example
+     * this.#inferDirectionFromText('Zahlung Vormonat ...'); // 'in'
+     *
+     * @param {string} desc
+     * @returns {'in'|'out'}
+     */
     #inferDirectionFromText(desc) {
         const s = String(desc || '').toLowerCase();
         const depositHints = [
@@ -699,6 +1127,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return 'out';
     }
 
+    /**
+     * Internal: Extract a merchant/payee name from a free-form description.
+     *
+     * How to use:
+     * @example
+     * this.#extractPayeeFromDesc('AMAZON EU SARL, EUR -12,34'); // 'AMAZON EU SARL'
+     *
+     * @param {string} desc
+     * @returns {string}
+     */
     #extractPayeeFromDesc(desc) {
         if (!desc) return '';
         let s = String(desc).trim();
@@ -733,6 +1171,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return payee || s;
     }
 
+    /**
+     * Internal: Convert DD.MM.YYYY to YYYY-MM-DD.
+     *
+     * How to use:
+     * @example
+     * this.#normalizeDate('31.12.2024'); // '2024-12-31'
+     *
+     * @param {string} dmy
+     * @returns {string|null}
+     */
     #normalizeDate(dmy) {
         if (!dmy) return null;
         const m = dmy.match(/(\d{2})\.(\d{2})\.(\d{4})/);
@@ -740,11 +1188,24 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return `${m[3]}-${m[2]}-${m[1]}`;
     }
 
+    /**
+     * Internal: Decide if an item should be ignored (headers/summaries/zero amounts).
+     *
+     * How to use:
+     * @example
+     * const ignore = this.#shouldIgnore(item);
+     *
+     * @param {{description?:string,destination_name?:string,amount?:number}} item
+     * @returns {boolean}
+     */
     #shouldIgnore(item) {
         const text = `${(item.description||'')} ${(item.destination_name||'')}`;
+        // Pure noise: layout/header/balance rows that have no transaction meaning.
+        // NOTE: Settlement-like rows (Rücklastschrift, Zinsen, Vormonat, Alter
+        // Kartensaldo) are intentionally NOT listed here so they survive parsing
+        // and get marked as settlementLine=true downstream — that way the user
+        // can see them in the "Hidden lines" panel and re-activate if needed.
         const rules = [
-            /alter\s+kartensaldo/i,
-            /zahlung\s*vormonat/i,
             /kontostand\s+neu/i,
             /seiten(?:übertrag|uebertrag)/i,
             /carry\s*over|carried\s*forward/i,
@@ -766,6 +1227,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return false;
     }
 
+    /**
+     * Internal: Post-process items (direction overrides etc.).
+     *
+     * How to use:
+     * @example
+     * const out = this.#postProcess(items);
+     *
+     * @param {Array<object>} items
+     * @returns {Array<object>}
+     */
     #postProcess(items) {
         if (!Array.isArray(items)) return [];
         // Direction override by description keywords (settlement/credit payments should be deposits)
@@ -780,6 +1251,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return mapped;
     }
 
+    /**
+     * Internal: Build a deduplication key for an item.
+     *
+     * How to use:
+     * @example
+     * const k = this.#keyForItem(item);
+     *
+     * @param {object} it
+     * @returns {string}
+     */
     #keyForItem(it) {
         const norm = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
         const date = it?.date ? String(it.date) : '';
@@ -789,8 +1270,29 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return `${date}|${amt}|${desc}|${payee}`;
     }
 
+    /**
+     * Internal: Compact-normalize text for comparisons.
+     *
+     * How to use:
+     * @example
+     * const s = this.#normText('  Foo  Bar  '); // 'foo bar'
+     *
+     * @param {string} s
+     * @returns {string}
+     */
     #normText(s) { return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
 
+    /**
+     * Internal: Merge AI items with deterministic ones, enriching text fields.
+     *
+     * How to use:
+     * @example
+     * const merged = this.#mergeAiWithDeterministic(aiItems, detItems);
+     *
+     * @param {Array<object>} aiItems
+     * @param {Array<object>} detItems
+     * @returns {Array<object>}
+     */
     #mergeAiWithDeterministic(aiItems, detItems) {
         const amountTol = Number(this.#config.amountMergeTolerance || 0.02);
         const dayTol = Number(this.#config.dateMergeToleranceDays || 2);
@@ -833,6 +1335,17 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return aiItems;
     }
 
+    /**
+     * Internal: Append items missing from base by key.
+     *
+     * How to use:
+     * @example
+     * const combined = this.#mergeAppendMissing(base, extra);
+     *
+     * @param {Array<object>} baseItems
+     * @param {Array<object>} extraItems
+     * @returns {Array<object>}
+     */
     #mergeAppendMissing(baseItems, extraItems) {
         const res = Array.isArray(baseItems) ? [...baseItems] : [];
         const existing = new Set(res.map(r => this.#keyForItem(r)));
@@ -845,6 +1358,16 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return res;
     }
 
+    /**
+     * Internal: Fallback per-line parser requiring inline date and explicit EUR token.
+     *
+     * How to use:
+     * @example
+     * const rows = this.#parseFallbackRows(ocrText);
+     *
+     * @param {string} text
+     * @returns {Array<object>}
+     */
     #parseFallbackRows(text) {
         const lines = String(text || '').split(/\n+/).map(s => s.trim()).filter(Boolean);
         const items = [];
@@ -882,6 +1405,17 @@ Return ONLY a JSON array. Input text (truncated):\n\n${text.substring(0, 12000)}
         return items;
     }
 
+    /**
+     * Internal: Append a structured debug line to a rotating log file.
+     *
+     * How to use:
+     * @example
+     * await this.#writeDebug('ai', { items: 3 });
+     *
+     * @param {string} kind
+     * @param {any} payload
+     * @returns {Promise<void>}
+     */
     async #writeDebug(kind, payload) {
         try {
             await ensureDataDir();

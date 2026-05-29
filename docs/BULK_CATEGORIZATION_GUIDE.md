@@ -17,10 +17,9 @@ Run automatic categorization for many transactions at once.
 
 ## Precedence
 The same pipeline is used as the webhook flow:
-1. Category Mappings (custom rules)
-2. Auto-Categorization (foreign/travel)
-3. Word mappings (text replacement)
-4. AI categorization
+1. **Account → Category mappings** — hard 1:1 assignment (all transactions to/from that account)
+2. **Auto-Categorization** (foreign/travel)
+3. **AI categorization** — keyword mappings only replace the description hint for the AI (loose match); word mappings apply before the AI call
 
 ## Tips
 - Enable "Skip Deposits" in General Settings if you only want to categorize withdrawals.

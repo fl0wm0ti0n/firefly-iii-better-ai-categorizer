@@ -1,35 +1,48 @@
+# =============================================================================
+# DEPRECATED for production — do not use for daily operation.
+#
+# Production runs from the parent stack:
+#   cd /workdir/firefly && docker compose up -d categorizer
+#   → container "categorizer", port 3000, Traefik: categorizer.omniflow.cc
+#
+# This file is only for optional local/standalone testing on port 3001.
+# Services use profile "standalone-dev" so a plain `docker compose up` starts
+# nothing and Docker will not recreate this container after reboot.
+#
+# To start manually (not recommended):
+#   docker compose --profile standalone-dev up -d
+# =============================================================================
 version: '3.8'
 
 services:
   firefly-ai-categorizer:
-    build: 
+    profiles:
+      - standalone-dev
+    build:
       context: .
       dockerfile: Dockerfile
-    container_name: firefly-ai-categorizer
-    restart: unless-stopped
+    container_name: firefly-ai-categorizer-DEPRECATED-do-not-use
+    restart: "no"
     ports:
       - "3001:3000"
     env_file: .env
-    # Volume mounts for persistent data
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
+      - ./public:/app/public:ro
     environment:
-      # Override for Docker environment
       - NODE_ENV=production
-    # Health check
+    labels:
+      omniflow.deprecated: "true"
+      omniflow.note: "Use categorizer on port 3000 from /workdir/firefly/docker-compose.yml"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    
-    # Networks
     networks:
       - firefly-network
-    
-    # Resource limits
     deploy:
       resources:
         limits:
@@ -38,8 +51,6 @@ services:
         reservations:
           memory: 256M
           cpus: '0.25'
-    
-    # Security options
     user: "1001:1001"
     cap_drop:
       - ALL
@@ -56,9 +67,8 @@ networks:
     driver: bridge
     name: firefly-ai-network
 
-# Optional: If you want to use external volumes
 volumes:
   app-data:
     driver: local
   app-logs:
-    driver: local 
+    driver: local

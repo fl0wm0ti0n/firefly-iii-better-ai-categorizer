@@ -70,35 +70,61 @@ export default class CategoryMappingService {
     }
 
     /**
-     * Check if a transaction should be auto-categorized based on category mappings
-     * @param {Object} transaction - Firefly transaction object
-     * @returns {Object|null} - { category, reason, mapping } if matched, null otherwise
+     * Build searchable text from a transaction (description + counterparty names).
      */
-    categorizeTransaction(transaction) {
-        const firstTx = transaction.attributes?.transactions?.[0];
-        if (!firstTx) {
-            return null;
+    #getTransactionSearchText(firstTx) {
+        return [
+            firstTx.description,
+            firstTx.destination_name,
+            firstTx.source_name,
+        ].filter(Boolean).join(' ').toLowerCase();
+    }
+
+    /**
+     * Loose keyword match — substring or overlapping tokens (keywords need not appear verbatim).
+     */
+    #looselyMatchesKeyword(keyword, searchText) {
+        const k = String(keyword || '').toLowerCase().trim();
+        if (!k || !searchText) return false;
+        if (searchText.includes(k)) return true;
+
+        const textWords = searchText.split(/\s+/).filter(w => w.length >= 2);
+        const keyWords = k.split(/\s+/).filter(w => w.length >= 2);
+        for (const kw of keyWords) {
+            if (textWords.some(w => w.includes(kw) || kw.includes(w) || w.startsWith(kw) || kw.startsWith(w))) {
+                return true;
+            }
         }
+        return false;
+    }
 
-        const description = (firstTx.description || '').toLowerCase();
-        const destinationName = (firstTx.destination_name || '').toLowerCase();
-        const combinedText = `${description} ${destinationName}`;
+    /**
+     * AI hint from keyword mappings: replaces transaction description for OpenAI when a rule matches loosely.
+     * Does not assign a category directly.
+     *
+     * @param {Object} transaction Firefly transaction object
+     * @returns {Object|null} { descriptionHint, suggestedCategory, mappingName, matchedKeyword, reason }
+     */
+    getAiHint(transaction) {
+        const firstTx = transaction?.attributes?.transactions?.[0];
+        if (!firstTx) return null;
 
-        // Check all enabled mappings
+        const searchText = this.#getTransactionSearchText(firstTx);
+
         for (const mapping of this.#mappings) {
             if (!mapping.enabled) continue;
 
             for (const keyword of mapping.keywords) {
-                const normalizedKeyword = keyword.toLowerCase().trim();
-                if (normalizedKeyword && combinedText.includes(normalizedKeyword)) {
-                    return {
-                        category: mapping.targetCategory,
-                        reason: `Matched "${keyword}" in mapping "${mapping.name}"`,
-                        autoRule: 'category_mapping',
-                        mappingName: mapping.name,
-                        matchedKeyword: keyword
-                    };
-                }
+                if (!this.#looselyMatchesKeyword(keyword, searchText)) continue;
+
+                const descriptionHint = String(keyword).trim() || mapping.name;
+                return {
+                    descriptionHint,
+                    suggestedCategory: mapping.targetCategory,
+                    mappingName: mapping.name,
+                    matchedKeyword: keyword,
+                    reason: `Keyword hint "${descriptionHint}" from mapping "${mapping.name}" (suggested: ${mapping.targetCategory})`,
+                };
             }
         }
 

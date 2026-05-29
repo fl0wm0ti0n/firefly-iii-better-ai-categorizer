@@ -37,34 +37,69 @@ export default class FailedTransactionService {
         }
     }
 
+    #mergeFailedFields(existing, incoming) {
+        const pick = (next, prev) => (next != null && next !== '' ? next : prev);
+        return {
+            ...existing,
+            description: pick(incoming.description, existing.description) || '',
+            destinationName: pick(incoming.destinationName, existing.destinationName) || '',
+            sourceName: pick(incoming.sourceName, existing.sourceName) || '',
+            amount: pick(incoming.amount, existing.amount),
+            currencyCode: pick(incoming.currencyCode, existing.currencyCode),
+            foreignAmount: pick(incoming.foreignAmount, existing.foreignAmount),
+            foreignCurrencyCode: pick(incoming.foreignCurrencyCode, existing.foreignCurrencyCode),
+            transactionDate: pick(incoming.transactionDate, existing.transactionDate),
+            transactionType: pick(incoming.transactionType, existing.transactionType),
+            categoryName: pick(incoming.categoryName, existing.categoryName),
+            transactionId: pick(incoming.transactionId, existing.transactionId),
+            prompt: pick(incoming.prompt, existing.prompt) || '',
+            response: pick(incoming.response, existing.response) || '',
+            created: existing.created || incoming.created,
+        };
+    }
+
     addFailedTransaction(transaction) {
         const failedTransaction = {
             id: transaction.id || `failed-${Date.now()}`,
             description: transaction.description || '',
             destinationName: transaction.destinationName || '',
+            sourceName: transaction.sourceName || '',
+            amount: transaction.amount ?? null,
+            currencyCode: transaction.currencyCode || null,
+            foreignAmount: transaction.foreignAmount ?? null,
+            foreignCurrencyCode: transaction.foreignCurrencyCode || null,
+            transactionDate: transaction.transactionDate || null,
+            transactionType: transaction.transactionType || null,
+            categoryName: transaction.categoryName || null,
             created: transaction.created || new Date().toISOString(),
             prompt: transaction.prompt || '',
             response: transaction.response || '',
-            transactionId: transaction.transactionId || null
+            transactionId: transaction.transactionId || null,
         };
 
-        // Avoid duplicates based on description and destinationName
-        const exists = this.#failedTransactions.some(ft => 
-            ft.description === failedTransaction.description && 
+        const existingIndex = this.#failedTransactions.findIndex(ft =>
+            ft.description === failedTransaction.description &&
             ft.destinationName === failedTransaction.destinationName
         );
 
-        if (!exists) {
-            this.#failedTransactions.unshift(failedTransaction); // Add to beginning
-            
-            // Keep only the last 100 failed transactions
-            if (this.#failedTransactions.length > 100) {
-                this.#failedTransactions = this.#failedTransactions.slice(0, 100);
-            }
-            
+        if (existingIndex !== -1) {
+            this.#failedTransactions[existingIndex] = this.#mergeFailedFields(
+                this.#failedTransactions[existingIndex],
+                failedTransaction
+            );
             this.saveFailedTransactions();
-            console.info(`❌ Added failed transaction: "${failedTransaction.description}"`);
+            console.info(`❌ Updated failed transaction: "${failedTransaction.description}"`);
+            return;
         }
+
+        this.#failedTransactions.unshift(failedTransaction);
+
+        if (this.#failedTransactions.length > 100) {
+            this.#failedTransactions = this.#failedTransactions.slice(0, 100);
+        }
+
+        this.saveFailedTransactions();
+        console.info(`❌ Added failed transaction: "${failedTransaction.description}"`);
     }
 
     removeFailedTransaction(id) {
@@ -149,6 +184,17 @@ export default class FailedTransactionService {
         }
         
         return false;
+    }
+
+    patchFailedTransaction(id, updates) {
+        const index = this.#failedTransactions.findIndex(ft => ft.id === id);
+        if (index === -1) return null;
+        this.#failedTransactions[index] = {
+            ...this.#failedTransactions[index],
+            ...updates,
+        };
+        this.saveFailedTransactions();
+        return this.#failedTransactions[index];
     }
 
     getAllFailedTransactions() {

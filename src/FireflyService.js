@@ -13,6 +13,11 @@ export default class FireflyService {
         this.#PERSONAL_TOKEN = getConfigVariable("FIREFLY_PERSONAL_TOKEN")
     }
 
+    async listAccountsBasicByType(type = 'expense') {
+        const list = await this.#listAccountsByType(type);
+        return list.map(a => ({ id: a.id, name: a?.attributes?.name || '', type }));
+    }
+
     async getCategories() {
         const response = await fetch(`${this.#BASE_URL}/api/v1/categories`, {
             headers: {
@@ -407,13 +412,39 @@ export default class FireflyService {
 
     // Generic helpers for advanced flows
     async getTransaction(transactionId) {
-        const response = await fetch(`${this.#BASE_URL}/api/v1/transactions/${transactionId}`, {
+        const id = encodeURIComponent(String(transactionId));
+        const response = await fetch(`${this.#BASE_URL}/api/v1/transactions/${id}`, {
             headers: { Authorization: `Bearer ${this.#PERSONAL_TOKEN}` }
         });
         if (!response.ok) {
             throw new FireflyException(response.status, response, await response.text());
         }
         return await response.json();
+    }
+
+    /** Search transactions by text (description, amount, etc.). */
+    async searchTransactions(query, { limit = 15 } = {}) {
+        const q = encodeURIComponent(String(query || '').trim());
+        if (!q) return [];
+        const perPage = Math.min(Math.max(parseInt(limit, 10) || 15, 1), 50);
+        const response = await fetch(
+            `${this.#BASE_URL}/api/v1/search/transactions?query=${q}&limit=${perPage}`,
+            { headers: { Authorization: `Bearer ${this.#PERSONAL_TOKEN}` } }
+        );
+        if (!response.ok) {
+            if (response.status === 404) {
+                return [];
+            }
+            throw new FireflyException(response.status, response, await response.text());
+        }
+        const data = await response.json();
+        if (Array.isArray(data?.data)) {
+            return data.data;
+        }
+        if (Array.isArray(data?.data?.transactions)) {
+            return data.data.transactions;
+        }
+        return [];
     }
 
     async createTransactions(transactions) {

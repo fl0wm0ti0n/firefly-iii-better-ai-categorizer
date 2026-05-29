@@ -221,6 +221,141 @@
 
         .failed-transaction {
             border-left: 4px solid #dc3545;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .failed-transaction-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 10px 16px;
+            margin-bottom: 8px;
+        }
+
+        .failed-transaction-amount {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .failed-transaction-date {
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .failed-transaction-booking-date,
+        .failed-transaction-amount-line {
+            font-size: 0.9rem;
+            color: #212529;
+            margin-bottom: 4px;
+        }
+
+        .failed-transaction-booking-date strong,
+        .failed-transaction-amount-line strong {
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .failed-transactions-status {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            color: #004085;
+        }
+
+        .failed-transactions-status.warn {
+            background: #fff3cd;
+            border-color: #ffeeba;
+            color: #856404;
+        }
+
+        .failed-transactions-status.error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .failed-transaction-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .failed-tx-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .failed-tx-badge-type-withdrawal {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .failed-tx-badge-type-deposit {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .failed-tx-badge-id {
+            background: #e9ecef;
+            color: #495057;
+            text-transform: none;
+            font-weight: 500;
+        }
+
+        .failed-tx-badge-category {
+            background: #cce5ff;
+            color: #004085;
+            text-transform: none;
+        }
+
+        .failed-transaction-parties {
+            font-size: 14px;
+            color: #495057;
+            margin-bottom: 6px;
+            line-height: 1.45;
+        }
+
+        .failed-transaction-parties strong {
+            color: #212529;
+            font-weight: 600;
+        }
+
+        .failed-transaction-ai {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 6px;
+            padding: 8px 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+
+        .failed-transaction .mapping-inputs {
+            flex: 1 1 100%;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #dee2e6;
+        }
+
+        @media (min-width: 900px) {
+            .failed-transaction .mapping-inputs {
+                flex: 0 1 auto;
+                margin-top: 0;
+                padding-top: 0;
+                border-top: none;
+                margin-left: auto;
+            }
         }
 
         .word-mapping {
@@ -590,6 +725,15 @@
             font-weight: bold;
             text-transform: uppercase;
         }
+
+        .transaction-tag {
+            background: #6f42c1;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 600;
+        }
         
         .transaction-type {
             padding: 2px 6px;
@@ -805,6 +949,14 @@
             </p>
         </div>
         <button id="btn-save-general-settings" class="btn btn-success">💾 Save General Settings</button>
+        
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; margin-top: 15px;">
+            <strong>💡 How to use:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li><strong>Skip Deposits:</strong> Exclude deposits (salary, refunds, transfers in) from categorization.</li>
+                <li><strong>Save:</strong> Click “Save General Settings” to apply your preference globally.</li>
+            </ul>
+        </div>
     </section>
 
     <section class="controls" id="panel-manual">
@@ -821,6 +973,15 @@
             <strong>Process Uncategorized:</strong> Runs automatic categorization for transactions without categories.<br>
             <strong>Process All:</strong> Runs automatic categorization for ALL transactions (withdrawals and deposits), overwriting existing categories.
         </small></p>
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; margin-top: 10px;">
+            <strong>💡 How to use:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li><strong>Process Uncategorized:</strong> Categorizes only transactions without a category.</li>
+                <li><strong>Process All:</strong> Re-categorizes everything and may overwrite existing categories.</li>
+                <li><strong>Tip:</strong> Run Category Mappings first, then use bulk to finish remaining items.</li>
+                <li><strong>Progress:</strong> Open <strong>Batch Jobs</strong> in the sidebar (or it opens automatically when you start a batch) to see live progress and results.</li>
+            </ul>
+        </div>
     </section>
 
     <section class="controls">
@@ -852,9 +1013,17 @@
         </small></p>
     </section>
 
-    <section>
+    <section class="controls" id="panel-batch">
         <h2>Batch Jobs</h2>
         <div id="batch-mount"></div>
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; margin-top: 12px;">
+            <strong>How to use:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li><strong>Progress:</strong> After you start “Process Uncategorized” or “Process All” under Bulk Categorization, live status appears here (updates via WebSocket).</li>
+                <li><strong>Controls:</strong> Pause, resume, or cancel a running job when buttons are shown.</li>
+                <li><strong>History:</strong> Finished jobs stay listed so you can review counts and errors.</li>
+            </ul>
+        </div>
     </section>
 
     <section class="controls">
@@ -878,6 +1047,7 @@
                     </div>
                 </div>
                 <div id="failed-transactions-content" class="collapsible-content">
+                    <div id="failed-transactions-status" class="failed-transactions-status" style="display:none; margin-bottom:10px; padding:8px 12px; border-radius:4px; font-size:13px;"></div>
                     <div id="failed-transactions"></div>
                 </div>
             </div>
@@ -905,6 +1075,15 @@
                     <div id="word-mappings"></div>
                 </div>
             </div>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #28a745; margin-top: 10px;">
+            <strong>💡 How to use:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li><strong>Failed Transactions:</strong> Review items that couldn’t be created; use <em>Refresh</em> to reload and <em>Cleanup</em> to remove resolved ones.</li>
+                <li><strong>Word Mappings:</strong> Add replacements to normalize merchant/description text (e.g. “AMZN” → “Amazon”).</li>
+                <li><strong>Effect:</strong> Mappings improve matching, payee extraction and category rules on future imports.</li>
+            </ul>
         </div>
     </section>
 
@@ -971,7 +1150,7 @@
     </section>
 
     <section class="controls">
-        <h2>Category Mappings (Custom Rules)</h2>
+        <h2>Keyword → Category Mappings (AI Hints)</h2>
         
         <div style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -981,7 +1160,7 @@
             
             <div class="collapsible-section">
                 <div class="collapsible-header" onclick="toggleCollapsible('category-mappings-content')">
-                    <span class="collapsible-title">Category Mappings</span>
+                    <span class="collapsible-title">Keyword → Category Mappings</span>
                     <div class="collapsible-info">
                         <span id="category-mappings-count" class="item-count">0</span>
                         <span class="expand-icon">🔽</span>
@@ -996,16 +1175,16 @@
                 <strong>💡 How to use:</strong>
                 <ul style="margin: 10px 0; padding-left: 20px;">
                     <li><strong>Name:</strong> Descriptive name for the rule (e.g. "Supermarkets")</li>
-                    <li><strong>Category:</strong> Firefly category (must exist, e.g. "Groceries")</li>
-                    <li><strong>Keywords:</strong> Comma-separated search terms (e.g. "rewe, spar, hofer, billa")</li>
-                    <li><strong>Priority:</strong> Category Mappings are checked BEFORE Auto-Categorization and AI</li>
+                    <li><strong>Category:</strong> Suggested Firefly category for the AI (e.g. "Groceries")</li>
+                    <li><strong>Keywords:</strong> Search terms — if they loosely match the transaction, the keyword is sent to the AI <em>instead of</em> the bank description</li>
+                    <li><strong>Not a hard rule:</strong> Keywords help the AI; they do not assign the category directly</li>
                 </ul>
-                <small><em>Examples: "shell, bp, esso" → "Transportation" | "pharmacy, doctor, dentist" → "Healthcare"</em></small>
+                <small><em>Example: keyword "supermarket" matches "REWE MARKT 123" → AI sees "supermarket" and is nudged toward Groceries</em></small>
             </div>
 
-            <!-- Add Category Mapping Form (initially hidden) -->
+            <!-- Add Keyword Mapping Form (initially hidden) -->
             <div id="add-category-mapping-form" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #dee2e6; margin-bottom: 20px;">
-                <h4>Add New Category Mapping</h4>
+                <h4>Add New Keyword Mapping</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div>
                         <label for="mapping-name">Mapping Name:</label>
@@ -1013,7 +1192,9 @@
                     </div>
                     <div>
                         <label for="mapping-target-category">Target Category:</label>
-                        <input type="text" id="mapping-target-category" placeholder="e.g. Groceries" style="width: 100%; padding: 8px; margin-top: 5px;">
+                        <select id="mapping-target-category" style="width: 100%; padding: 8px; margin-top: 5px;">
+                            <option value="">Loading categories…</option>
+                        </select>
                     </div>
                 </div>
                 <div style="margin-bottom: 15px;">
@@ -1023,6 +1204,58 @@
                 <div style="display: flex; gap: 10px;">
                     <button id="btn-save-category-mapping" class="btn btn-success">💾 Save Mapping</button>
                     <button id="btn-cancel-category-mapping" class="btn btn-warning">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="controls" id="panel-acmap">
+        <h2>Account → Category Mappings</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <div id="add-account-category-mapping-form" style="background: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #dee2e6; margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">Add account mapping</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label for="acm-account">Account:</label>
+                        <select id="acm-account" style="width: 100%; padding: 8px; margin-top: 5px;">
+                            <option value="">Loading accounts…</option>
+                        </select>
+                        <small id="acm-account-hint" style="color: #6c757d;">Accounts that already have a mapping are hidden.</small>
+                    </div>
+                    <div>
+                        <label for="acm-target-category">Target Category:</label>
+                        <select id="acm-target-category" style="width: 100%; padding: 8px; margin-top: 5px;">
+                            <option value="">Loading categories…</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="btn-save-account-category-mapping" class="btn btn-success">💾 Save Mapping</button>
+                    <button id="btn-cancel-account-category-mapping" class="btn btn-warning" style="display: none;">❌ Cancel edit</button>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #28a745; margin-bottom: 20px;">
+                <strong>💡 How to use:</strong>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li><strong>Account:</strong> Choose an expense/revenue account (each account only once).</li>
+                    <li><strong>Category:</strong> Firefly category applied automatically.</li>
+                    <li><strong>Hard rule:</strong> All transactions to/from this account get that category — AI is skipped.</li>
+                </ul>
+                <small><em>Example: Account “Zelisko” → Category “Einnahmen - XYZ”</em></small>
+            </div>
+            
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('account-category-mappings-content')">
+                    <span class="collapsible-title">Configured mappings</span>
+                    <div class="collapsible-info">
+                        <span id="account-category-mappings-count" class="item-count">0</span>
+                        <span class="expand-icon">🔽</span>
+                    </div>
+                </div>
+                <div id="account-category-mappings-content" class="collapsible-content">
+                    <div id="account-category-mappings-list"></div>
                 </div>
             </div>
         </div>
@@ -1088,6 +1321,22 @@
                            style="width: 100%; padding: 8px; margin-top: 5px;">
                 </div>
             </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label for="tags-include">Include tags (whitelist):</label>
+                    <input type="text" id="tags-include" list="tags-datalist" placeholder="e.g. creditcard-split, already-extracted"
+                           style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <small style="color: #6c757d;">Comma-separated — transaction must have at least one</small>
+                </div>
+                <div>
+                    <label for="tags-exclude">Exclude tags (blacklist):</label>
+                    <input type="text" id="tags-exclude" list="tags-datalist" placeholder="e.g. value-correction-clone"
+                           style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <small style="color: #6c757d;">Comma-separated — hide if any tag matches</small>
+                </div>
+            </div>
+            <datalist id="tags-datalist"></datalist>
             
             <div style="display: flex; gap: 10px; align-items: center;">
                 <button id="btn-load-transactions" class="btn btn-primary">🔍 Load Transactions</button>
@@ -1100,6 +1349,15 @@
                     💡 <strong>Date Filter:</strong> Defaults to current month | <strong>Categories:</strong> Available immediately for filtering
                 </small>
             </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 6px;">
+            <label for="remove-tag-select" style="font-weight: 600; white-space: nowrap;">Remove tag from selection:</label>
+            <select id="remove-tag-select" style="flex: 1; min-width: 200px; padding: 6px;">
+                <option value="">Select tag to remove...</option>
+            </select>
+            <button id="btn-remove-tag-left" class="btn btn-warning" disabled>🏷️ Remove tag (left)</button>
+            <button id="btn-remove-tag-right" class="btn btn-warning" disabled>🏷️ Remove tag (right)</button>
         </div>
 
         <!-- Two-Column Layout -->
@@ -1120,6 +1378,7 @@
                         <option value="">Select category to assign...</option>
                     </select>
                     <button id="btn-assign-category" class="btn btn-success">➡️ Assign Category</button>
+                    <button id="btn-delete-selected-left" class="btn btn-danger" disabled>🗑️ Delete selected</button>
                 </div>
                 
                 <div id="uncategorized-transactions" class="transaction-list drop-zone">
@@ -1151,6 +1410,7 @@
                     </select>
                     <button id="btn-reassign-category" class="btn btn-primary">🔄 Reassign</button>
                     <button id="btn-remove-category" class="btn btn-danger">❌ Remove Category</button>
+                    <button id="btn-delete-selected-right" class="btn btn-danger" disabled>🗑️ Delete selected</button>
                 </div>
                 
                 <div id="categorized-transactions" class="transaction-list drop-zone">
@@ -1179,11 +1439,14 @@
                 <li><strong>Left Column:</strong> Shows uncategorized transactions or filtered results</li>
                 <li><strong>Right Column:</strong> Shows transactions from a specific category</li>
                 <li><strong>Drag & Drop:</strong> 🖱️ Drag transactions to category zones or between columns</li>
+                <li><strong>Tag filters:</strong> Whitelist (must have one) / blacklist (hide if any match), comma-separated</li>
+                <li><strong>Delete:</strong> Select transactions and use Delete selected — permanent in Firefly III</li>
+                <li><strong>Remove tag:</strong> Choose a tag, select transactions, then Remove tag (left/right)</li>
             </ul>
         </div>
     </section>
 
-    <section>
+    <section class="controls" id="panel-individual">
         <h2>Individual Jobs</h2>
         <div id="mount"></div>
     </section>
@@ -1210,6 +1473,7 @@
     const mappingFrom = document.getElementById('mapping-from');
     const mappingTo = document.getElementById('mapping-to');
     const failedTransactionsDiv = document.getElementById('failed-transactions');
+    const failedTransactionsStatus = document.getElementById('failed-transactions-status');
     const wordMappingsDiv = document.getElementById('word-mappings');
 
     // Auto-categorization elements
@@ -1233,38 +1497,56 @@
     const mappingKeywords = document.getElementById('mapping-keywords');
     const categoryMappingsList = document.getElementById('category-mappings-list');
 
+    // Account→category mapping elements
+    const addAccountCategoryMappingForm = document.getElementById('add-account-category-mapping-form');
+    const btnSaveAccountCategoryMapping = document.getElementById('btn-save-account-category-mapping');
+    const btnCancelAccountCategoryMapping = document.getElementById('btn-cancel-account-category-mapping');
+    const acmAccount = document.getElementById('acm-account');
+    const acmTargetCategory = document.getElementById('acm-target-category');
+    const accountCategoryMappingsList = document.getElementById('account-category-mappings-list');
+
     // Button event listeners
     btnProcessUncategorized.addEventListener('click', async () => {
-        if (confirm('Start processing all uncategorized transactions?')) {
-            btnProcessUncategorized.disabled = true;
-            try {
-                const response = await fetch('/api/process-uncategorized', { method: 'POST' });
-                const result = await response.json();
-                if (!result.success) {
-                    alert('Error: ' + result.error);
-                    btnProcessUncategorized.disabled = false;
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-                btnProcessUncategorized.disabled = false;
+        if (!confirm('Start processing all uncategorized transactions?')) return;
+        const originalLabel = btnProcessUncategorized.textContent;
+        btnProcessUncategorized.disabled = true;
+        btnProcessUncategorized.textContent = '⏳ Starting…';
+        try {
+            const response = await fetch('/api/process-uncategorized', { method: 'POST' });
+            const result = await response.json();
+            if (!result.success) {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            } else {
+                try { window.__showPanel && window.__showPanel('panel-batch'); } catch (_) {}
+                try { showToast('Batch started — progress is shown under Batch Jobs.', 'success'); } catch (_) {}
             }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        } finally {
+            btnProcessUncategorized.disabled = false;
+            btnProcessUncategorized.textContent = originalLabel;
         }
     });
 
     btnProcessAll.addEventListener('click', async () => {
-        if (confirm('WARNING: This will re-categorize ALL transactions and overwrite existing categories. Continue?')) {
-            btnProcessAll.disabled = true;
-            try {
-                const response = await fetch('/api/process-all', { method: 'POST' });
-                const result = await response.json();
-                if (!result.success) {
-                    alert('Error: ' + result.error);
-                    btnProcessAll.disabled = false;
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-                btnProcessAll.disabled = false;
+        if (!confirm('WARNING: This will re-categorize ALL transactions and overwrite existing categories. Continue?')) return;
+        const originalLabel = btnProcessAll.textContent;
+        btnProcessAll.disabled = true;
+        btnProcessAll.textContent = '⏳ Starting…';
+        try {
+            const response = await fetch('/api/process-all', { method: 'POST' });
+            const result = await response.json();
+            if (!result.success) {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            } else {
+                try { window.__showPanel && window.__showPanel('panel-batch'); } catch (_) {}
+                try { showToast('Batch started — progress is shown under Batch Jobs.', 'success'); } catch (_) {}
             }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        } finally {
+            btnProcessAll.disabled = false;
+            btnProcessAll.textContent = originalLabel;
         }
     });
 
@@ -1314,7 +1596,7 @@ Check the individual jobs section below to see the categorization result.`);
     });
 
     // Word mapping event listeners
-    btnRefreshFailed.addEventListener('click', loadFailedTransactions);
+    btnRefreshFailed.addEventListener('click', () => loadFailedTransactions({ enrich: true }));
     btnCleanupFailed.addEventListener('click', cleanupFailedTransactions);
     btnAddMapping.addEventListener('click', addWordMapping);
     
@@ -1337,6 +1619,14 @@ Check the individual jobs section below to see the categorization result.`);
     
     // Load category mappings on page load
     loadCategoryMappings();
+    loadCategoriesForKeywordMappings();
+
+    // Account→category mapping event listeners
+    btnSaveAccountCategoryMapping?.addEventListener('click', saveAccountCategoryMapping);
+    btnCancelAccountCategoryMapping?.addEventListener('click', resetAccountCategoryMappingForm);
+    
+    // Load account→category mappings and dropdown data on page load
+    loadAccountsAndCategoriesForAccountMappings().then(() => loadAccountCategoryMappings());
 
     // Initialize collapsible interface
     setTimeout(() => {
@@ -1351,6 +1641,7 @@ Check the individual jobs section below to see the categorization result.`);
             initializeTransactionManagement();
             setDefaultDateFilters();
             loadCategoriesForFilters();
+            loadTagsForFilters();
         } catch (error) {
             console.error('Transaction management initialization failed:', error);
         }
@@ -1379,11 +1670,44 @@ Check the individual jobs section below to see the categorization result.`);
         }
     }
 
+    async function loadTagsForFilters() {
+        try {
+            const response = await fetch('/api/tags');
+            const result = await response.json();
+            if (result.success && Array.isArray(result.tags)) {
+                availableTags = result.tags;
+                if (tagsDatalist) {
+                    tagsDatalist.innerHTML = availableTags.map(t => `<option value="${escapeAttr(t)}"></option>`).join('');
+                }
+                populateTagDropdowns();
+            }
+        } catch (error) {
+            console.error('Error loading tags for filters:', error);
+        }
+    }
+
+    function escapeAttr(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;');
+    }
+
+    function appendTagFilterParams(params) {
+        if (tagsInclude?.value.trim()) {
+            params.append('tagsInclude', tagsInclude.value.trim());
+        }
+        if (tagsExclude?.value.trim()) {
+            params.append('tagsExclude', tagsExclude.value.trim());
+        }
+    }
+
     // Transaction Management Variables
     let allTransactions = [];
     let leftColumnTransactions = [];
     let rightColumnTransactions = [];
     let availableCategories = [];
+    let availableTags = [];
     let selectedLeftTransactions = new Set();
     let selectedRightTransactions = new Set();
     
@@ -1396,6 +1720,9 @@ Check the individual jobs section below to see the categorization result.`);
     const maxAmount = document.getElementById('max-amount');
     const dateFrom = document.getElementById('date-from');
     const dateTo = document.getElementById('date-to');
+    const tagsInclude = document.getElementById('tags-include');
+    const tagsExclude = document.getElementById('tags-exclude');
+    const tagsDatalist = document.getElementById('tags-datalist');
     const btnLoadTransactions = document.getElementById('btn-load-transactions');
     const btnClearFilters = document.getElementById('btn-clear-filters');
     const transactionCount = document.getElementById('transaction-count');
@@ -1415,6 +1742,11 @@ Check the individual jobs section below to see the categorization result.`);
     const reassignCategorySelect = document.getElementById('reassign-category-select');
     const btnReassignCategory = document.getElementById('btn-reassign-category');
     const btnRemoveCategory = document.getElementById('btn-remove-category');
+    const btnDeleteSelectedLeft = document.getElementById('btn-delete-selected-left');
+    const btnDeleteSelectedRight = document.getElementById('btn-delete-selected-right');
+    const removeTagSelect = document.getElementById('remove-tag-select');
+    const btnRemoveTagLeft = document.getElementById('btn-remove-tag-left');
+    const btnRemoveTagRight = document.getElementById('btn-remove-tag-right');
     
     // Transaction Management Event Listeners
     btnLoadTransactions.addEventListener('click', loadTransactions);
@@ -1426,6 +1758,10 @@ Check the individual jobs section below to see the categorization result.`);
     btnAssignCategory.addEventListener('click', assignCategoryToSelected);
     btnReassignCategory.addEventListener('click', reassignCategoryToSelected);
     btnRemoveCategory.addEventListener('click', removeCategoryFromSelected);
+    btnDeleteSelectedLeft.addEventListener('click', () => deleteSelectedTransactions('left'));
+    btnDeleteSelectedRight.addEventListener('click', () => deleteSelectedTransactions('right'));
+    btnRemoveTagLeft.addEventListener('click', () => removeTagFromSelected('left'));
+    btnRemoveTagRight.addEventListener('click', () => removeTagFromSelected('right'));
     viewCategorySelect.addEventListener('change', loadCategorizedTransactions);
     
     // Initialize transaction management
@@ -1435,6 +1771,15 @@ Check the individual jobs section below to see the categorization result.`);
         console.log('Transaction management initialized');
     }
     
+    function populateTagDropdowns() {
+        const removeTagSelect = document.getElementById('remove-tag-select');
+        if (!removeTagSelect) return;
+        removeTagSelect.innerHTML = '<option value="">Select tag to remove...</option>';
+        availableTags.forEach(tag => {
+            removeTagSelect.appendChild(new Option(tag, tag));
+        });
+    }
+
     function populateCategoryDropdowns() {
         // Clear existing options (keep default)
         specificCategoryFilter.innerHTML = '<option value="">Select Category...</option>';
@@ -1492,6 +1837,8 @@ Check the individual jobs section below to see the categorization result.`);
             if (dateTo.value) {
                 params.append('dateTo', dateTo.value);
             }
+
+            appendTagFilterParams(params);
             
             const response = await fetch(`/api/transactions/filter?${params}`);
             const result = await response.json();
@@ -1533,6 +1880,8 @@ Check the individual jobs section below to see the categorization result.`);
         searchText.value = '';
         minAmount.value = '';
         maxAmount.value = '';
+        if (tagsInclude) tagsInclude.value = '';
+        if (tagsExclude) tagsExclude.value = '';
         
         // Reset date filters to current month
         setDefaultDateFilters();
@@ -1587,6 +1936,9 @@ Check the individual jobs section below to see the categorization result.`);
             
         const amountClass = transaction.type === 'withdrawal' ? 'withdrawal' : 'deposit';
         const amountPrefix = transaction.type === 'withdrawal' ? '-' : '+';
+        const tagBadges = (Array.isArray(transaction.tags) ? transaction.tags : [])
+            .map(t => `<span class="transaction-tag" title="${escapeAttr(t)}">${escapeAttr(t)}</span>`)
+            .join(' ');
         
         return `
             <div class="transaction-item ${isSelected ? 'selected' : ''}" 
@@ -1612,7 +1964,8 @@ Check the individual jobs section below to see the categorization result.`);
                         </div>
                         <div style="display: flex; gap: 5px; align-items: center;">
                             <span class="transaction-type ${transaction.type}">${transaction.type}</span>
-                            ${transaction.category ? `<span class="transaction-category">${transaction.category}</span>` : ''}
+                            ${transaction.category ? `<span class="transaction-category">${escapeAttr(transaction.category)}</span>` : ''}
+                            ${tagBadges}
                             <span class="transaction-date">${new Date(transaction.date).toLocaleDateString()}</span>
                         </div>
                     </div>
@@ -1756,6 +2109,149 @@ Check the individual jobs section below to see the categorization result.`);
         btnAssignCategory.disabled = leftCount === 0;
         btnReassignCategory.disabled = rightCount === 0;
         btnRemoveCategory.disabled = rightCount === 0;
+        btnDeleteSelectedLeft.disabled = leftCount === 0;
+        btnDeleteSelectedRight.disabled = rightCount === 0;
+        const tagChosen = Boolean(removeTagSelect?.value);
+        btnRemoveTagLeft.disabled = leftCount === 0 || !tagChosen;
+        btnRemoveTagRight.disabled = rightCount === 0 || !tagChosen;
+        if (leftCount > 0) {
+            btnDeleteSelectedLeft.textContent = `🗑️ Delete selected (${leftCount})`;
+        } else {
+            btnDeleteSelectedLeft.textContent = '🗑️ Delete selected';
+        }
+        if (rightCount > 0) {
+            btnDeleteSelectedRight.textContent = `🗑️ Delete selected (${rightCount})`;
+        } else {
+            btnDeleteSelectedRight.textContent = '🗑️ Delete selected';
+        }
+        if (leftCount > 0 && tagChosen) {
+            btnRemoveTagLeft.textContent = `🏷️ Remove tag (left, ${leftCount})`;
+        } else {
+            btnRemoveTagLeft.textContent = '🏷️ Remove tag (left)';
+        }
+        if (rightCount > 0 && tagChosen) {
+            btnRemoveTagRight.textContent = `🏷️ Remove tag (right, ${rightCount})`;
+        } else {
+            btnRemoveTagRight.textContent = '🏷️ Remove tag (right)';
+        }
+    }
+
+    if (removeTagSelect) {
+        removeTagSelect.addEventListener('change', updateSelectionButtons);
+    }
+
+    function applyTagRemovalToLocalList(transactions, transactionIds, tagName) {
+        const idSet = new Set(transactionIds.map(id => String(id)));
+        return transactions.map(t => {
+            if (!idSet.has(String(t.id))) return t;
+            const tags = Array.isArray(t.tags) ? t.tags.filter(tag => tag !== tagName) : [];
+            return { ...t, tags };
+        });
+    }
+
+    async function removeTagFromSelected(side) {
+        const tagName = removeTagSelect?.value?.trim();
+        if (!tagName) {
+            alert('Please select a tag to remove');
+            return;
+        }
+
+        const selectedSet = side === 'left' ? selectedLeftTransactions : selectedRightTransactions;
+        const count = selectedSet.size;
+        if (count === 0) return;
+
+        if (!confirm(`Remove tag "${tagName}" from ${count} selected transaction(s)?`)) return;
+
+        const btn = side === 'left' ? btnRemoveTagLeft : btnRemoveTagRight;
+        const transactionIds = Array.from(selectedSet);
+        btn.disabled = true;
+        const prevLabel = btn.textContent;
+        btn.textContent = '⏳ Removing tag...';
+
+        try {
+            const response = await fetch('/api/transactions/remove-tags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transactionIds, tag: tagName })
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Remove tag failed');
+
+            if (side === 'left') {
+                leftColumnTransactions = applyTagRemovalToLocalList(leftColumnTransactions, transactionIds, tagName);
+                allTransactions = leftColumnTransactions;
+                renderLeftColumnTransactions();
+                updateTransactionCount();
+            } else {
+                rightColumnTransactions = applyTagRemovalToLocalList(rightColumnTransactions, transactionIds, tagName);
+                renderRightColumnTransactions();
+            }
+
+            if (typeof showToast === 'function') {
+                const errNote = result.errorCount ? ` (${result.errorCount} failed)` : '';
+                showToast(`Removed tag from ${result.successCount || 0} transaction(s)${errNote}`, result.errorCount ? 'warning' : 'success');
+            } else {
+                alert(`Removed tag from ${result.successCount || 0} transaction(s)`);
+            }
+        } catch (error) {
+            if (typeof showToast === 'function') showToast(error.message, 'error');
+            else alert(`Error: ${error.message}`);
+        } finally {
+            btn.textContent = prevLabel;
+            updateSelectionButtons();
+        }
+    }
+
+    async function deleteSelectedTransactions(side) {
+        const selectedSet = side === 'left' ? selectedLeftTransactions : selectedRightTransactions;
+        const count = selectedSet.size;
+        if (count === 0) return;
+        if (!confirm(`Delete ${count} selected transaction(s) from Firefly III? This cannot be undone.`)) return;
+
+        const btn = side === 'left' ? btnDeleteSelectedLeft : btnDeleteSelectedRight;
+        const transactionIds = Array.from(selectedSet);
+        btn.disabled = true;
+        const prevLabel = btn.textContent;
+        btn.textContent = '⏳ Deleting...';
+
+        try {
+            const response = await fetch('/api/transactions/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transactionIds })
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Delete failed');
+
+            const deletedIds = new Set(transactionIds);
+            if (side === 'left') {
+                leftColumnTransactions = leftColumnTransactions.filter(t => !deletedIds.has(String(t.id)));
+                allTransactions = leftColumnTransactions;
+                selectedLeftTransactions.clear();
+                renderLeftColumnTransactions();
+                updateTransactionCount();
+            } else {
+                rightColumnTransactions = rightColumnTransactions.filter(t => !deletedIds.has(String(t.id)));
+                selectedRightTransactions.clear();
+                renderRightColumnTransactions();
+            }
+
+            if (typeof showToast === 'function') {
+                const errNote = result.errors?.length ? ` (${result.errors.length} failed)` : '';
+                showToast(`Deleted ${result.deleted || 0} transaction(s)${errNote}`, result.errors?.length ? 'warning' : 'success');
+            } else {
+                alert(`Deleted ${result.deleted || 0} transaction(s)`);
+            }
+            if (viewCategorySelect.value && side === 'right') {
+                loadCategorizedTransactions();
+            }
+        } catch (error) {
+            if (typeof showToast === 'function') showToast(error.message, 'error');
+            else alert(`Error: ${error.message}`);
+        } finally {
+            btn.textContent = prevLabel;
+            updateSelectionButtons();
+        }
     }
     
     function selectAllTransactions(side) {
@@ -1973,6 +2469,8 @@ Check the individual jobs section below to see the categorization result.`);
             if (dateTo.value) {
                 params.append('dateTo', dateTo.value);
             }
+
+            appendTagFilterParams(params);
             
             const response = await fetch(`/api/transactions/filter?${params}`);
             const result = await response.json();
@@ -1991,18 +2489,160 @@ Check the individual jobs section below to see the categorization result.`);
         }
     }
 
-    async function loadFailedTransactions() {
+    function escapeHtml(value) {
+        const str = value == null ? '' : String(value);
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        return str.replace(/[&<>"']/g, ch => map[ch]);
+    }
+
+    function escapeJs(value) {
+        const str = value == null ? '' : String(value);
+        return str
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/\r/g, '\\r')
+            .replace(/\n/g, '\\n');
+    }
+
+    async function parseApiJson(response) {
+        const text = await response.text();
         try {
-            const response = await fetch('/api/failed-transactions');
-            const result = await response.json();
-            
-            if (result.success) {
-                renderFailedTransactions(result.failedTransactions);
+            return JSON.parse(text);
+        } catch (_) {
+            const snippet = text.trim().slice(0, 80);
+            throw new Error(
+                `Server returned non-JSON (HTTP ${response.status}). ` +
+                (snippet.startsWith('<!') ? 'Is the API route available? Redeploy/restart the categorizer.' : snippet)
+            );
+        }
+    }
+
+    function setFailedTransactionsStatus(message, type = 'info') {
+        if (!failedTransactionsStatus) return;
+        if (!message) {
+            failedTransactionsStatus.style.display = 'none';
+            failedTransactionsStatus.textContent = '';
+            failedTransactionsStatus.className = 'failed-transactions-status';
+            return;
+        }
+        failedTransactionsStatus.style.display = 'block';
+        failedTransactionsStatus.textContent = message;
+        failedTransactionsStatus.className = 'failed-transactions-status' + (type === 'warn' || type === 'error' ? ` ${type}` : '');
+    }
+
+    function countFailedWithDetails(list) {
+        const rows = list || [];
+        const withAmount = rows.filter(t => t.amount != null && t.amount !== '').length;
+        const withDate = rows.filter(t => t.transactionDate).length;
+        return { withAmount, withDate, total: rows.length };
+    }
+
+    async function checkCategorizerApiVersion() {
+        try {
+            const r = await fetch(`/api/version?_${Date.now()}`);
+            if (!r.ok) return null;
+            const j = await parseApiJson(r);
+            return j.apiVersion || null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function loadFailedTransactions(options = {}) {
+        const enrich = options.enrich === true;
+        const prevLabel = btnRefreshFailed?.textContent;
+        if (btnRefreshFailed) {
+            btnRefreshFailed.disabled = true;
+            btnRefreshFailed.textContent = enrich ? '⏳ Enriching…' : '⏳ Loading…';
+        }
+        if (enrich) {
+            setFailedTransactionsStatus('Loading from Firefly… this can take a minute for many entries.');
+        }
+        try {
+            let result;
+            let response;
+
+            if (enrich) {
+                const apiVersion = await checkCategorizerApiVersion();
+                if (!apiVersion) {
+                    const msg =
+                        'Backend is still the old build (GET /api/version missing). ' +
+                        'Rebuild and restart the categorizer Docker container, not only refresh this page.';
+                    console.warn(msg);
+                    setFailedTransactionsStatus(msg, 'warn');
+                } else {
+                    console.info('Categorizer API version:', apiVersion);
+                }
+
+                response = await fetch(`/api/failed-transactions/refresh?_${Date.now()}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Enrich-Failed': '1' },
+                    body: JSON.stringify({ limit: 100 }),
+                });
+                if (response.status === 404) {
+                    console.info('POST /refresh not found, falling back to GET with enrich header');
+                    response = await fetch(`/api/failed-transactions?limit=100&_=${Date.now()}`, {
+                        headers: { 'X-Enrich-Failed': '1' },
+                    });
+                }
             } else {
-                console.error('Failed to load failed transactions:', result.error);
+                response = await fetch(`/api/failed-transactions?_=${Date.now()}`);
             }
+
+            result = await parseApiJson(response);
+            console.info(enrich ? 'Refresh/enrich response received' : 'Loading failed transactions…');
+
+            if (!response.ok || !result.success) {
+                const msg = result.error || `HTTP ${response.status}`;
+                console.error('Failed to load failed transactions:', msg);
+                setFailedTransactionsStatus(msg, 'error');
+                alert('Failed to load failed transactions: ' + msg);
+                return;
+            }
+
+            if (enrich && !result.apiVersion && result.enrich == null) {
+                const msg =
+                    'Backend is still the old build (no apiVersion in response). ' +
+                    'Run: docker compose build categorizer && docker compose up -d categorizer';
+                console.warn(msg);
+                setFailedTransactionsStatus(msg, 'warn');
+            } else if (result.enrich) {
+                const e = result.enrich;
+                if (e.needsTotal === 0) {
+                    setFailedTransactionsStatus('All entries already have amount and booking date.', 'info');
+                } else {
+                    const fixed = (e.enriched || 0) + (e.staleResolved || 0);
+                    const parts = [
+                        `Firefly enrich (${e.passes || 1} pass${(e.passes || 1) === 1 ? '' : 'es'}):`,
+                        `${fixed} fixed`,
+                        `${e.processed} processed`,
+                    ];
+                    if (e.staleResolved) parts.push(`${e.staleResolved} stale ID re-linked`);
+                    if (e.notFound) parts.push(`${e.notFound} not found in Firefly`);
+                    if (e.remaining) parts.push(`${e.remaining} still incomplete — Refresh again`);
+                    const msg = parts.join(' · ');
+                    console.info(msg);
+                    setFailedTransactionsStatus(msg, fixed > 0 ? 'info' : 'warn');
+                }
+            } else if (!enrich) {
+                setFailedTransactionsStatus('');
+            }
+
+            renderFailedTransactions(result.failedTransactions);
+            const stats = countFailedWithDetails(result.failedTransactions);
+            console.info(
+                `Loaded ${stats.total} failed transaction(s) — ` +
+                `${stats.withAmount} with amount, ${stats.withDate} with booking date`
+            );
         } catch (error) {
             console.error('Error loading failed transactions:', error);
+            setFailedTransactionsStatus(error.message, 'error');
+            alert('Error loading failed transactions: ' + error.message);
+        } finally {
+            if (btnRefreshFailed) {
+                btnRefreshFailed.disabled = false;
+                btnRefreshFailed.textContent = prevLabel || '🔄 Refresh';
+            }
         }
     }
 
@@ -2074,6 +2714,25 @@ Check the individual jobs section below to see the categorization result.`);
         }
     }
 
+    function formatFailedTxAmount(amount, currencyCode) {
+        if (amount == null || amount === '') return null;
+        const raw = String(amount).trim().replace(/\s/g, '');
+        let n = parseFloat(raw.replace(',', '.'));
+        if (!Number.isFinite(n) && raw.includes('.')) {
+            n = parseFloat(raw.replace(/\.(?=.*\.)/g, '').replace(',', '.'));
+        }
+        if (!Number.isFinite(n)) return null;
+        const code = currencyCode || '';
+        return `${Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${code ? ' ' + code : ''}`;
+    }
+
+    function formatFailedTxDate(iso) {
+        if (!iso) return null;
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return String(iso);
+        return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
     function renderFailedTransactions(transactions) {
         if (!transactions || transactions.length === 0) {
             failedTransactionsDiv.innerHTML = '<div class="no-data">No failed transactions found</div>';
@@ -2081,23 +2740,67 @@ Check the individual jobs section below to see the categorization result.`);
             return;
         }
 
-        failedTransactionsDiv.innerHTML = transactions.map(transaction => `
+        failedTransactionsDiv.innerHTML = transactions.map(transaction => {
+            const amountStr = formatFailedTxAmount(transaction.amount, transaction.currencyCode);
+            const foreignStr = transaction.foreignAmount && transaction.foreignCurrencyCode
+                ? formatFailedTxAmount(transaction.foreignAmount, transaction.foreignCurrencyCode)
+                : null;
+            const txDate = formatFailedTxDate(transaction.transactionDate);
+            const failedOn = formatFailedTxDate(transaction.created);
+            const txType = (transaction.transactionType || '').toLowerCase();
+            const typeLabel = txType === 'deposit' ? 'Deposit' : txType === 'withdrawal' ? 'Withdrawal' : (transaction.transactionType || '');
+            const typeClass = txType === 'deposit' ? 'failed-tx-badge-type-deposit' : 'failed-tx-badge-type-withdrawal';
+            const sourceName = transaction.sourceName || '';
+            const destName = transaction.destinationName || '';
+            const aiGuess = transaction.response ? String(transaction.response).trim() : '';
+            const txId = transaction.transactionId ? String(transaction.transactionId) : '';
+
+            const badges = [
+                typeLabel ? `<span class="failed-tx-badge ${typeClass}">${escapeHtml(typeLabel)}</span>` : '',
+                txId ? `<span class="failed-tx-badge failed-tx-badge-id" title="Firefly transaction ID">#${escapeHtml(txId)}</span>` : '',
+                transaction.categoryName
+                    ? `<span class="failed-tx-badge failed-tx-badge-category">${escapeHtml(transaction.categoryName)}</span>`
+                    : '<span class="failed-tx-badge failed-tx-badge-category" style="background:#f8d7da;color:#721c24;">Uncategorized</span>',
+            ].filter(Boolean).join('');
+
+            const parties = [];
+            if (txType === 'deposit' && sourceName) {
+                parties.push(`<div><strong>From:</strong> ${escapeHtml(sourceName)}</div>`);
+                if (destName) parties.push(`<div><strong>To (asset):</strong> ${escapeHtml(destName)}</div>`);
+            } else {
+                if (sourceName) parties.push(`<div><strong>From (asset):</strong> ${escapeHtml(sourceName)}</div>`);
+                if (destName) parties.push(`<div><strong>To:</strong> ${escapeHtml(destName)}</div>`);
+            }
+
+            return `
             <div class="failed-transaction">
                 <div class="transaction-content">
-                    <div class="transaction-meta">Failed on ${new Date(transaction.created).toLocaleString()}</div>
-                    <div class="transaction-text">${transaction.description}</div>
-                    <div style="font-size: 14px; color: #666;">Destination: ${transaction.destinationName}</div>
+                    <div class="failed-transaction-amount-line">
+                        <strong>Betrag:</strong>
+                        ${amountStr
+                            ? escapeHtml(amountStr) + (foreignStr ? ` <span style="color:#6c757d;">(${escapeHtml(foreignStr)} foreign)</span>` : '')
+                            : '<span style="color:#856404;">nicht verfügbar — Refresh klicken (lädt von Firefly nach)</span>'}
+                    </div>
+                    <div class="failed-transaction-booking-date">
+                        <strong>Buchungsdatum:</strong>
+                        ${txDate ? escapeHtml(txDate) : '<span style="color:#856404;">nicht verfügbar — Refresh klicken (lädt von Firefly nach)</span>'}
+                    </div>
+                    <div class="failed-transaction-badges">${badges}</div>
+                    <div class="transaction-text">${escapeHtml(transaction.description || '(no description)')}</div>
+                    ${parties.length ? `<div class="failed-transaction-parties">${parties.join('')}</div>` : ''}
+                    <div class="transaction-meta">Failed to categorize · logged ${escapeHtml(failedOn || '—')}</div>
+                    ${aiGuess ? `<div class="failed-transaction-ai" title="AI response"><strong>AI:</strong> ${escapeHtml(aiGuess)}</div>` : ''}
                 </div>
                 <div class="mapping-inputs">
-                    <input type="text" placeholder="Replace word" class="mapping-input-from" data-transaction-id="${transaction.id}">
+                    <input type="text" placeholder="Replace word" class="mapping-input-from" data-transaction-id="${escapeHtml(transaction.id)}">
                     <span>→</span>
-                    <input type="text" placeholder="With word" class="mapping-input-to" data-transaction-id="${transaction.id}">
-                    <button class="btn btn-success btn-small" onclick="addMappingFromTransaction('${transaction.id}')">
+                    <input type="text" placeholder="With word" class="mapping-input-to" data-transaction-id="${escapeHtml(transaction.id)}">
+                    <button class="btn btn-success btn-small" onclick="addMappingFromTransaction('${escapeJs(transaction.id)}')">
                         Add Mapping
                     </button>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
         updateCollapsibleCounts();
     }
 
@@ -2336,9 +3039,303 @@ Check the individual jobs section below to see the categorization result.`);
         }
     }
 
+    function ensureSelectOption(selectEl, value) {
+        if (!selectEl) return;
+        const v = value == null ? '' : String(value);
+        if (!v) return;
+        const exists = Array.from(selectEl.options || []).some(o => o.value === v);
+        if (exists) return;
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        selectEl.appendChild(opt);
+    }
+
+    async function loadCategoriesForKeywordMappings() {
+        try {
+            const r = await fetch('/api/categories');
+            const j = await r.json();
+            if (!j.success) throw new Error(j.error || 'Failed to load categories');
+            const cats = Array.isArray(j.categories) ? j.categories : [];
+            if (!mappingTargetCategory) return;
+            if (!cats.length) {
+                mappingTargetCategory.innerHTML = '<option value="">No categories found</option>';
+                return;
+            }
+            const current = mappingTargetCategory.value;
+            mappingTargetCategory.innerHTML = ['<option value="">Select category…</option>']
+                .concat(cats.slice().sort((a, b) => String(a).localeCompare(String(b))).map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`))
+                .join('');
+            // restore current value if present (including custom)
+            ensureSelectOption(mappingTargetCategory, current);
+            if (current) mappingTargetCategory.value = current;
+        } catch (e) {
+            console.error('Error loading categories for keyword mappings:', e);
+            if (mappingTargetCategory) mappingTargetCategory.innerHTML = '<option value="">Failed to load categories</option>';
+        }
+    }
+
+    // Account→category mapping functions
+    let accountMappingAccounts = [];
+    let accountMappingCategories = [];
+    let accountMappingCurrentMappings = [];
+
+    function getMappedAccountIds(mappings, exceptAccountId = null) {
+        const ids = new Set();
+        for (const m of mappings || []) {
+            if (m?.accountId != null && String(m.accountId).trim() !== '') {
+                ids.add(String(m.accountId));
+            }
+        }
+        if (exceptAccountId != null) {
+            ids.delete(String(exceptAccountId));
+        }
+        return ids;
+    }
+
+    function populateAccountMappingAccountSelect(editingAccountId = null) {
+        const acmAccountHint = document.getElementById('acm-account-hint');
+        if (!acmAccount) return;
+
+        const mappedIds = getMappedAccountIds(accountMappingCurrentMappings, editingAccountId);
+        const available = accountMappingAccounts.filter(a => !mappedIds.has(String(a.id)));
+        const previous = acmAccount.value;
+
+        if (!accountMappingAccounts.length) {
+            acmAccount.innerHTML = '<option value="">No accounts found</option>';
+            if (acmAccountHint) acmAccountHint.textContent = '';
+            return;
+        }
+
+        if (!available.length) {
+            acmAccount.innerHTML = '<option value="">All accounts already mapped</option>';
+            if (acmAccountHint) {
+                acmAccountHint.textContent = 'Delete or edit a mapping below to free an account.';
+            }
+            return;
+        }
+
+        const grouped = available.reduce((m, a) => {
+            const t = a.type || 'other';
+            if (!m[t]) m[t] = [];
+            m[t].push(a);
+            return m;
+        }, {});
+        const types = Object.keys(grouped).sort();
+        acmAccount.innerHTML = ['<option value="">Select account…</option>'].concat(
+            types.map(t => {
+                const opts = grouped[t]
+                    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+                    .map(a => `<option value="${a.id}" data-name="${escapeHtml(a.name)}" data-type="${escapeHtml(a.type)}">${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`)
+                    .join('');
+                return `<optgroup label="${escapeHtml(t)}">${opts}</optgroup>`;
+            })
+        ).join('');
+
+        if (acmAccountHint) {
+            acmAccountHint.textContent = `${available.length} account(s) available · mapped accounts are hidden`;
+        }
+
+        if (editingAccountId && [...acmAccount.options].some(o => o.value === String(editingAccountId))) {
+            acmAccount.value = String(editingAccountId);
+        } else if (previous && [...acmAccount.options].some(o => o.value === previous)) {
+            acmAccount.value = previous;
+        }
+    }
+
+    function populateAccountMappingCategorySelect(selectedCategory = null) {
+        if (!acmTargetCategory) return;
+        if (!accountMappingCategories.length) {
+            acmTargetCategory.innerHTML = '<option value="">No categories found</option>';
+            return;
+        }
+        acmTargetCategory.innerHTML = ['<option value="">Select category…</option>']
+            .concat(accountMappingCategories
+                .slice()
+                .sort((a, b) => String(a).localeCompare(String(b)))
+                .map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`))
+            .join('');
+        if (selectedCategory) {
+            acmTargetCategory.value = selectedCategory;
+        }
+    }
+
+    async function loadAccountsAndCategoriesForAccountMappings(editingAccountId = null) {
+        try {
+            const [accRes, catRes] = await Promise.all([
+                fetch('/api/accounts'),
+                fetch('/api/categories')
+            ]);
+            const accJson = await accRes.json();
+            const catJson = await catRes.json();
+            if (accJson.success) accountMappingAccounts = accJson.accounts || [];
+            if (catJson.success) accountMappingCategories = catJson.categories || [];
+
+            populateAccountMappingAccountSelect(editingAccountId);
+            populateAccountMappingCategorySelect();
+        } catch (error) {
+            console.error('Error loading accounts/categories:', error);
+            if (acmAccount) acmAccount.innerHTML = '<option value="">Failed to load accounts</option>';
+            if (acmTargetCategory) acmTargetCategory.innerHTML = '<option value="">Failed to load categories</option>';
+        }
+    }
+
+    async function loadAccountCategoryMappings() {
+        try {
+            const response = await fetch('/api/account-category-mappings');
+            const result = await response.json();
+            if (result.success) {
+                accountMappingCurrentMappings = result.mappings || [];
+                renderAccountCategoryMappings(accountMappingCurrentMappings);
+                populateAccountMappingAccountSelect(window.editingAccountCategoryMappingId || null);
+            } else {
+                console.error('Failed to load account→category mappings:', result.error);
+            }
+        } catch (error) {
+            console.error('Error loading account→category mappings:', error);
+        }
+    }
+
+    function resetAccountCategoryMappingForm() {
+        window.editingAccountCategoryMappingId = null;
+        btnSaveAccountCategoryMapping.textContent = '💾 Save Mapping';
+        if (btnCancelAccountCategoryMapping) btnCancelAccountCategoryMapping.style.display = 'none';
+        if (acmAccount) acmAccount.value = '';
+        if (acmTargetCategory) acmTargetCategory.value = '';
+        populateAccountMappingAccountSelect(null);
+    }
+
+    async function saveAccountCategoryMapping() {
+        const selected = acmAccount?.options?.[acmAccount.selectedIndex];
+        const mappingData = {
+            accountId: acmAccount?.value || '',
+            accountName: selected?.dataset?.name || selected?.textContent?.replace(/\s+\(.+\)$/, '') || '',
+            accountType: selected?.dataset?.type || '',
+            targetCategory: acmTargetCategory?.value || '',
+        };
+        if (!mappingData.accountId || !mappingData.targetCategory) {
+            alert('Please choose an account and a category');
+            return;
+        }
+        try {
+            let response;
+            if (window.editingAccountCategoryMappingId) {
+                response = await fetch(`/api/account-category-mappings/${window.editingAccountCategoryMappingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mappingData)
+                });
+            } else {
+                response = await fetch('/api/account-category-mappings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mappingData)
+                });
+            }
+            const result = await response.json();
+            if (result.success) {
+                const wasEdit = Boolean(window.editingAccountCategoryMappingId);
+                resetAccountCategoryMappingForm();
+                await loadAccountCategoryMappings();
+                alert(wasEdit ? 'Account mapping updated successfully!' : 'Account mapping added successfully!');
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function toggleAccountCategoryMapping(id, enabled) {
+        try {
+            const response = await fetch(`/api/account-category-mappings/${id}/toggle`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled })
+            });
+            const result = await response.json();
+            if (result.success) {
+                loadAccountCategoryMappings();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function deleteAccountCategoryMapping(id, name) {
+        if (confirm(`Delete account mapping "${name}"?`)) {
+            try {
+                const response = await fetch(`/api/account-category-mappings/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    loadAccountCategoryMappings();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+    }
+
+    function renderAccountCategoryMappings(mappings) {
+        if (!accountCategoryMappingsList) return;
+        if (!mappings || mappings.length === 0) {
+            accountCategoryMappingsList.innerHTML = '<div class="no-data">No account mappings yet. Use the form above to add your first rule.</div>';
+            updateCollapsibleCounts();
+            return;
+        }
+        accountCategoryMappingsList.innerHTML = mappings.map(m => {
+            const created = m.created ? new Date(m.created).toLocaleDateString() : '';
+            const updated = m.updated ? new Date(m.updated).toLocaleDateString() : '';
+            return `
+                <div class="category-mapping ${!m.enabled ? 'disabled' : ''}">
+                    <div class="category-mapping-content">
+                        <div class="category-mapping-header">
+                            <span class="category-mapping-name">${escapeHtml(m.accountName || '(unknown account)')}</span>
+                            <span class="category-mapping-category">${escapeHtml(m.targetCategory || '')}</span>
+                        </div>
+                        <div class="category-mapping-stats">
+                            ${escapeHtml(m.accountType || '')}${m.accountType ? ' • ' : ''}Created: ${created}${updated ? ` • Updated: ${updated}` : ''}
+                        </div>
+                    </div>
+                    <div class="category-mapping-actions">
+                        <label class="toggle-switch">
+                            <input type="checkbox" ${m.enabled ? 'checked' : ''} onchange="toggleAccountCategoryMapping('${m.id}', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button class="btn btn-primary btn-small" onclick="editAccountCategoryMapping('${m.id}', '${escapeJs(m.accountId)}', '${escapeJs(m.targetCategory)}')">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn btn-danger btn-small" onclick="deleteAccountCategoryMapping('${m.id}', '${escapeJs(m.name || m.accountName || 'Mapping')}')">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        updateCollapsibleCounts();
+    }
+
+    window.toggleAccountCategoryMapping = toggleAccountCategoryMapping;
+    window.deleteAccountCategoryMapping = deleteAccountCategoryMapping;
+    window.editAccountCategoryMapping = function(id, accountId, targetCategory) {
+        window.editingAccountCategoryMappingId = id;
+        btnSaveAccountCategoryMapping.textContent = '💾 Update Mapping';
+        if (btnCancelAccountCategoryMapping) btnCancelAccountCategoryMapping.style.display = 'inline-block';
+        populateAccountMappingAccountSelect(accountId);
+        populateAccountMappingCategorySelect(targetCategory);
+        addAccountCategoryMappingForm?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        acmAccount?.focus();
+    };
+
     function showAddCategoryMappingForm() {
         addCategoryMappingForm.style.display = 'block';
         btnAddCategoryMapping.style.display = 'none';
+        // Ensure categories dropdown is populated
+        loadCategoriesForKeywordMappings();
         mappingName.focus();
     }
 
@@ -2498,6 +3495,7 @@ Check the individual jobs section below to see the categorization result.`);
     window.editCategoryMapping = function(id, name, targetCategory, keywords) {
         // Fill the form with existing values
         mappingName.value = name;
+        ensureSelectOption(mappingTargetCategory, targetCategory);
         mappingTargetCategory.value = targetCategory;
         mappingKeywords.value = keywords;
         
@@ -2836,8 +3834,14 @@ Check the individual jobs section below to see the categorization result.`);
             if (categoryMappings && categoryCount) {
                 categoryCount.textContent = categoryMappings.children.length;
             }
+
+            // Update account→category mappings count
+            const accountMappings = document.getElementById('account-category-mappings-list');
+            const accountCount = document.getElementById('account-category-mappings-count');
+            if (accountMappings && accountCount) {
+                accountCount.textContent = accountMappings.children.length;
+            }
             
-            console.log('Counts updated successfully');
         } catch (error) {
             console.error('Error updating counts:', error);
         }
@@ -3089,22 +4093,42 @@ try {
   extractionSection.id = 'extraction';
   extractionSection.className = 'controls';
   extractionSection.innerHTML = `
-    <h2>Credit Card Statement Splitter</h2>
+    <h2>Credit Card Statement Splitter <span id="extractionUiVersion" style="font-size:12px; color:#6c757d; font-weight:normal;">(parser v4 — same rows)</span></h2>
+    <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; margin: 10px 0 15px 0;">
+      <strong>💡 How to use:</strong>
+      <ul style="margin: 10px 0; padding-left: 20px;">
+        <li><strong>File:</strong> Choose a bank statement (CSV or PDF).</li>
+        <li><strong>Preview:</strong> Create a preview to extract transactions; “Fast (no AI)” uses deterministic parsing only.</li>
+        <li><strong>AI Merchant:</strong> Let AI match payees to existing merchant accounts where possible.</li>
+        <li><strong>Apply & Save:</strong> Review, then save to Firefly III. Batch mode supports multiple files.</li>
+        <li><strong>Tags & Matching:</strong> Split children get <code>creditcard-split</code> plus a per-statement link tag; the original is tagged <code>already-extracted-original</code>.</li>
+        <li><strong>Manual revert:</strong> Enter/select the original charge, preview, then revert — deletes splits + correction clone and clears tags on the original.</li>
+      </ul>
+      <small><em>Tip: If a PDF parses poorly, disable “Fast (no AI)” to allow AI parsing.</em></small>
+    </div>
     <div class="test-form">
-      <div style="margin-bottom: 10px; display:flex; gap:8px; flex-wrap:wrap;">
+      <fieldset id="txPickerFilters" style="margin:0 0 12px 0; padding:12px; border:1px solid #ced4da; border-radius:6px; background:#f8f9fa;">
+        <legend style="padding:0 6px; font-weight:600;">Filter original transaction</legend>
+        <p style="margin:0 0 10px 0; font-size:12px; color:#6c757d;">Category + include tag + exclude tag (AND).</p>
+        <div style="margin-bottom: 0; display:flex; gap:8px; flex-wrap:wrap;">
         <div style="flex:1; min-width:220px;">
-          <label for="selectByCategory">Select by category:</label>
+          <label for="selectByCategory">Category:</label>
           <select id="selectByCategory" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
         </div>
         <div style="flex:1; min-width:220px;">
-          <label for="selectByTag">Select by tag:</label>
+          <label for="selectByTag">Include tag:</label>
           <select id="selectByTag" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
+        </div>
+        <div style="flex:1; min-width:220px;">
+          <label for="selectExcludeByTag">Exclude tag:</label>
+          <select id="selectExcludeByTag" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
         </div>
         <div style="flex:1; min-width:220px;">
           <label for="quickSearch">Quick search (text filter):</label>
           <input type="text" id="quickSearch" placeholder="e.g. amazon, pizza, ..." style="width: 100%; padding: 5px; margin-top: 5px;">
         </div>
       </div>
+      </fieldset>
       <div style="margin-bottom: 10px;">
         <label for="pickOriginalFromList">Select transaction:</label>
         <select id="pickOriginalFromList" style="width: 100%; padding: 5px; margin-top: 5px;"></select>
@@ -3114,9 +4138,21 @@ try {
         <label for="originalTxId">Original Transaction ID:</label>
         <input type="text" id="originalTxId" placeholder="e.g. 12345" style="width: 100%; padding: 5px; margin-top: 5px;">
       </div>
+      <fieldset id="revertSplitFieldset" style="margin:0 0 12px 0; padding:12px; border:1px solid #f5c2c7; border-radius:6px; background:#fff8f8;">
+        <legend style="padding:0 6px; font-weight:600; color:#842029;">Manual revert (undo split)</legend>
+        <p style="margin:0 0 10px 0; font-size:12px; color:#6c757d;">
+          Uses the original credit card charge above. Finds related transactions via link tag <code>credit-card-statement-created-on-…</code>,
+          deletes split rows and the correction clone, and removes <code>already-extracted-original</code> and related tags from the original.
+        </p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button id="btnRevertPreview" type="button" class="btn btn-secondary">Preview revert</button>
+          <button id="btnRevertExecute" type="button" class="btn btn-danger" disabled>Revert split</button>
+        </div>
+        <div id="revertPreview" style="margin-top:10px; font-size:12px;"></div>
+      </fieldset>
       <div style="margin-bottom: 10px;">
-        <label for="extractionTag">Tag for new transactions (optional):</label>
-        <input type="text" id="extractionTag" placeholder="e.g. card-split" style="width: 100%; padding: 5px; margin-top: 5px;">
+        <label for="extractionTag">Extra tag for split rows (optional):</label>
+        <input type="text" id="extractionTag" placeholder="default: creditcard-split (always applied)" style="width: 100%; padding: 5px; margin-top: 5px;">
       </div>
       <div style="margin-bottom: 10px;">
         <label>File (CSV or PDF):</label>
@@ -3128,10 +4164,17 @@ try {
       </div>
       <div class="button-group" style="margin-top: 8px;">
         <button id="btnPreview" class="btn btn-primary">Create preview</button>
+        <label style="margin-left:8px; font-size:12px; color:#6c757d;" title="Recommended: deterministic PDF parser (same as batch). Unchecking no longer enables AI.">
+          <input id="spFast" type="checkbox" checked style="margin-right:6px;" title="Use deterministic parser (recommended)."> Fast (deterministic parser)
+        </label>
         <button id="btnCancelSingle" class="btn btn-warning" type="button" disabled>Cancel</button>
         <button id="btnConfirm" class="btn btn-success" disabled>Apply and save</button>
+        <label style="margin-left:8px; font-size:12px; color:#6c757d;" title="Ask AI to match the payee to an existing expense/revenue account by name. Falls back to exact/fuzzy match or new account if needed.">
+          <input id="spUseAiMerchant" type="checkbox" checked style="margin-right:6px;" title="AI picks an existing merchant account when possible."> Use AI for merchant account
+        </label>
       </div>
-      <label style="display:block; margin-top:8px;"><input type="checkbox" id="proceedMismatch" /> Proceed despite amount mismatch</label>
+      <div id="singleStatus" style="margin-top:8px; font-size:12px; color:#6c757d;"></div>
+      <label style="display:block; margin-top:8px;" title="Allow saving even if the item sum differs from the original by ≥ 0.01. Use only when you intentionally correct amounts."><input type="checkbox" id="proceedMismatch" title="Allow save on amount mismatch." /> Proceed despite amount mismatch</label>
       <div id="preview" style="margin-top:12px;"></div>
     </div>
 
@@ -3158,15 +4201,24 @@ try {
       </div>
       <div class="button-group" style="margin-top: 8px;">
         <button id="btnUploadBatch" class="btn btn-primary" type="button">Create batch preview</button>
+        <label style="margin-left:8px; font-size:12px; color:#6c757d;" title="Recommended: same deterministic parser as single mode.">
+          <input id="bpFast" type="checkbox" checked style="margin-right:6px;" title="Use deterministic parser (recommended)."> Fast (deterministic parser)
+        </label>
         <button id="btnCancelBatch" class="btn btn-warning" type="button" disabled>Cancel</button>
         <button id="btnConfirmBatch" class="btn btn-success" type="button" disabled>Apply selected</button>
+        <button id="btnViewBulkResults" class="btn btn-secondary" type="button" title="View Word Mappings & Failed Transactions results">View results</button>
+        <label style="margin-left:8px; font-size:12px; color:#6c757d;" title="Ask AI to match each payee to an existing account by name (for all selected groups). Falls back to exact/fuzzy match or new account if needed.">
+          <input id="bpUseAiMerchant" type="checkbox" checked style="margin-right:6px;" title="AI picks existing merchant accounts where possible."> Use AI for merchant account
+        </label>
       </div>
+      <div id="batchStatus" style="margin-top:8px; font-size:12px; color:#6c757d;"></div>
+      <div id="batchErrorLog" style="margin-top:8px; max-height:220px; overflow:auto; font-size:12px; display:none; padding:8px; background:#fff5f5; border:1px solid #f5c2c7; border-radius:4px;"></div>
       <div style="margin-top:10px;">
         <label for="batchExtractionTag">Tag for new transactions (optional, batch):</label>
-        <input type="text" id="batchExtractionTag" placeholder="e.g. card-split" style="width: 100%; padding: 5px; margin-top: 5px;">
+        <input type="text" id="batchExtractionTag" placeholder="default: creditcard-split" style="width: 100%; padding: 5px; margin-top: 5px;">
         <div style="margin-top:6px; font-size:12px; color:#6c757d;">If empty, the single-mode tag above will be used.</div>
       </div>
-      <label style="display:block; margin-top:8px;"><input type="checkbox" id="batchProceedMismatch" /> Proceed despite amount mismatch (all selected)</label>
+      <label style="display:block; margin-top:8px;" title="Allow saving even if a group's item sum differs from the original amount by ≥ 0.01. Use only when you intentionally correct amounts."><input type="checkbox" id="batchProceedMismatch" title="Allow save on amount mismatch." /> Proceed despite amount mismatch (all selected)</label>
       <div id="batchPreview" style="margin-top:12px;"></div>
     </div>
   `;
@@ -3178,14 +4230,21 @@ try {
   const btnChooseFile = extractionSection.querySelector('#btnChooseFile');
   const selectedFileName = extractionSection.querySelector('#selectedFileName');
   const btnPreview = extractionSection.querySelector('#btnPreview');
+  const spFast = extractionSection.querySelector('#spFast');
   const btnCancelSingle = extractionSection.querySelector('#btnCancelSingle');
   const btnConfirm = extractionSection.querySelector('#btnConfirm');
+  const spUseAiMerchant = extractionSection.querySelector('#spUseAiMerchant');
   const originalTxId = extractionSection.querySelector('#originalTxId');
+  const btnRevertPreview = extractionSection.querySelector('#btnRevertPreview');
+  const btnRevertExecute = extractionSection.querySelector('#btnRevertExecute');
+  const revertPreviewDiv = extractionSection.querySelector('#revertPreview');
+  let lastRevertPreview = null;
   const extractionTag = extractionSection.querySelector('#extractionTag');
   const previewDiv = extractionSection.querySelector('#preview');
   const proceedMismatch = extractionSection.querySelector('#proceedMismatch');
   const selectByCategory = extractionSection.querySelector('#selectByCategory');
   const selectByTag = extractionSection.querySelector('#selectByTag');
+  const selectExcludeByTag = extractionSection.querySelector('#selectExcludeByTag');
   const quickSearch = extractionSection.querySelector('#quickSearch');
   const pickOriginal = extractionSection.querySelector('#pickOriginalFromList');
   const txPickerInfo = extractionSection.querySelector('#txPickerInfo');
@@ -3200,9 +4259,11 @@ try {
   const batchPreviewDiv = extractionSection.querySelector('#batchPreview');
   const batchProceedMismatch = extractionSection.querySelector('#batchProceedMismatch');
   const batchExtractionTag = extractionSection.querySelector('#batchExtractionTag');
+  const bpFast = extractionSection.querySelector('#bpFast');
+  const bpUseAiMerchant = extractionSection.querySelector('#bpUseAiMerchant');
   let lastPreview = null;
   let loadedTx = [];
-  const pickerState = { query: '', selectedId: '', category: '', tag: '' };
+  const pickerState = { query: '', selectedId: '', category: '', tag: '', excludeTag: '' };
   let pickerAbort = null;
   let pickerReqId = 0;
   // Safe file picker: only open when explicit button clicked
@@ -3214,14 +4275,7 @@ try {
     selectedFileName.textContent = f ? `${f.name} (${Math.round(f.size/1024)} KB)` : 'No file selected';
   });
 
-  // Batch file choose
-  btnChooseFilesBatch?.addEventListener('click', () => {
-    try { filesBatch.showPicker ? filesBatch.showPicker() : filesBatch.click(); } catch(_) { filesBatch.click(); }
-  });
-  filesBatch?.addEventListener('change', () => {
-    const names = Array.from(filesBatch.files || []).map(f => f.name).join(', ');
-    selectedFilesBatch.textContent = names || 'No files selected';
-  });
+  
 
   // Batch file choose
   btnChooseFilesBatch?.addEventListener('click', () => {
@@ -3251,13 +4305,17 @@ try {
       form.append('dateWindowDays', String(dateWindowDays.value || '10'));
       // Abortable fetch
       batchAbort = new AbortController();
-      form.append('force', '1');
+      if (bpFast && bpFast.checked) {
+        form.append('fast', '1');
+      }
       const r = await apiFetch(`api/extraction/upload-batch?ts=${Date.now()}`, { method: 'POST', body: form, signal: batchAbort.signal });
       const j = await r.json();
       if (!j.success) throw new Error(j.error || 'Batch preview failed');
       batchPreviewDiv.innerHTML = renderBatchPreview(j.groups || []);
       btnConfirmBatch.disabled = !(Array.isArray(j.groups) && j.groups.length);
-      showToast('Batch preview created', 'success');
+      const totalRows = (j.groups || []).reduce((n, g) => n + (g.items?.length || 0), 0);
+      const totalHidden = (j.groups || []).reduce((n, g) => n + (g.hiddenSettlementLines || 0), 0);
+      showToast(`Batch preview (${totalRows} rows, ${totalHidden} settlement hidden)`, 'success');
     } catch (e) {
       batchPreviewDiv.innerHTML = '';
       btnConfirmBatch.disabled = true;
@@ -3281,20 +4339,130 @@ try {
     } catch(_) {}
   });
 
-  // Confirm batch
+  // Confirm batch (sequential per-group for progress and resilience)
   btnConfirmBatch?.addEventListener('click', async () => {
-    try {
-      const groups = collectBatchEdits();
-      if (!groups.length) return showToast('No groups selected', 'warning');
-      const body = { groups, proceedOnMismatch: !!batchProceedMismatch.checked, tag: (batchExtractionTag.value || extractionTag.value || '') };
-      const r = await apiFetch('api/extraction/confirm-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const j = await r.json();
-      if (!j.success) throw new Error(j.error || 'Batch save failed');
-      showToast(`Created: ${j.created} transactions`, 'success');
-      btnConfirmBatch.disabled = true;
-    } catch (e) {
-      showToast(e.message, 'error');
+    if (window.__BATCH_CONFIRM_IN_FLIGHT__) { return; }
+    window.__BATCH_CONFIRM_IN_FLIGHT__ = true;
+    btnConfirmBatch.disabled = true;
+    const statusEl = document.getElementById('batchStatus');
+    const errorLogEl = document.getElementById('batchErrorLog');
+    const appendBatchError = (line) => {
+      if (!errorLogEl) return;
+      errorLogEl.style.display = 'block';
+      const p = document.createElement('div');
+      p.style.marginBottom = '4px';
+      p.textContent = line;
+      errorLogEl.appendChild(p);
+    };
+    if (errorLogEl) { errorLogEl.innerHTML = ''; errorLogEl.style.display = 'none'; }
+    const groups = collectBatchEdits();
+    if (!groups.length) {
+      const hint = diagnoseBatchSelection();
+      showToast(hint || 'No groups selected', 'warning');
+      window.__BATCH_CONFIRM_IN_FLIGHT__ = false;
+      btnConfirmBatch.disabled = false;
+      return;
     }
+    const proceed = !!batchProceedMismatch.checked;
+    const tagValue = (batchExtractionTag.value || extractionTag.value || '');
+    let createdTotal = 0;
+    let errors = 0;
+    statusEl.textContent = `Starting save for ${groups.length} group(s)...`;
+    try {
+      for (let i = 0; i < groups.length; i++) {
+        const g = groups[i];
+        statusEl.textContent = `Saving group ${i+1}/${groups.length} (original ${escapeHtml(g?.matched?.originalTransactionId || '')})...`;
+        // Client-side parity check — use displayed/PDF sum (authoritativeSum), not raw line sum
+        try {
+          const originalAbs = Number(g?.matched?.original || 0);
+          const sum = (g.authoritativeSum != null && !isNaN(Number(g.authoritativeSum)))
+            ? Number(g.authoritativeSum)
+            : computeSumFromItems(g.items || []);
+          const diff = Number((originalAbs - sum).toFixed(2));
+          if (!proceed && Math.abs(diff) >= 0.01) {
+            const msg = `Group ${i+1}: mismatch Original ${originalAbs.toFixed(2)} vs Sum ${sum.toFixed(2)} (Diff ${diff.toFixed(2)}). Skipping (enable Proceed on mismatch).`;
+            statusEl.textContent = msg;
+            appendBatchError(msg);
+            showToast(msg, 'warning');
+            errors++;
+            continue;
+          }
+        } catch(_) {}
+        try {
+          const body = { groups: [g], proceedOnMismatch: proceed, tag: tagValue, useAiMerchant: !!(bpUseAiMerchant && bpUseAiMerchant.checked) };
+          const r = await apiFetch('api/extraction/confirm-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          const j = await r.json();
+          if (!j.success) throw new Error(j.error || 'Batch save failed');
+          if (Number(j.created || 0) === 0) {
+            const skip = Array.isArray(j.skipped) && j.skipped.length ? j.skipped[0] : null;
+            const reason = skip?.reason || 'no items created';
+            let extra = skip?.reason === 'amount-mismatch' && skip?.originalAbs != null ? ` (Original ${Number(skip.originalAbs).toFixed(2)} vs Sum ${Number(skip.total || 0).toFixed(2)}, Diff ${Number(skip.diff || 0).toFixed(2)})` : '';
+            if (skip?.reason === 'group-failed-rolled-back') {
+              extra = skip.rolledBack ? ` (${skip.rolledBack} transaction(s) rolled back)` : ' (rolled back)';
+              errors++;
+            }
+            const msg = `Group ${i+1}/${groups.length} (${g?.matched?.originalTransactionId || '?'}): ${reason}${extra}`;
+            statusEl.textContent = msg + '.';
+            appendBatchError(msg + (skip?.error ? ' — ' + String(skip.error).slice(0, 200) : ''));
+            try { showToast(msg, skip?.reason === 'group-failed-rolled-back' ? 'error' : 'warning'); } catch(_) {}
+            continue;
+          }
+          createdTotal += Number(j.created || 0);
+          // Append details
+          const details = [];
+          if (Array.isArray(j.merchants) && j.merchants.length) {
+            const list = j.merchants.map(m => `<li>${escapeHtml(m.name)} (${escapeHtml(m.type)}) — ${m.created ? 'created' : (m.matched ? 'matched ' + escapeHtml(m.matched) : 'existing')} [${escapeHtml(m.id||'')}]</li>`).join('');
+            details.push(`<div><strong>Merchants:</strong><ul>${list}</ul></div>`);
+          }
+          if (Array.isArray(j.transactions) && j.transactions.length) {
+            const list = j.transactions.map(t => `<li>${escapeHtml(t.id||'')} · ${escapeHtml(t.type)} · ${escapeHtml(t.date||'')} · ${escapeHtml(t.description||'')} · ${Number(t.amount||0).toFixed(2)}</li>`).join('');
+            details.push(`<div><strong>Created transaction IDs:</strong><ul>${list}</ul></div>`);
+          }
+          if (Array.isArray(j.correctionClones) && j.correctionClones.length) {
+            details.push(`<div><strong>Correction clone(s):</strong> ${j.correctionClones.map(id => escapeHtml(String(id))).join(', ')}</div>`);
+          }
+          if (details.length) {
+            const host = document.createElement('div');
+            host.className = 'confirm-result';
+            host.innerHTML = details.join('');
+            batchPreviewDiv.prepend(host);
+          }
+          const cloneNote = Array.isArray(j.correctionClones) && j.correctionClones.length ? `, correction clone ${j.correctionClones[0]}` : '';
+          statusEl.textContent = `Saved group ${i+1}/${groups.length}${cloneNote}. Total created so far: ${createdTotal}.`;
+          // Refresh results data so it's up-to-date if user opens the Results panel
+          try { await loadWordMappings(); } catch(_) {}
+          try { await loadFailedTransactions(); } catch(_) {}
+        } catch (e) {
+          errors++;
+          const rb = e.rolledBack != null ? ` (${e.rolledBack} rolled back)` : '';
+          const msg = `Error group ${i+1}/${groups.length} (${g?.matched?.originalTransactionId || '?'}): ${e.message}${rb}`;
+          statusEl.textContent = msg + ' Continuing...';
+          appendBatchError(msg);
+          showToast(`Group ${i+1} error: ${e.message}`, 'error');
+        }
+      }
+      const toastType = createdTotal > 0 ? 'success' : (errors ? 'warning' : 'warning');
+      const doneMsg = createdTotal > 0
+        ? `Batch completed. Created: ${createdTotal}${errors ? `, skipped/errors: ${errors}` : ''}`
+        : (errors
+          ? `Batch finished with 0 created (${errors} group(s) skipped — see status / error log; enable Proceed on mismatch if sums use PDF Rechnungsbetrag)`
+          : 'Batch completed. Created: 0 — no groups were saved.');
+      showToast(doneMsg, toastType);
+      statusEl.textContent = doneMsg;
+    } finally {
+      window.__BATCH_CONFIRM_IN_FLIGHT__ = false;
+      btnConfirmBatch.disabled = false;
+      // Enable results button
+      const btnView = document.getElementById('btnViewBulkResults');
+      if (btnView) btnView.disabled = false;
+    }
+  });
+
+  // View results button: refresh and navigate to the combined results panel
+  document.getElementById('btnViewBulkResults')?.addEventListener('click', async () => {
+    try { await loadWordMappings(); } catch(_) {}
+    try { await loadFailedTransactions(); } catch(_) {}
+    try { window.__showPanel && window.__showPanel('panel-failed'); } catch(_) {}
   });
 
   // Delegate recalc per batch group
@@ -3306,6 +4474,73 @@ try {
     try { recalcBatchGroup(Number(gidx)); showToast('Recalculated', 'success'); } catch(_) {}
   });
 
+  // Live recalc in batch preview when user edits amount or direction
+  batchPreviewDiv.addEventListener('input', (e) => {
+    const inp = e.target.closest('input[data-field="amount"]');
+    if (!inp) return;
+    const gidx = inp.getAttribute('data-gidx');
+    if (gidx == null) return;
+    try { recalcBatchGroup(Number(gidx)); } catch(_) {}
+  });
+  batchPreviewDiv.addEventListener('change', (e) => {
+    const sel = e.target.closest('select[data-field="direction"]');
+    if (!sel) return;
+    const gidx = sel.getAttribute('data-gidx');
+    if (gidx == null) return;
+    try { recalcBatchGroup(Number(gidx)); } catch(_) {}
+  });
+
+  /** Active-table sum: only rows explicitly marked settlement (⇩ hide), not description regex. */
+  function isSettlementLine(item) {
+    if (!item) return false;
+    return item.settlementLine === true || item._settlement === true;
+  }
+
+  function rowItemFromTr(tr) {
+    const r = {};
+    if (tr.getAttribute('data-settlement') === '1') r._settlement = true;
+    tr.querySelectorAll('input').forEach(inp => { r[inp.getAttribute('data-field')] = inp.value; });
+    const sel = tr.querySelector('select[data-field="direction"]');
+    if (sel) r.direction = sel.value;
+    if (r.amount != null) {
+      const raw = String(r.amount).trim().replace(/\u00A0/g, '').replace(/\s+/g, '').replace(/,/g, '.');
+      r.amount = Number(raw);
+    }
+    return r;
+  }
+
+  function computeSumFromItems(items) {
+    try {
+      return Number((items || []).reduce((s, i) => {
+        if (isSettlementLine(i)) return s;
+        const v = Math.abs(Number(i.amount || 0));
+        const dir = i.direction === 'in' ? 'in' : 'out';
+        return s + (dir === 'out' ? v : -v);
+      }, 0).toFixed(2));
+    } catch(_) { return 0; }
+  }
+
+  /** Same sum rules as server (Rechnungsbetrag when line items do not reconcile). */
+  function getEffectiveExtractionSum(items) {
+    const lineSum = computeSumFromItems(items);
+    const serverSum = Number(lastPreview?.totals?.sum);
+    const st = lastPreview?.meta?.statementTotal ?? lastPreview?.totals?.statementTotal;
+    const initialLineSum = lastPreview?.meta?.lineSum ?? lastPreview?.totals?.lineSum;
+    const rowsUnchanged = initialLineSum == null || Math.abs(lineSum - Number(initialLineSum)) < 0.01;
+    if (rowsUnchanged && Number.isFinite(serverSum)) {
+      return serverSum;
+    }
+    if (st != null && Number.isFinite(Number(st)) && rowsUnchanged && Math.abs(Number(st) - lineSum) > 0.01) {
+      return Number(Number(st).toFixed(2));
+    }
+    return lineSum;
+  }
+
+  /** Sum used for save validation — aligns with server preview when unchanged. */
+  function getParitySum(items) {
+    return getEffectiveExtractionSum(items);
+  }
+
   // Add row in batch group
   batchPreviewDiv.addEventListener('click', (e) => {
     const btn = e.target.closest('.bg-add-row');
@@ -3314,6 +4549,38 @@ try {
     if (gidx == null) return;
     addBatchRow(Number(gidx));
     try { recalcBatchGroup(Number(gidx)); } catch(_) {}
+  });
+
+  // Remove single row in batch group
+  batchPreviewDiv.addEventListener('click', (e) => {
+    const btn = e.target.closest('.bg-del-row');
+    if (!btn) return;
+    const gidx = btn.getAttribute('data-gidx');
+    if (gidx == null) return;
+    const tr = btn.closest('tr');
+    if (tr) tr.remove();
+    try { updateBatchGroupCounts(Number(gidx)); } catch(_) {}
+    try { recalcBatchGroup(Number(gidx)); } catch(_) {}
+  });
+
+  // Hide a row → move it into the "Hidden lines" panel of the same group
+  batchPreviewDiv.addEventListener('click', (e) => {
+    const btn = e.target.closest('.bg-hide-row');
+    if (!btn) return;
+    const gidx = btn.getAttribute('data-gidx');
+    if (gidx == null) return;
+    const tr = btn.closest('tr');
+    if (tr) batchHideRow(Number(gidx), tr);
+  });
+
+  // Activate a previously hidden row → move it back into the active table
+  batchPreviewDiv.addEventListener('click', (e) => {
+    const btn = e.target.closest('.bg-activate-row');
+    if (!btn) return;
+    const gidx = btn.getAttribute('data-gidx');
+    if (gidx == null) return;
+    const tr = btn.closest('tr');
+    if (tr) batchActivateRow(Number(gidx), tr);
   });
 
   // Remove entire batch group table
@@ -3329,14 +4596,16 @@ try {
   function recalcBatchGroup(gidx) {
     const container = batchPreviewDiv.querySelector(`.batch-group[data-gidx="${gidx}"]`);
     if (!container) return;
-    const rows = Array.from(container.querySelectorAll('tbody tr'));
-    const items = rows.map(tr => {
-      const r = {};
-      tr.querySelectorAll('input').forEach(inp => { const f = inp.getAttribute('data-field'); r[f] = inp.value; });
-      if (r.amount != null) r.amount = Number(r.amount);
-      return r;
-    });
-    const sum = items.reduce((s, i) => s + ((i.direction === 'in') ? -Math.abs(Number(i.amount||0)) : Math.abs(Number(i.amount||0))), 0);
+    const activeTbody = container.querySelector('.bg-active-tbody') || container.querySelector('tbody');
+    const rows = Array.from(activeTbody ? activeTbody.querySelectorAll('tr') : []);
+    const items = rows.map(tr => rowItemFromTr(tr));
+    const lineSum = computeSumFromItems(items);
+    const initialLineSumAttr = container.getAttribute('data-initial-line-sum');
+    const initialLineSum = initialLineSumAttr ? Number(initialLineSumAttr) : NaN;
+    const rowsUnchanged = !Number.isFinite(initialLineSum) || Math.abs(lineSum - initialLineSum) < 0.01;
+    const previewSumAttr = container.getAttribute('data-preview-sum');
+    const previewSum = previewSumAttr ? Number(previewSumAttr) : NaN;
+    const sum = (rowsUnchanged && Number.isFinite(previewSum)) ? previewSum : lineSum;
     const sumEl = container.querySelector('.bg-sum');
     if (sumEl) sumEl.textContent = sum.toFixed(2);
     const diffSpanHost = container.querySelector('div[style*="font-size:12px"]');
@@ -3354,50 +4623,193 @@ try {
     }
   }
 
-  function renderBatchPreview(groups) {
-    if (!groups.length) return '<div>No groups</div>';
-    return groups.map((g, idx) => {
-      const rows = (g.items || []).map((i, r) => `
-        <tr>
-          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="date" value="${escapeHtml(i.date||'')}" style="width:120px;"></td>
-          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="destination_name" value="${escapeHtml(i.destination_name||'')}" style="width:220px;"></td>
-          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="description" value="${escapeHtml(i.description||'')}" style="width:100%;"></td>
-          <td><select data-gidx="${idx}" data-ridx="${r}" data-field="direction" style="width:120px;">
+  function formatHiddenSettlementNote(hidden) {
+    const n = Number(hidden);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    return ` <span class="sp-meta-note" style="font-size:11px;color:#6c757d;" title="Not splittable: e.g. Abbuchung Kartenabrechnung, Rücklastschrift, Zinsen — already handled outside the purchase list.">(${n} Abrechnungszeile${n === 1 ? '' : 'n'} ausgeblendet)</span>`;
+  }
+
+  /** Shown when the PDF header total (Rechnungsbetrag) differs from the sum of visible purchase rows. */
+  function formatLineSumNote(totals) {
+    if (!totals || totals.lineSum == null || totals.sum == null) return '';
+    if (Math.abs(Number(totals.lineSum) - Number(totals.sum)) <= 0.01) return '';
+    const lineSum = Number(totals.lineSum).toFixed(2);
+    const pdfSum = Number(totals.sum).toFixed(2);
+    return ` <span class="sp-line-sum-note" style="font-size:11px;color:#6c757d;" title="Summe der sichtbaren Käufe (${lineSum} €) weicht vom Rechnungsbetrag im PDF (${pdfSum} €) ab. Für den Abgleich mit Firefly wird der PDF-Betrag verwendet.">(Zeilensumme ${lineSum} € → PDF ${pdfSum} €)</span>`;
+  }
+
+  function renderBatchActiveRow(gidx, r, i) {
+    return `
+        <tr data-settlement="0">
+          <td><input data-gidx="${gidx}" data-ridx="${r}" data-field="date" value="${escapeHtml(i.date||'')}" style="width:120px;"></td>
+          <td><input data-gidx="${gidx}" data-ridx="${r}" data-field="destination_name" value="${escapeHtml(i.destination_name||'')}" style="width:220px;"></td>
+          <td><input data-gidx="${gidx}" data-ridx="${r}" data-field="description" value="${escapeHtml(i.description||'')}" style="width:100%;"></td>
+          <td><select data-gidx="${gidx}" data-ridx="${r}" data-field="direction" style="width:120px;">
                 <option value="out" ${i.direction === 'out' ? 'selected' : ''}>withdrawal</option>
                 <option value="in" ${i.direction === 'in' ? 'selected' : ''}>deposit</option>
               </select></td>
           <td style="text-align:right; white-space:nowrap;">
-            <input data-gidx="${idx}" data-ridx="${r}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;">
-            <button type="button" class="btn btn-secondary bg-del-row" data-gidx="${idx}" data-ridx="${r}" title="Remove row" style="margin-left:6px;">✕</button>
+            <input data-gidx="${gidx}" data-ridx="${r}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;">
+            <button type="button" class="btn btn-secondary bg-hide-row" data-gidx="${gidx}" title="Move to hidden lines (excluded from sum but kept for review)" style="margin-left:6px;">⇩</button>
+            <button type="button" class="btn btn-secondary bg-del-row" data-gidx="${gidx}" data-ridx="${r}" title="Remove row entirely" style="margin-left:4px;">✕</button>
           </td>
-        </tr>`).join('');
+        </tr>`;
+  }
+
+  function renderBatchHiddenRow(gidx, r, i) {
+    return `
+        <tr data-hidden-idx="${r}" style="opacity:0.85; background:#fafafa;" title="Hidden — not part of split sum.">
+          <td>${escapeHtml(i.date||'')}</td>
+          <td>${escapeHtml(i.destination_name||'')}</td>
+          <td>${escapeHtml(i.description||'')}</td>
+          <td>${i.direction === 'in' ? 'deposit' : 'withdrawal'}</td>
+          <td style="text-align:right; white-space:nowrap;">
+            ${Number(i.amount||0).toFixed(2)}
+            <button type="button" class="btn btn-secondary bg-activate-row" data-gidx="${gidx}" title="Activate — include this line in the split" style="margin-left:6px;">⇧</button>
+          </td>
+        </tr>`;
+  }
+
+  function renderBatchPreview(groups) {
+    if (!groups.length) return '<div>No groups</div>';
+    return groups.map((g, idx) => {
+      const rows = (g.items || []).map((i, r) => renderBatchActiveRow(idx, r, i)).join('');
+      const hiddenItems = Array.isArray(g.hiddenItems) ? g.hiddenItems : [];
+      const hiddenRows = hiddenItems.map((i, r) => renderBatchHiddenRow(idx, r, i)).join('');
       const calcSum = Number((g.items||[]).reduce((s,i)=>s+((i.direction==='in')?-Math.abs(Number(i.amount||0)):Math.abs(Number(i.amount||0))),0)).toFixed(2);
+      const initialLineSum = (g.lineSum != null && !isNaN(Number(g.lineSum))) ? Number(g.lineSum).toFixed(2) : calcSum;
       const original = g.matched ? Number(g.matched.original).toFixed(2) : '-';
-      const sum = g.matched ? Number(g.matched.sum).toFixed(2) : calcSum;
+      const sum = (g.sum != null && !isNaN(Number(g.sum))) ? Number(g.sum).toFixed(2) : calcSum;
       const diff = g.matched ? Number(g.matched.diff).toFixed(2) : (original !== '-' ? (Number(original)-Number(sum)).toFixed(2) : '-');
       const warn = (diff !== '-' && Math.abs(Number(diff)) >= 0.01) ? `<span style="color:#f90;">Difference: ${diff}</span>` : `<span style="color:#28a745;">OK</span>`;
       const hasItems = (g.items||[]).length > 0;
       const canSelect = g.selectable !== false && hasItems;
-      const matchedInfo = (g.matched && hasItems) ? `Matched original: <span class="bg-oid" data-gidx="${idx}">${g.matched.originalTransactionId}</span>` : 'No match';
+      const matchedInfo = (g.matched && hasItems)
+        ? `Matched original: <span class="bg-oid" data-gidx="${idx}">${g.matched.originalTransactionId}</span>${g.matched.alreadyExtracted ? ' · <span style="color:#f90;">Already extracted</span>' : ''}`
+        : `No auto-match. Original ID: <input type="text" class="bg-oid-manual" data-gidx="${idx}" placeholder="e.g. 1310" style="width:110px; padding:2px 6px;" title="Firefly transaction ID of the card settlement">`;
+      const hintsHtml = (!g.matched && Array.isArray(g.matchHints) && g.matchHints.length)
+        ? `<div style="margin-top:6px; font-size:11px; color:#856404;">Why no match: ${g.matchHints.map(h => {
+            const why = (h.reasons || []).join(', ') || 'unknown';
+            return `#${escapeHtml(String(h.candidateId))} (orig ${Number(h.originalAmount||0).toFixed(2)} vs PDF sum ${Number(h.pdfSum||0).toFixed(2)}, diff ${Number(h.diff||0).toFixed(2)}${why ? ': ' + escapeHtml(why) : ''})`;
+          }).join(' · ')}</div>`
+        : '';
       const fileLabel = g.fileName ? escapeHtml(g.fileName) : '(no file matched)';
+      const hiddenSection = `
+        <details class="bg-hidden-block" data-gidx="${idx}" ${hiddenItems.length ? 'open' : ''} style="margin-top:10px; border:1px dashed #ced4da; border-radius:6px; padding:8px; background:#fafafa;">
+          <summary style="cursor:pointer; font-weight:600; color:#495057;">Hidden lines <span class="bg-hidden-count" data-gidx="${idx}">${hiddenItems.length}</span> <span style="font-weight:normal; font-size:11px; color:#6c757d;">— not part of the split sum (e.g. Abbuchung Kartenabrechnung, Rücklastschrift, Zinsen, Vormonat).</span></summary>
+          <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
+            <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th style="text-align:right;">Amount</th></tr></thead>
+            <tbody class="bg-hidden-tbody" data-gidx="${idx}">${hiddenRows || '<tr><td colspan="5" style="color:#6c757d; font-style:italic;">No hidden lines.</td></tr>'}</tbody>
+          </table>
+        </details>`;
       return `
-      <div class="batch-group" data-gidx="${idx}" data-original="${original !== '-' ? original : ''}" style="border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:12px;">
+      <div class="batch-group" data-gidx="${idx}" data-original="${original !== '-' ? original : ''}" data-preview-sum="${sum}" data-initial-line-sum="${initialLineSum}" style="border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
           <div><strong>${fileLabel}</strong> · ${matchedInfo}</div>
           <div style="display:flex; gap:8px; align-items:center;">
-            <label><input type="checkbox" class="bg-select" data-gidx="${idx}" ${canSelect ? 'checked' : 'disabled'}> Include</label>
+            <label title="Include this group when applying changes. Uncheck to skip it."><input type="checkbox" class="bg-select" data-gidx="${idx}" ${canSelect ? 'checked' : ''} ${g.matched && g.matched.alreadyExtracted ? 'disabled' : ''} title="Include this group in Apply"> Include</label>
             <button type="button" class="btn btn-secondary bg-add-row" data-gidx="${idx}">Add row</button>
             <button type="button" class="btn btn-secondary bg-recalc" data-gidx="${idx}">Recalculate</button>
             <button type="button" class="btn btn-secondary bg-remove-group" data-gidx="${idx}">Remove</button>
           </div>
         </div>
-        <div style="margin-top:6px; font-size:12px; color:#6c757d;">Original: ${original} | Sum: <span class="bg-sum" data-gidx="${idx}">${sum}</span> | ${warn}</div>
+        <div style="margin-top:6px; font-size:12px; color:#6c757d;">Original: ${original} | Sum: <span class="bg-sum" data-gidx="${idx}">${sum}</span>${formatLineSumNote({ sum, lineSum: g.lineSum })}${formatHiddenSettlementNote(g.hiddenSettlementLines ?? hiddenItems.length)} | ${warn} · <span class="bg-row-count" data-gidx="${idx}">${(g.items||[]).length}</span> row(s)</div>
+        ${hintsHtml}
         <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
-          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th>Amount</th></tr></thead>
-          <tbody>${rows}</tbody>
+          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th style="text-align:right;">Amount</th></tr></thead>
+          <tbody class="bg-active-tbody" data-gidx="${idx}">${rows}</tbody>
         </table>
+        ${hiddenSection}
       </div>`;
     }).join('');
+  }
+
+  function updateBatchGroupCounts(gidx) {
+    const container = batchPreviewDiv.querySelector(`.batch-group[data-gidx="${gidx}"]`);
+    if (!container) return;
+    const activeCount = container.querySelectorAll('.bg-active-tbody > tr').length;
+    const hiddenCount = container.querySelectorAll('.bg-hidden-tbody > tr[data-hidden-idx]').length;
+    const rcEl = container.querySelector('.bg-row-count');
+    if (rcEl) rcEl.textContent = String(activeCount);
+    const hcEl = container.querySelector('.bg-hidden-count');
+    if (hcEl) hcEl.textContent = String(hiddenCount);
+  }
+
+  function batchHideRow(gidx, tr) {
+    const container = batchPreviewDiv.querySelector(`.batch-group[data-gidx="${gidx}"]`);
+    if (!container || !tr) return;
+    const item = {};
+    tr.querySelectorAll('input').forEach(inp => { item[inp.getAttribute('data-field')] = inp.value; });
+    const sel = tr.querySelector('select[data-field="direction"]');
+    if (sel) item.direction = sel.value;
+    if (item.amount != null) {
+      const raw = String(item.amount).trim().replace(/\u00A0/g, '').replace(/\s+/g, '').replace(/,/g, '.');
+      item.amount = Number(raw);
+    }
+    const hiddenTbody = container.querySelector('.bg-hidden-tbody');
+    if (!hiddenTbody) return;
+    const placeholder = hiddenTbody.querySelector('td[colspan]');
+    if (placeholder) placeholder.parentElement.remove();
+    const r = hiddenTbody.querySelectorAll('tr[data-hidden-idx]').length;
+    hiddenTbody.insertAdjacentHTML('beforeend', renderBatchHiddenRow(gidx, r, item));
+    tr.remove();
+    updateBatchGroupCounts(gidx);
+    try { recalcBatchGroup(Number(gidx)); } catch(_) {}
+  }
+
+  function batchActivateRow(gidx, tr) {
+    const container = batchPreviewDiv.querySelector(`.batch-group[data-gidx="${gidx}"]`);
+    if (!container || !tr) return;
+    const cells = tr.querySelectorAll('td');
+    const item = {
+      date: cells[0]?.textContent?.trim() || '',
+      destination_name: cells[1]?.textContent?.trim() || '',
+      description: cells[2]?.textContent?.trim() || '',
+      direction: (cells[3]?.textContent?.trim() === 'deposit') ? 'in' : 'out',
+      amount: Number(String(cells[4]?.textContent || '').trim().split(/\s/)[0].replace(',', '.')) || 0
+    };
+    const activeTbody = container.querySelector('.bg-active-tbody');
+    if (!activeTbody) return;
+    const r = activeTbody.querySelectorAll('tr').length;
+    activeTbody.insertAdjacentHTML('beforeend', renderBatchActiveRow(gidx, r, item));
+    tr.remove();
+    const hiddenTbody = container.querySelector('.bg-hidden-tbody');
+    if (hiddenTbody && !hiddenTbody.querySelector('tr[data-hidden-idx]')) {
+      hiddenTbody.innerHTML = '<tr><td colspan="5" style="color:#6c757d; font-style:italic;">No hidden lines.</td></tr>';
+    }
+    updateBatchGroupCounts(gidx);
+    try { recalcBatchGroup(Number(gidx)); } catch(_) {}
+  }
+
+  function diagnoseBatchSelection() {
+    const containers = Array.from(batchPreviewDiv.querySelectorAll('.batch-group'));
+    if (!containers.length) return 'No batch preview — click “Create batch preview” first.';
+    let checked = 0;
+    let noOid = 0;
+    let noItems = 0;
+    let disabled = 0;
+    containers.forEach(div => {
+      const sel = div.querySelector('.bg-select');
+      if (sel?.disabled) disabled++;
+      if (!sel?.checked) return;
+      checked++;
+      const oid = div.querySelector('.bg-oid')?.textContent?.trim()
+        || div.querySelector('.bg-oid-manual')?.value?.trim();
+      if (!oid) { noOid++; return; }
+      const activeTbody = div.querySelector('.bg-active-tbody') || div.querySelector('tbody');
+      const rows = Array.from(activeTbody ? activeTbody.querySelectorAll('tr') : []);
+      const items = rows.map(tr => {
+        const r = {};
+        tr.querySelectorAll('input[data-field]').forEach(inp => { r[inp.getAttribute('data-field')] = inp.value; });
+        return r;
+      }).filter(x => (x.description || x.destination_name || x.amount));
+      if (!items.length) noItems++;
+    });
+    if (!checked) return 'No groups selected — check “Include” on at least one statement.';
+    if (noOid) return `${noOid} group(s) have no original ID — pick candidates before upload or enter the transaction ID manually.`;
+    if (noItems) return `${noItems} group(s) have no line items to save.`;
+    if (disabled) return `${disabled} group(s) are already extracted — uncheck or revert them first.`;
+    return 'No groups selected';
   }
 
   function collectBatchEdits() {
@@ -3406,19 +4818,24 @@ try {
     containers.forEach(div => {
       const include = !!div.querySelector('.bg-select')?.checked;
       if (!include) return;
-      const oid = div.querySelector('.bg-oid')?.textContent?.trim();
+      const oid = div.querySelector('.bg-oid')?.textContent?.trim()
+        || div.querySelector('.bg-oid-manual')?.value?.trim();
       if (!oid) return;
-      const rows = Array.from(div.querySelectorAll('tbody tr'));
-      const items = rows.map(tr => {
-        const inputs = tr.querySelectorAll('input');
-        const r = {};
-        inputs.forEach(inp => { const f = inp.getAttribute('data-field'); r[f] = inp.value; });
-        const sel = tr.querySelector('select[data-field="direction"]');
-        if (sel) r.direction = sel.value;
-        if (r.amount != null) r.amount = Number(r.amount);
-        return r;
-      }).filter(x => x.description || x.destination_name || x.amount);
-      if (items.length) groups.push({ matched: { originalTransactionId: oid }, items });
+      const activeTbody = div.querySelector('.bg-active-tbody') || div.querySelector('tbody');
+      const rows = Array.from(activeTbody ? activeTbody.querySelectorAll('tr') : []);
+      const items = rows.map(tr => rowItemFromTr(tr))
+        .filter(x => !isSettlementLine(x) && (x.description || x.destination_name || Number.isFinite(x.amount)));
+      if (items.length) {
+        const sumEl = div.querySelector('.bg-sum');
+        const displayedSum = sumEl ? Number(sumEl.textContent || '0') : null;
+        const origAttr = div.getAttribute('data-original') || '';
+        const originalNum = Number(origAttr);
+        const matched = { originalTransactionId: oid };
+        if (Number.isFinite(originalNum) && originalNum > 0) matched.original = originalNum;
+        const g = { matched, items };
+        if (displayedSum != null && !Number.isNaN(displayedSum)) g.authoritativeSum = Number(displayedSum.toFixed(2));
+        groups.push(g);
+      }
     });
     return groups;
   }
@@ -3426,25 +4843,12 @@ try {
   function addBatchRow(gidx) {
     const container = batchPreviewDiv.querySelector(`.batch-group[data-gidx="${gidx}"]`);
     if (!container) return;
-    const tbody = container.querySelector('tbody');
+    const tbody = container.querySelector('.bg-active-tbody') || container.querySelector('tbody');
+    if (!tbody) return;
     const ridx = tbody.querySelectorAll('tr').length;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input data-gidx="${gidx}" data-ridx="${ridx}" data-field="date" value="" style="width:120px;"></td>
-      <td><input data-gidx="${gidx}" data-ridx="${ridx}" data-field="destination_name" value="" style="width:220px;"></td>
-      <td><input data-gidx="${gidx}" data-ridx="${ridx}" data-field="description" value="" style="width:100%;"></td>
-      <td><select data-gidx="${gidx}" data-ridx="${ridx}" data-field="direction" style="width:120px;">
-            <option value="out" selected>withdrawal</option>
-            <option value="in">deposit</option>
-          </select></td>
-      <td style="text-align:right;"><input data-gidx="${gidx}" data-ridx="${ridx}" data-field="amount" value="0.00" style="width:100px; text-align:right;"></td>`;
-    tbody.appendChild(tr);
-  }
-
-  function escapeHtml(value) {
-    const str = value == null ? '' : String(value);
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-    return str.replace(/[&<>"']/g, ch => map[ch]);
+    tbody.insertAdjacentHTML('beforeend', renderBatchActiveRow(gidx, ridx, { date: '', destination_name: '', description: '', direction: 'out', amount: 0 }));
+    updateBatchGroupCounts(gidx);
+    try { recalcBatchGroup(Number(gidx)); } catch(_) {}
   }
 
   function buildApiCandidates(path) {
@@ -3496,6 +4900,21 @@ try {
       try {
         const res = await fetch(url, init);
         if (res.ok) return res;
+        // Stop retrying on client errors (4xx) and surface server message if available
+        if (res.status >= 400 && res.status < 500) {
+          let msg = `HTTP ${res.status} for ${url}`;
+          try {
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              const j = await res.json();
+              if (j && (j.error || j.message)) msg = String(j.error || j.message);
+            } else {
+              const t = await res.text();
+              if (t) msg = t.slice(0, 500);
+            }
+          } catch(_) {}
+          throw new Error(msg);
+        }
         lastError = new Error(`HTTP ${res.status} for ${url}`);
       } catch (e) {
         lastError = e;
@@ -3511,6 +4930,7 @@ try {
       // show loading placeholders
       selectByCategory.innerHTML = `<option value="">(Loading categories ...)</option>`;
       selectByTag.innerHTML = `<option value="">(Loading tags ...)</option>`;
+      selectExcludeByTag.innerHTML = `<option value="">(Loading tags ...)</option>`;
 
       const [catsR, tagsR] = await Promise.all([
         apiFetch('api/categories'),
@@ -3523,13 +4943,16 @@ try {
       const categories = catsJ.categories || [];
       const tags = tagsJ.tags || [];
       selectByCategory.innerHTML = `<option value="">(Select category)</option>` + (categories.length ? categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('') : `<option value="" disabled>(No categories)</option>`);
-      selectByTag.innerHTML = `<option value="">(Select tag)</option>` + (tags.length ? tags.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('') : `<option value="" disabled>(No tags)</option>`);
+      const tagOptions = tags.length ? tags.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('') : `<option value="" disabled>(No tags)</option>`;
+      selectByTag.innerHTML = `<option value="">(Any tag)</option>` + tagOptions;
+      selectExcludeByTag.innerHTML = `<option value="">(Do not exclude)</option>` + tagOptions;
       // initial load
       await loadTransactionsForPicker();
     } catch (e) {
       showToast(e.message || 'Failed to load categories/tags', 'error');
       selectByCategory.innerHTML = `<option value="" disabled>(Load error)</option>`;
       selectByTag.innerHTML = `<option value="" disabled>(Load error)</option>`;
+      selectExcludeByTag.innerHTML = `<option value="" disabled>(Load error)</option>`;
     }
   })();
 
@@ -3568,10 +4991,13 @@ try {
         // Categorizer group
         { cat: 'Categorizer', id: 'panel-auto', title: 'Auto-Categorization', el: findPanelByH2('Auto-Categorization') },
         { cat: 'Categorizer', id: 'panel-general', title: 'General Settings', el: findPanelByH2('General Settings') },
-        { cat: 'Categorizer', id: 'panel-cmap', title: 'Category Mappings', el: findPanelByH2('Category Mappings') },
+        { cat: 'Categorizer', id: 'panel-cmap', title: 'Keyword → Category Mappings', el: findPanelByH2('Keyword → Category Mappings') },
+        { cat: 'Categorizer', id: 'panel-acmap', title: 'Account → Category Mappings', el: findPanelByH2('Account → Category Mappings') },
         { cat: 'Categorizer', id: 'panel-failed', title: 'Word Mappings & Failed', el: findPanelByH2('Word Mappings & Failed Transactions') },
         { cat: 'Categorizer', id: 'panel-txm', title: 'Transaction Management', el: findPanelByH2('Transaction Management') },
         { cat: 'Categorizer', id: 'panel-manual', title: 'Bulk Categorization', el: document.getElementById('panel-manual') },
+        { cat: 'Categorizer', id: 'panel-batch', title: 'Batch Jobs', el: document.getElementById('panel-batch') },
+        { cat: 'Categorizer', id: 'panel-individual', title: 'Individual Jobs', el: document.getElementById('panel-individual') },
 
         // Maintenance group
         { cat: 'Maintenance', id: 'panel-duplicates', title: 'Duplicate cleanup', el: document.getElementById('panel-duplicates') },
@@ -3581,10 +5007,6 @@ try {
         { cat: 'Special tools', id: 'extraction', title: 'Credit Card Statement Splitter', el: document.getElementById('extraction') }
       ].filter(p => p.el);
 
-      // Hide unneeded headings-only sections
-      const unused = [findPanelByH2('Batch Jobs'), findPanelByH2('Individual Jobs')].filter(Boolean);
-      unused.forEach(sec => { sec.style.display = 'none'; });
-
       // Mark and hide all but first
       panels.forEach(p => { p.el.setAttribute('data-panel-id', p.id); });
 
@@ -3593,6 +5015,8 @@ try {
         Array.from(side.querySelectorAll('.side-btn')).forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-target') === id));
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      // Expose for programmatic navigation from other panels
+      try { window.__showPanel = showPanel; } catch(_) {}
 
       // Render side nav
       let cats = Array.from(new Set(panels.map(p => p.cat)));
@@ -3679,6 +5103,7 @@ try {
       params.set('limit', '200');
       if (selectByCategory.value) params.set('categoryName', selectByCategory.value);
       if (selectByTag.value) params.set('tag', selectByTag.value);
+      if (selectExcludeByTag.value) params.set('excludeTag', selectExcludeByTag.value);
       const r = await apiFetch(`api/transactions/list?${params.toString()}`, { signal: pickerAbort.signal });
       const j = await r.json();
       if (!j.success) throw new Error(j.error || 'Failed to load transactions');
@@ -3709,8 +5134,10 @@ try {
   }
 
   function renderPicker() {
+    // Exclude correction clones from selection
+    const noClones = (loadedTx || []).filter(t => !(Array.isArray(t.tags) && t.tags.includes('value-correction-clone')));
     const txt = ((quickSearch && quickSearch.value) || pickerState.query || '').toLowerCase();
-    const filt = !txt ? loadedTx : loadedTx.filter(t =>
+    const filt = !txt ? noClones : noClones.filter(t =>
       (t.description || '').toLowerCase().includes(txt) ||
       (t.destinationName || '').toLowerCase().includes(txt)
     );
@@ -3735,6 +5162,11 @@ try {
     txPickerInfo.textContent = 'Loading transactions...';
     loadTransactionsForPicker();
   });
+  selectExcludeByTag.addEventListener('change', () => {
+    pickerState.excludeTag = selectExcludeByTag.value;
+    txPickerInfo.textContent = 'Loading transactions...';
+    loadTransactionsForPicker();
+  });
   quickSearch.addEventListener('input', () => {
     pickerState.query = quickSearch.value;
     renderPicker();
@@ -3743,6 +5175,100 @@ try {
     if (pickOriginal.value) {
       originalTxId.value = pickOriginal.value;
       pickerState.selectedId = pickOriginal.value;
+    }
+    lastRevertPreview = null;
+    if (btnRevertExecute) btnRevertExecute.disabled = true;
+    if (revertPreviewDiv) revertPreviewDiv.innerHTML = '';
+  });
+
+  originalTxId?.addEventListener('input', () => {
+    lastRevertPreview = null;
+    if (btnRevertExecute) btnRevertExecute.disabled = true;
+    if (revertPreviewDiv) revertPreviewDiv.innerHTML = '';
+  });
+
+  function renderRevertPreview(preview) {
+    if (!preview) return '<div>No preview data.</div>';
+    const orig = preview.original || {};
+    const rows = (preview.items || []).map(it => {
+      const role = it.role === 'correction' ? 'correction clone' : 'split child';
+      return `<tr>
+        <td>${escapeHtml(String(it.id))}</td>
+        <td>${escapeHtml(role)}</td>
+        <td>${escapeHtml(it.date || '')}</td>
+        <td style="text-align:right;">${Number(it.amount || 0).toFixed(2)}</td>
+        <td>${escapeHtml(it.description || '')}</td>
+        <td>${escapeHtml((it.tags || []).join(', '))}</td>
+      </tr>`;
+    }).join('');
+    const tagsClear = (preview.tagsToRemoveFromOriginal || []).map(t => `<code>${escapeHtml(t)}</code>`).join(', ');
+    return `
+      <div style="margin-bottom:8px;"><strong>Original #${escapeHtml(String(orig.id))}</strong> — ${escapeHtml(orig.description || '')}
+        <br>Tags now: ${escapeHtml((orig.tags || []).join(', ') || '(none)')}
+        <br>Link tag(s): ${(preview.linkTags && preview.linkTags.length ? preview.linkTags : [preview.parentTag]).filter(Boolean).map(t => `<code>${escapeHtml(t)}</code>`).join(', ') || '(none)'}
+        <br>Will remove from original: ${tagsClear || '(none)'}
+      </div>
+      ${rows ? `<table border="1" cellspacing="0" cellpadding="6" style="width:100%; border-collapse:collapse;">
+        <thead><tr><th>ID</th><th>Role</th><th>Date</th><th>Amount</th><th>Description</th><th>Tags</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : '<div style="color:#856404;">No linked split/correction transactions found. If batch matching linked this statement to a different original, revert that original instead. Legacy <code>creditcard-split</code> rows with the same link tag are also matched.</div>'}
+      <div style="margin-top:8px;"><strong>${(preview.items || []).length}</strong> transaction(s) will be deleted.</div>
+    `;
+  }
+
+  btnRevertPreview?.addEventListener('click', async () => {
+    try {
+      if (!originalTxId?.value?.trim()) return showToast('Enter or select the original transaction ID', 'warning');
+      btnRevertPreview.disabled = true;
+      revertPreviewDiv.innerHTML = '<div>Loading preview…</div>';
+      const r = await apiFetch(`api/extraction/revert-preview?originalTransactionId=${encodeURIComponent(originalTxId.value.trim())}`);
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || 'Preview failed');
+      lastRevertPreview = j.preview;
+      revertPreviewDiv.innerHTML = renderRevertPreview(j.preview);
+      btnRevertExecute.disabled = false;
+      showToast('Revert preview ready', 'success');
+    } catch (e) {
+      lastRevertPreview = null;
+      revertPreviewDiv.innerHTML = '';
+      btnRevertExecute.disabled = true;
+      showToast(e.message, 'error');
+    } finally {
+      btnRevertPreview.disabled = false;
+    }
+  });
+
+  btnRevertExecute?.addEventListener('click', async () => {
+    try {
+      if (!originalTxId?.value?.trim()) return showToast('Enter or select the original transaction ID', 'warning');
+      const n = (lastRevertPreview?.items || []).length;
+      const msg = n
+        ? `Revert split for original #${originalTxId.value.trim()}?\n\nThis will DELETE ${n} linked transaction(s) and remove tags from the original. This cannot be undone.`
+        : `Revert split for original #${originalTxId.value.trim()}?\n\nNo linked transactions were found in preview; only tags on the original will be cleared.`;
+      if (!confirm(msg)) return;
+      btnRevertExecute.disabled = true;
+      btnRevertPreview.disabled = true;
+      revertPreviewDiv.innerHTML = '<div>Reverting…</div>';
+      const r = await apiFetch('api/extraction/revert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ originalTransactionId: originalTxId.value.trim() })
+      });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || 'Revert failed');
+      lastRevertPreview = null;
+      revertPreviewDiv.innerHTML = `<div style="color:#198754;">Reverted: deleted ${j.deleted || 0} transaction(s). Tags cleared on original.</div>`;
+      showToast(`Revert complete (${j.deleted || 0} deleted)`, 'success');
+      btnConfirm.disabled = false;
+      const singleStatus = document.getElementById('singleStatus');
+      if (singleStatus) singleStatus.textContent = 'Split reverted — you can apply a new split to this original.';
+      try { loadTransactionsForPicker(); } catch (_) {}
+    } catch (e) {
+      showToast(e.message, 'error');
+      if (lastRevertPreview) revertPreviewDiv.innerHTML = renderRevertPreview(lastRevertPreview);
+    } finally {
+      btnRevertPreview.disabled = false;
+      btnRevertExecute.disabled = !lastRevertPreview;
     }
   });
 
@@ -3760,14 +5286,28 @@ try {
       if (extractionTag.value) form.append('tag', extractionTag.value);
       singleAbort = new AbortController();
       btnCancelSingle.disabled = false;
-      form.append('force', '1');
+      // Control parsing mode: Fast (no AI) avoids model latency
+      if (spFast && spFast.checked) {
+        form.append('fast', '1');
+      }
       const r = await apiFetch(`api/extraction/upload?ts=${Date.now()}`, { method: 'POST', body: form, signal: singleAbort.signal });
       const j = await r.json();
       if (!j.success) throw new Error(j.error || 'Preview failed');
       lastPreview = j.preview;
       previewDiv.innerHTML = renderPreview(j.preview);
       btnConfirm.disabled = false;
-      showToast('Preview created', 'success');
+      const pm = j.preview?.meta?.parseMode || '?';
+      const hidden = j.preview?.meta?.hiddenSettlementLines ?? 0;
+      const rows = j.preview?.items?.length ?? 0;
+      showToast(`Preview created (${pm}, ${rows} rows, ${hidden} settlement hidden, sum ${Number(j.preview?.totals?.sum || 0).toFixed(2)})`, 'success');
+      // If already extracted, disable apply and show status
+      const singleStatus = document.getElementById('singleStatus');
+      if (lastPreview?.meta?.alreadyExtracted) {
+        btnConfirm.disabled = true;
+        singleStatus.textContent = 'This original is already extracted (tag present). Use force only if you really need to redo.';
+      } else {
+        singleStatus.textContent = '';
+      }
     } catch (e) {
       if (e.name === 'AbortError') {
         showToast('Preview cancelled', 'warning');
@@ -3791,17 +5331,40 @@ try {
       if (!lastPreview) return;
       // disable during request to prevent double submit
       btnConfirm.disabled = true;
+      const singleStatus = document.getElementById('singleStatus');
+      singleStatus.textContent = 'Validating and saving...';
       const edited = collectSingleEdits();
+      const items = edited.length ? edited : lastPreview.items;
+      // Client-side parity check with server sum
+      const clientSum = getParitySum(items);
+      const originalAbs = Number(lastPreview?.totals?.original || 0);
+      const clientDiff = Number((originalAbs - clientSum).toFixed(2));
+      if (!proceedMismatch.checked && Math.abs(clientDiff) >= 0.01) {
+        btnConfirm.disabled = false;
+        singleStatus.textContent = `Mismatch detected before save. Original: ${originalAbs.toFixed(2)} | Sum: ${clientSum.toFixed(2)} | Diff: ${clientDiff.toFixed(2)}. Fix rows or enable Proceed.`;
+        showToast('Amount mismatch. Please fix or enable Proceed.', 'warning');
+        return;
+      }
       const body = {
         originalTransactionId: lastPreview.meta.originalTransactionId,
-        items: edited.length ? edited : lastPreview.items,
+        items,
+        // Use the live client-calculated sum to keep parity with visible rows
+        authoritativeSum: Number(clientSum).toFixed(2),
         tag: extractionTag.value || lastPreview.meta.tag,
-        proceedOnMismatch: proceedMismatch.checked
+        proceedOnMismatch: proceedMismatch.checked,
+        useAiMerchant: !!(spUseAiMerchant && spUseAiMerchant.checked)
       };
       const r = await apiFetch('api/extraction/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
-      if (!j.success) throw new Error(j.error || 'Save failed');
+      if (!j.success) {
+        const singleStatus = document.getElementById('singleStatus');
+        if (String(j.error || '').toLowerCase().includes('already extracted')) {
+          singleStatus.textContent = 'Skipped: original already extracted.';
+        }
+        throw new Error(j.error || 'Save failed');
+      }
       showToast(`Created: ${j.created} transactions${j.diff ? `, difference: ${j.diff}` : ''}`, 'success');
+      singleStatus.textContent = `Saved ${j.created} item(s).${j.diff ? ` Diff: ${j.diff}.` : ''} Tagging original and correction clone completed.`;
       // Render result details
       const details = [];
       details.push(`<div><strong>Saved.</strong> Created ${j.created} rows${j.diff ? `, diff: ${j.diff}` : ''}.</div>`);
@@ -3826,133 +5389,9 @@ try {
     }
   });
 
-  // Upload batch
-  btnUploadBatch?.addEventListener('click', async () => {
-    try {
-      if (window.__BATCH_UPLOAD_IN_FLIGHT__) { return showToast('Batch upload already in progress', 'warning'); }
-      window.__BATCH_UPLOAD_IN_FLIGHT__ = true;
-      const fs = Array.from(filesBatch.files || []);
-      if (!fs.length) return showToast('Please choose files', 'warning');
-      const form = new FormData();
-      fs.forEach(f => form.append('files', f));
-      const selectedIds = Array.from((pickCandidates?.selectedOptions) || []).map(o => o.value);
-      if (selectedIds.length) form.append('candidateTransactionIds', JSON.stringify(selectedIds));
-      form.append('dateWindowDays', String(dateWindowDays.value || '10'));
-      form.append('force', '1');
-      const r = await apiFetch(`api/extraction/upload-batch?ts=${Date.now()}`, { method: 'POST', body: form });
-      const j = await r.json();
-      if (!j.success) throw new Error(j.error || 'Batch preview failed');
-      batchPreviewDiv.innerHTML = renderBatchPreview(j.groups || []);
-      btnConfirmBatch.disabled = !(Array.isArray(j.groups) && j.groups.length);
-      showToast('Batch preview created', 'success');
-    } catch (e) {
-      batchPreviewDiv.innerHTML = '';
-      btnConfirmBatch.disabled = true;
-      showToast(e.message, 'error');
-    } finally { window.__BATCH_UPLOAD_IN_FLIGHT__ = false; }
-  });
-
-  // Confirm batch
-  btnConfirmBatch?.addEventListener('click', async () => {
-    try {
-      const groups = collectBatchEdits();
-      if (!groups.length) return showToast('No groups selected', 'warning');
-      const body = { groups, proceedOnMismatch: !!batchProceedMismatch.checked, tag: (batchExtractionTag.value || extractionTag.value || '') };
-      const r = await apiFetch('api/extraction/confirm-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const j = await r.json();
-      if (!j.success) throw new Error(j.error || 'Batch save failed');
-      showToast(`Created: ${j.created} transactions`, 'success');
-      // Render batch result details
-      const details = [];
-      if (Array.isArray(j.merchants) && j.merchants.length) {
-        const list = j.merchants.map(m => `<li>${escapeHtml(m.name)} (${escapeHtml(m.type)}) — ${m.created ? 'created' : (m.matched ? 'matched ' + escapeHtml(m.matched) : 'existing')} [${escapeHtml(m.id||'')}]</li>`).join('');
-        details.push(`<div><strong>Merchants:</strong><ul>${list}</ul></div>`);
-      }
-      if (Array.isArray(j.transactions) && j.transactions.length) {
-        const list = j.transactions.map(t => `<li>${escapeHtml(t.id||'')} · ${escapeHtml(t.type)} · ${escapeHtml(t.date||'')} · ${escapeHtml(t.description||'')} · ${Number(t.amount||0).toFixed(2)}</li>`).join('');
-        details.push(`<div><strong>Created transaction IDs:</strong><ul>${list}</ul></div>`);
-      }
-      if (details.length) {
-        const host = document.createElement('div');
-        host.className = 'confirm-result';
-        host.innerHTML = details.join('');
-        batchPreviewDiv.prepend(host);
-      }
-      btnConfirmBatch.disabled = true;
-    } catch (e) {
-      showToast(e.message, 'error');
-    }
-  });
-
-  function renderBatchPreview(groups) {
-    if (!groups.length) return '<div>No groups</div>';
-    return groups.map((g, idx) => {
-      const rows = (g.items || []).map((i, r) => `
-        <tr>
-          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="date" value="${escapeHtml(i.date||'')}" style="width:120px;"></td>
-          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="destination_name" value="${escapeHtml(i.destination_name||'')}" style="width:220px;"></td>
-          <td><input data-gidx="${idx}" data-ridx="${r}" data-field="description" value="${escapeHtml(i.description||'')}" style="width:100%;"></td>
-          <td><select data-gidx="${idx}" data-ridx="${r}" data-field="direction" style="width:120px;">
-                <option value="out" ${i.direction === 'out' ? 'selected' : ''}>withdrawal</option>
-                <option value="in" ${i.direction === 'in' ? 'selected' : ''}>deposit</option>
-              </select></td>
-          <td style="text-align:right;"><input data-gidx="${idx}" data-ridx="${r}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;"></td>
-        </tr>`).join('');
-      const calcSum = Number((g.items||[]).reduce((s,i)=>s+((i.direction==='in')?-Math.abs(Number(i.amount||0)):Math.abs(Number(i.amount||0))),0)).toFixed(2);
-      const original = g.matched ? Number(g.matched.original).toFixed(2) : '-';
-      const sum = g.matched ? Number(g.matched.sum).toFixed(2) : calcSum;
-      const diff = g.matched ? Number(g.matched.diff).toFixed(2) : (original !== '-' ? (Number(original)-Number(sum)).toFixed(2) : '-');
-      const warn = (diff !== '-' && Math.abs(Number(diff)) >= 0.01) ? `<span style="color:#f90;">Difference: ${diff}</span>` : `<span style="color:#28a745;">OK</span>`;
-      const hasItems = (g.items||[]).length > 0;
-      const canSelect = g.selectable !== false && hasItems;
-      const matchedInfo = (g.matched && hasItems) ? `Matched original: <span class="bg-oid" data-gidx="${idx}">${g.matched.originalTransactionId}</span>` : 'No match';
-      const fileLabel = g.fileName ? escapeHtml(g.fileName) : '(no file matched)';
-      return `
-      <div class="batch-group" data-gidx="${idx}" data-original="${original !== '-' ? original : ''}" style="border:1px solid #eee; padding:10px; border-radius:6px; margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-          <div><strong>${fileLabel}</strong> · ${matchedInfo}</div>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <label><input type="checkbox" class="bg-select" data-gidx="${idx}" ${canSelect ? 'checked' : 'disabled'}> Include</label>
-            <button type="button" class="btn btn-secondary bg-add-row" data-gidx="${idx}">Add row</button>
-            <button type="button" class="btn btn-secondary bg-recalc" data-gidx="${idx}">Recalculate</button>
-            <button type="button" class="btn btn-secondary bg-remove-group" data-gidx="${idx}">Remove</button>
-          </div>
-        </div>
-        <div style="margin-top:6px; font-size:12px; color:#6c757d;">Original: ${original} | Sum: <span class="bg-sum" data-gidx="${idx}">${sum}</span> | ${warn}</div>
-        <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
-          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th>Amount</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`;
-    }).join('');
-  }
-
-  function collectBatchEdits() {
-    const groups = [];
-    const containers = Array.from(batchPreviewDiv.querySelectorAll('.batch-group'));
-    containers.forEach(div => {
-      const include = !!div.querySelector('.bg-select')?.checked;
-      if (!include) return;
-      const oid = div.querySelector('.bg-oid')?.textContent?.trim();
-      if (!oid) return;
-      const rows = Array.from(div.querySelectorAll('tbody tr'));
-      const items = rows.map(tr => {
-        const inputs = tr.querySelectorAll('input');
-        const r = {};
-        inputs.forEach(inp => { const f = inp.getAttribute('data-field'); r[f] = inp.value; });
-        const sel = tr.querySelector('select[data-field="direction"]');
-        if (sel) r.direction = sel.value;
-        if (r.amount != null) r.amount = Number(r.amount);
-        return r;
-      }).filter(x => x.description || x.destination_name || x.amount);
-      if (items.length) groups.push({ matched: { originalTransactionId: oid }, items });
-    });
-    return groups;
-  }
-
-  function renderPreview(p) {
-    const rows = p.items.map((i, idx) => `
-      <tr>
+  function renderActiveRow(i, idx) {
+    return `
+      <tr data-settlement="0">
         <td><input data-ridx="${idx}" data-field="date" value="${escapeHtml(i.date||'')}" style="width:120px;"></td>
         <td><input data-ridx="${idx}" data-field="destination_name" value="${escapeHtml(i.destination_name||'')}" style="width:220px;"></td>
         <td><input data-ridx="${idx}" data-field="description" value="${escapeHtml(i.description||'')}" style="width:100%;"></td>
@@ -3964,27 +5403,161 @@ try {
         </td>
         <td style="text-align:right; white-space:nowrap;">
           <input data-ridx="${idx}" data-field="amount" value="${Number(i.amount||0).toFixed(2)}" style="width:100px; text-align:right;">
-          <button type="button" class="btn btn-secondary sp-del" data-ridx="${idx}" title="Remove row" style="margin-left:6px;">✕</button>
+          <button type="button" class="btn btn-secondary sp-hide" data-ridx="${idx}" title="Move to hidden lines (excluded from sum but kept for review)" style="margin-left:6px;">⇩</button>
+          <button type="button" class="btn btn-secondary sp-del" data-ridx="${idx}" title="Remove row entirely" style="margin-left:4px;">✕</button>
         </td>
-      </tr>`).join('');
+      </tr>`;
+  }
+
+  function renderHiddenRow(i, idx) {
+    return `
+      <tr data-hidden-idx="${idx}" style="opacity:0.85; background:#fafafa;" title="Hidden — not part of split sum. Use ⇧ Activate to include.">
+        <td>${escapeHtml(i.date||'')}</td>
+        <td>${escapeHtml(i.destination_name||'')}</td>
+        <td>${escapeHtml(i.description||'')}</td>
+        <td>${i.direction === 'in' ? 'deposit' : 'withdrawal'}</td>
+        <td style="text-align:right; white-space:nowrap;">
+          ${Number(i.amount||0).toFixed(2)}
+          <button type="button" class="btn btn-secondary sp-activate" data-hidden-idx="${idx}" title="Activate — include this line in the split" style="margin-left:6px;">⇧</button>
+        </td>
+      </tr>`;
+  }
+
+  function renderPreview(p) {
+    const rows = (p.items || []).map((i, idx) => renderActiveRow(i, idx)).join('');
+    const hiddenItems = Array.isArray(p.hiddenItems) ? p.hiddenItems : [];
+    const hiddenRows = hiddenItems.map((i, idx) => renderHiddenRow(i, idx)).join('');
     const warn = Math.abs(p.totals.diff) >= 0.01 ? `<span style="color:#f90;">Warning: total differs by ${p.totals.diff.toFixed(2)}</span>` : `<span style="color:#28a745;">OK</span>`;
+    const lineSumNote = formatLineSumNote(p.totals);
+    const hiddenNote = formatHiddenSettlementNote(p.meta?.hiddenSettlementLines ?? p.totals?.hiddenSettlementLines ?? hiddenItems.length);
+    const rowCount = (p.items || []).length;
+    const hiddenSection = `
+      <details class="sp-hidden-block" ${hiddenItems.length ? 'open' : ''} style="margin-top:12px; border:1px dashed #ced4da; border-radius:6px; padding:8px; background:#fafafa;">
+        <summary style="cursor:pointer; font-weight:600; color:#495057;">Hidden lines <span class="sp-hidden-count">${hiddenItems.length}</span> <span style="font-weight:normal; font-size:11px; color:#6c757d;">— not part of the split sum (e.g. Abbuchung Kartenabrechnung, Rücklastschrift, Zinsen, Vormonat). Activate any line to include it.</span></summary>
+        <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
+          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th>Amount</th></tr></thead>
+          <tbody class="sp-hidden-tbody">${hiddenRows || '<tr><td colspan="5" style="color:#6c757d; font-style:italic;">No hidden lines.</td></tr>'}</tbody>
+        </table>
+      </details>`;
     const html = `
-      <div class="single-preview" data-original="${Number(p.totals.original||0).toFixed(2)}">
+      <div class="single-preview" data-original="${Number(p.totals.original||0).toFixed(2)}" data-preview-sum="${Number(p.totals.sum||0).toFixed(2)}">
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <div>Original: <span class="sp-original">${p.totals.original.toFixed(2)}</span> | Sum: <span class="sp-sum">${p.totals.sum.toFixed(2)}</span> | Diff: <span class="sp-diff">${p.totals.diff.toFixed(2)}</span> · ${warn}</div>
+          <div>Original: <span class="sp-original">${p.totals.original.toFixed(2)}</span> | Sum: <span class="sp-sum">${p.totals.sum.toFixed(2)}</span>${lineSumNote}${hiddenNote} | Diff: <span class="sp-diff">${p.totals.diff.toFixed(2)}</span> · <span class="sp-warn">${warn}</span> · <span class="sp-row-count">${rowCount}</span> row(s)</div>
           <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
             <button type="button" class="btn btn-secondary sp-add-row">Add row</button>
             <button type="button" class="btn btn-secondary sp-recalc">Recalculate</button>
           </div>
         </div>
         <table border="1" cellspacing="0" cellpadding="6" style="margin-top:8px; width:100%;">
-          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th>Amount</th></tr></thead>
-          <tbody>${rows}</tbody>
+          <thead><tr><th>Date</th><th>Payee</th><th>Description</th><th>Type</th><th style="text-align:right;">Amount</th></tr></thead>
+          <tbody class="sp-active-tbody">${rows}</tbody>
         </table>
+        ${hiddenSection}
       </div>`;
-    // Defer binding events until inserted
-    setTimeout(() => bindSinglePreviewControls(), 0);
+    // Defer binding events until inserted (do not recalc on mount — server totals are authoritative)
+    setTimeout(() => { bindSinglePreviewControls(); }, 0);
     return html;
+  }
+
+  /** Move an active row into the hidden panel. */
+  function hideSingleRow(tr) {
+    const root = previewDiv.querySelector('.single-preview');
+    if (!tr || !root) return;
+    const inputs = tr.querySelectorAll('input,select');
+    const item = {};
+    inputs.forEach(inp => {
+      const f = inp.getAttribute('data-field');
+      if (f) item[f] = inp.value;
+    });
+    if (item.amount != null) {
+      const raw = String(item.amount).trim().replace(/\u00A0/g, '').replace(/\s+/g, '').replace(/,/g, '.');
+      item.amount = Number(raw);
+    }
+    const hiddenTbody = root.querySelector('.sp-hidden-tbody');
+    if (!hiddenTbody) return;
+    // Remove placeholder if present
+    const placeholder = hiddenTbody.querySelector('td[colspan]');
+    if (placeholder) placeholder.parentElement.remove();
+    const idx = hiddenTbody.querySelectorAll('tr[data-hidden-idx]').length;
+    hiddenTbody.insertAdjacentHTML('beforeend', renderHiddenRow(item, idx));
+    tr.remove();
+    bindHiddenRowControls();
+    updatePreviewCounts();
+    recalcSinglePreview();
+  }
+
+  /** Move a hidden row back into the active table. */
+  function activateHiddenRow(tr) {
+    const root = previewDiv.querySelector('.single-preview');
+    if (!tr || !root) return;
+    const cells = tr.querySelectorAll('td');
+    const item = {
+      date: cells[0]?.textContent?.trim() || '',
+      destination_name: cells[1]?.textContent?.trim() || '',
+      description: cells[2]?.textContent?.trim() || '',
+      direction: (cells[3]?.textContent?.trim() === 'deposit') ? 'in' : 'out',
+      amount: Number(String(cells[4]?.textContent || '').trim().split(/\s/)[0].replace(',', '.')) || 0
+    };
+    const activeTbody = root.querySelector('.sp-active-tbody');
+    if (!activeTbody) return;
+    const idx = activeTbody.querySelectorAll('tr').length;
+    activeTbody.insertAdjacentHTML('beforeend', renderActiveRow(item, idx));
+    tr.remove();
+    // If hidden tbody is now empty, restore placeholder
+    const hiddenTbody = root.querySelector('.sp-hidden-tbody');
+    if (hiddenTbody && !hiddenTbody.querySelector('tr[data-hidden-idx]')) {
+      hiddenTbody.innerHTML = '<tr><td colspan="5" style="color:#6c757d; font-style:italic;">No hidden lines.</td></tr>';
+    }
+    bindActiveRowControls();
+    updatePreviewCounts();
+    recalcSinglePreview();
+  }
+
+  function updatePreviewCounts() {
+    const root = previewDiv.querySelector('.single-preview');
+    if (!root) return;
+    const activeCount = root.querySelectorAll('.sp-active-tbody tr').length;
+    const hiddenCount = root.querySelectorAll('.sp-hidden-tbody tr[data-hidden-idx]').length;
+    const rcEl = root.querySelector('.sp-row-count');
+    if (rcEl) rcEl.textContent = String(activeCount);
+    const hcEl = root.querySelector('.sp-hidden-count');
+    if (hcEl) hcEl.textContent = String(hiddenCount);
+  }
+
+  function bindActiveRowControls() {
+    const root = previewDiv.querySelector('.single-preview');
+    if (!root) return;
+    root.querySelectorAll('.sp-active-tbody .sp-del').forEach(btn => {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', (e) => {
+        const tr = e.currentTarget.closest('tr');
+        if (tr) tr.remove();
+        updatePreviewCounts();
+        recalcSinglePreview();
+      });
+    });
+    root.querySelectorAll('.sp-active-tbody .sp-hide').forEach(btn => {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', (e) => {
+        const tr = e.currentTarget.closest('tr');
+        hideSingleRow(tr);
+      });
+    });
+  }
+
+  function bindHiddenRowControls() {
+    const root = previewDiv.querySelector('.single-preview');
+    if (!root) return;
+    root.querySelectorAll('.sp-hidden-tbody .sp-activate').forEach(btn => {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', (e) => {
+        const tr = e.currentTarget.closest('tr');
+        activateHiddenRow(tr);
+      });
+    });
   }
 
   function bindSinglePreviewControls() {
@@ -3992,48 +5565,37 @@ try {
     if (!root) return;
     root.querySelector('.sp-add-row')?.addEventListener('click', () => addSingleRow());
     root.querySelector('.sp-recalc')?.addEventListener('click', () => recalcSinglePreview());
-    root.querySelectorAll('.sp-del')?.forEach(btn => btn.addEventListener('click', (e) => {
-      const tr = e.currentTarget.closest('tr');
-      if (tr) tr.remove();
-      recalcSinglePreview();
-    }));
+    bindActiveRowControls();
+    bindHiddenRowControls();
+    // Live recalc on amount or direction edit
+    root.addEventListener('input', (e) => {
+      if (e.target && e.target.matches('input[data-field="amount"]')) {
+        recalcSinglePreview();
+      }
+    });
+    root.addEventListener('change', (e) => {
+      if (e.target && e.target.matches('select[data-field="direction"]')) {
+        recalcSinglePreview();
+      }
+    });
   }
 
   function addSingleRow() {
-    const tbody = previewDiv.querySelector('.single-preview tbody');
+    const tbody = previewDiv.querySelector('.single-preview .sp-active-tbody');
     if (!tbody) return;
     const ridx = tbody.querySelectorAll('tr').length;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input data-ridx="${ridx}" data-field="date" value="" style="width:120px;"></td>
-      <td><input data-ridx="${ridx}" data-field="destination_name" value="" style="width:220px;"></td>
-      <td><input data-ridx="${ridx}" data-field="description" value="" style="width:100%;"></td>
-      <td>
-        <select data-ridx="${ridx}" data-field="direction" style="width:120px;">
-          <option value="out" selected>withdrawal</option>
-          <option value="in">deposit</option>
-        </select>
-      </td>
-      <td style="text-align:right; white-space:nowrap;">
-        <input data-ridx="${ridx}" data-field="amount" value="0.00" style="width:100px; text-align:right;">
-        <button type="button" class="btn btn-secondary sp-del" data-ridx="${ridx}" title="Remove row" style="margin-left:6px;">✕</button>
-      </td>`;
-    tbody.appendChild(tr);
-    tr.querySelector('.sp-del')?.addEventListener('click', () => { tr.remove(); recalcSinglePreview(); });
+    tbody.insertAdjacentHTML('beforeend', renderActiveRow({ date: '', destination_name: '', description: '', direction: 'out', amount: 0 }, ridx));
+    bindActiveRowControls();
+    updatePreviewCounts();
     recalcSinglePreview();
   }
 
   function collectSingleEdits() {
     const root = previewDiv.querySelector('.single-preview');
-    const rows = Array.from(root?.querySelectorAll('tbody tr') || []);
-    const items = rows.map(tr => {
-      const r = {};
-      tr.querySelectorAll('input').forEach(inp => { r[inp.getAttribute('data-field')] = inp.value; });
-      const sel = tr.querySelector('select[data-field="direction"]');
-      if (sel) r.direction = sel.value;
-      if (r.amount != null) r.amount = Number(r.amount);
-      return r;
-    }).filter(x => x.description || x.destination_name || x.amount);
+    // Only active rows count toward the split. Hidden rows are excluded.
+    const rows = Array.from(root?.querySelectorAll('.sp-active-tbody tr') || []);
+    const items = rows.map(tr => rowItemFromTr(tr))
+      .filter(x => !isSettlementLine(x) && (x.description || x.destination_name || Number.isFinite(x.amount)));
     return items;
   }
 
@@ -4041,11 +5603,34 @@ try {
     const root = previewDiv.querySelector('.single-preview');
     if (!root || !lastPreview) return;
     const items = collectSingleEdits();
-    const sum = items.reduce((s, i) => s + ((i.direction === 'in') ? -Math.abs(Number(i.amount||0)) : Math.abs(Number(i.amount||0))), 0);
+    const lineSum = computeSumFromItems(items);
+    const initialLineSum = lastPreview?.meta?.lineSum ?? lastPreview?.totals?.lineSum;
+    const rowsUnchanged = initialLineSum == null || Math.abs(lineSum - Number(initialLineSum)) < 0.01;
+    const sum = rowsUnchanged && Number.isFinite(Number(lastPreview?.totals?.sum))
+      ? Number(lastPreview.totals.sum)
+      : getEffectiveExtractionSum(items);
     const original = Number(lastPreview.totals.original || 0);
-    const diff = original - sum;
+    const diff = Number((original - sum).toFixed(2));
     root.querySelector('.sp-sum').textContent = sum.toFixed(2);
     root.querySelector('.sp-diff').textContent = diff.toFixed(2);
+    let noteEl = root.querySelector('.sp-line-sum-note');
+    if (Math.abs(lineSum - sum) > 0.01) {
+      if (!noteEl) {
+        noteEl = document.createElement('span');
+        noteEl.className = 'sp-line-sum-note';
+        noteEl.style.cssText = 'font-size:11px;color:#6c757d;';
+        root.querySelector('.sp-sum')?.insertAdjacentElement('afterend', noteEl);
+      }
+      noteEl.textContent = ` (line sum ${lineSum.toFixed(2)}; using PDF Rechnungsbetrag)`;
+    } else if (noteEl) {
+      noteEl.remove();
+    }
+    const warnEl = root.querySelector('.sp-warn');
+    if (warnEl) {
+      warnEl.innerHTML = Math.abs(diff) >= 0.01
+        ? `<span style="color:#f90;">Warning: total differs by ${diff.toFixed(2)}</span>`
+        : `<span style="color:#28a745;">OK</span>`;
+    }
   }
   
   // ===== Duplicates: UI injection =====

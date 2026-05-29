@@ -27,9 +27,80 @@ export default class OpenAiService {
         }
     }
 
-    async classify(categories, destinationName, description, transactionType = 'withdrawal') {
+    async matchAccount(accountNames, destinationName, description, transactionType = 'withdrawal') {
         try {
-            const prompt = this.#generatePrompt(categories, destinationName, description, transactionType);
+            const list = Array.isArray(accountNames) ? accountNames.filter(Boolean) : [];
+            if (!list.length) return { name: null, confidence: 0 };
+            const guidance = transactionType === 'withdrawal'
+                ? 'This is an EXPENSE (money out). Choose an EXPENSE account if any fits.'
+                : 'This is a REVENUE (money in). Choose a REVENUE account if any fits.';
+            const rules = [
+                'Pick AT MOST ONE account.',
+                'You MUST return the account name EXACTLY as it appears in the list, if you choose one.',
+                'If there is no suitable match, return name: null.',
+                'Consider case-insensitive matches and common variations (punctuation, accents, abbreviations), but OUTPUT must be exact from the list.',
+                'Use both Payee and Description as hints.',
+                'Respond with STRICT JSON only (no backticks, no prose).'
+            ];
+            const header = `You match a transaction to an existing account name.`;
+            const accountsBlock = `Accounts (choose at most one by exact name):\n${list.map(n => `- ${n}`).join('\n')}`;
+            const txBlock = `Transaction:\n- Payee: ${destinationName || ''}\n- Description: ${description || ''}\n- Type: ${transactionType}`;
+            const rulesBlock = `Rules:\n- ${rules.join('\n- ')}`;
+            const prompt = `${header}\n\n${accountsBlock}\n\n${txBlock}\n\n${guidance}\n\n${rulesBlock}\n\nReturn ONLY JSON object: {"name": "<exact from list or null>", "confidence": 0..1}`;
+            // Estimated token count (rough: 1 token ≈ 4 chars)
+            const estimatedTokens = Math.ceil((prompt.length + 50) / 4);
+            try {
+                console.info('ai-merchant-prompt', {
+                    model: this.#model,
+                    totalCandidates: list.length,
+                    candidatesPreview: list.slice(0, 15),
+                    destinationName: destinationName || '',
+                    description: description || '',
+                    transactionType,
+                    estimatedTokens,
+                    prompt
+                });
+            } catch (_) {}
+            const response = await this.#openAi.createChatCompletion({
+                model: this.#model,
+                messages: [
+                    { role: 'system', content: 'You are an assistant that chooses the best matching account name from a provided list. Respond with strict JSON only.' },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 80,
+                temperature: 0.1
+            });
+            const content = response.data.choices?.[0]?.message?.content || '{}';
+            try {
+                console.info('ai-merchant-raw', { content: String(content).substring(0, 2000) });
+            } catch (_) {}
+            let json = {};
+            try {
+                json = JSON.parse(content);
+            } catch (_) {
+                // try to extract object
+                const m = content.match(/\{[\s\S]*\}/);
+                json = m ? JSON.parse(m[0]) : {};
+            }
+            const name = (typeof json.name === 'string' && list.includes(json.name)) ? json.name : null;
+            const confidence = Number(json.confidence || 0);
+            try {
+                console.info('ai-merchant-match-response', {
+                    name,
+                    confidence: Number.isFinite(confidence) ? confidence : 0,
+                    rawPreview: String(content).substring(0, 500)
+                });
+            } catch (_) {}
+            return { name, confidence: Number.isFinite(confidence) ? confidence : 0 };
+        } catch (e) {
+            console.error('matchAccount error:', e.message);
+            return { name: null, confidence: 0 };
+        }
+    }
+
+    async classify(categories, destinationName, description, transactionType = 'withdrawal', options = {}) {
+        try {
+            const prompt = this.#generatePrompt(categories, destinationName, description, transactionType, options);
 
             // Estimated token count (rough: 1 token ≈ 4 characters)
             const estimatedTokens = Math.ceil((prompt.length + 50) / 4);
@@ -113,17 +184,21 @@ export default class OpenAiService {
         }
     }
 
-    #generatePrompt(categories, destinationName, description, transactionType) {
+    #generatePrompt(categories, destinationName, description, transactionType, options = {}) {
         const typeGuidance = transactionType === 'withdrawal' 
             ? 'This is a WITHDRAWAL (money going out). Choose categories appropriate for expenses, purchases, or outgoing payments.'
             : 'This is a DEPOSIT (money coming in). Choose categories appropriate for income, refunds, or incoming payments.';
+
+        const suggested = options.suggestedCategory
+            ? `\nSuggested category (from user keyword rule, prefer if it fits): ${options.suggestedCategory}`
+            : '';
 
         return `Given I want to categorize transactions on my bank account into these categories: ${categories.join(", ")}
 
 In which category would a transaction from "${destinationName}" with the subject "${description}" fall into?
 
 Transaction Type: ${transactionType}
-${typeGuidance}
+${typeGuidance}${suggested}
 
 Rules:
 - Respond with ONLY the exact category name from the list above

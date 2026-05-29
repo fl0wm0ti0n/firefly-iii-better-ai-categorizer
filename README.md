@@ -27,38 +27,28 @@ If it cannot detect the category, it will not update anything.
 - **Configurable per process**: Applies to webhooks, manual processing, and batch operations
 
 ### **📊 Collapsible Interface**
-- **Space-efficient UI**: All major sections (Failed Transactions, Word Mappings, Foreign Keywords, Category Mappings) are collapsible
-- **Item counters**: Each section displays the number of items when collapsed
-- **Improved navigation**: Better overview of large lists and configurations
+- **Space-efficient UI**: Major sections (mappings, failed transactions, auto-cat) are collapsible with item counters
 
-### **✏️ Edit Functionality**
-- **Edit Word Mappings**: Modify existing word mappings with edit buttons
-- **Edit Category Mappings**: Full CRUD operations for category rules
-- **Intuitive workflow**: Click edit, modify values, and save changes
+### **🏦 Account → Category Mappings**
+- **Hard 1:1 rules**: Fixed category per account — skips AI, auto-cat, and keyword hints
+- **UI**: Add form on top; accounts with an existing mapping are hidden in the dropdown
 
-### **🗂️ Category Mappings (Custom Rules)**
-- **Priority processing**: Category mappings are checked BEFORE auto-categorization and AI
-- **Pattern matching**: Define rules like "rewe, spar, hofer" → "Groceries"
-- **Enable/disable rules**: Toggle individual mappings without deletion
-- **Keyword-based**: Comma-separated keywords for flexible matching
+### **🗂️ Keyword → Category Mappings**
+- **AI hints**: Loose keyword match + suggested category for OpenAI (not direct assignment)
+- **CRUD / toggle**: Edit, enable, or disable rules without deletion
 
 ### **🌍 Enhanced Auto-Categorization**
-- **Foreign/Travel Detection**: Automatic categorization for international transactions
-- **Multi-criteria**: Currency, foreign flags, keywords, and country detection
-- **Comma-separated keywords**: Easy bulk input like "bangkok, hotel, usd, paris, london"
-- **API savings**: Reduces OpenAI API calls for obvious foreign transactions
+- **Foreign/Travel Detection**: Currency, flags, keywords, and country-based rules
+- **API savings**: Reduces OpenAI calls for obvious foreign transactions
 
 ### **📋 Bulk Categorization**
-- **Process Uncategorized Transactions**: Categorizes only transactions without existing categories
-- **Process All Transactions**: Re-categorizes ALL transactions (with deposit filtering option)
-- **Real-time monitoring**: Progress bars, statistics, and error tracking
-- **Batch control**: Pause, resume, and cancel batch operations
+- **Same pipeline as webhook**: Account mappings → auto-cat → word mappings → AI
+- **Uncategorized / All**, pause/resume/cancel, live progress — see **[docs/BULK_CATEGORIZATION_GUIDE.md](docs/BULK_CATEGORIZATION_GUIDE.md)**
 
 ### **🔧 Word Mappings & Failed Transactions**
-- **Failed transaction tracking**: Automatic logging of categorization failures
-- **Quick mapping creation**: Create word mappings directly from failed transactions
-- **Edit existing mappings**: Modify word replacements with intuitive interface
-- **Collapsible lists**: Better organization of large mapping collections
+- **Persistent log** (`data/failed-transactions.json`, max 100); **Refresh** enriches amount/date from Firefly
+- **Deduplicated list** in the API; entries removed when categorization later succeeds
+- **Quick word mappings** from failed transaction cards
 
 ## Privacy
 
@@ -266,7 +256,8 @@ The UI is organized by a left side panel with these groups (in order):
 - **Categorizer**:
   - Auto-Categorization (Foreign/Travel Detection)
   - General Settings
-  - Category Mappings (Custom Rules)
+  - Keyword → Category Mappings (AI hints)
+  - Account → Category Mappings (hard rules)
   - Word Mappings & Failed Transactions
   - Transaction Management (Interactive)
   - Bulk Categorization (run AI for all/uncategorized)
@@ -300,8 +291,9 @@ Configure system-wide options:
 
 ### **📋 Bulk Categorization**
 Control batch operations with real-time monitoring:
-- **Process Uncategorized Transactions**: Safely categorizes only transactions without existing categories
-- **Process All Transactions**: Re-categorizes ALL transactions (with confirmation dialog)
+- **Process Uncategorized Transactions**: Only transactions without a category
+- **Process All Transactions**: Re-categorize all (with confirmation)
+- **Same rules as webhook**: Account mappings first, then auto-cat, word mappings, AI with keyword hints
 - **Pause/Resume/Cancel**: Full control over long-running batch jobs
 - **Progress tracking**: Live progress bars, statistics, and detailed error logs
 
@@ -311,13 +303,17 @@ Test the categorization system without affecting real transactions:
 - **Transaction type selection**: Test both withdrawals and deposits
 - **Immediate feedback**: See categorization results in real-time
 
-### **🗂️ Category Mappings (Custom Rules)**
-Create and manage custom categorization rules with highest priority:
-- **Rule creation**: Define rules like "Supermarkets" with keywords "rewe, spar, hofer" → "Groceries"
-- **Priority processing**: Category mappings are checked BEFORE auto-categorization and AI
-- **Edit functionality**: Modify existing rules with intuitive edit buttons
-- **Enable/disable**: Toggle rules without deletion
-- **Collapsible interface**: Organized view with item counters
+### **🏦 Account → Category Mappings**
+Hard rules by Firefly account (expense/revenue):
+- **1:1 assignment**: All transactions involving the account receive the target category; no AI call
+- **UI**: Add form and dropdowns on top; configured mappings in a collapsible list below
+- **Account picker**: Accounts that already have a mapping are omitted from the dropdown (except when editing)
+
+### **🗂️ Keyword → Category Mappings**
+Keyword rules that improve AI categorization (not direct assignment):
+- **Rule creation**: e.g. keywords `rewe, spar, hofer` → suggested category `Groceries`
+- **Loose matching**: Keywords are matched flexibly in the transaction description
+- **Edit / enable / disable**: Full CRUD with collapsible list and item counters
 
 ### **🌍 Auto-Categorization (Foreign/Travel Detection)**
 Automatic categorization for international transactions:
@@ -328,7 +324,9 @@ Automatic categorization for international transactions:
 
 ### **✏️ Word Mappings & Failed Transactions**
 Improve categorization accuracy and handle failures:
-- **Failed transaction tracking**: Automatic logging of categorization failures
+- **Failed transaction tracking**: Stored under `data/failed-transactions.json`; removed automatically when categorization later succeeds
+- **Refresh / enrich**: Loads amount and booking date from Firefly (by transaction ID or search); requires a current backend build (`GET /api/version` → `apiVersion: 1.1.0`)
+- **List size**: The UI shows deduplicated entries; counts can drop after container restart (in-memory jobs gone), successful bulk runs, or **Cleanup**
 - **Quick mapping creation**: Create word mappings directly from failed transactions
 - **Edit mappings**: Modify existing word replacements with edit buttons
 - **Collapsible lists**: Better organization with item counters
@@ -342,7 +340,7 @@ Real-time monitoring with detailed insights:
 
 ## Categorization Process Flow
 
-The system uses a sophisticated multi-stage categorization process:
+Webhook, bulk jobs, and test webhook use the same pipeline (`#resolveCategory`):
 
 ```
 New Transaction
@@ -351,8 +349,8 @@ New Transaction
    ├─ Deposit? → Skip transaction
    └─ Continue to categorization
        ↓
-2. Category Mappings (Custom Rules) - HIGHEST PRIORITY
-   ├─ Keywords match? → Apply custom category
+2. Account → Category Mappings — HARD RULE (highest priority)
+   ├─ Source or destination account mapped? → Assign category, stop
    └─ No match: Continue to step 3
        ↓
 3. Auto-Categorization (Foreign/Travel Detection)
@@ -367,9 +365,12 @@ New Transaction
    └─ Continue to step 5
        ↓
 5. AI Classification (OpenAI)
+   ├─ Keyword → Category mappings: loose match → hint text + suggested category
    ├─ Generate category suggestion
    └─ Apply category or log as failed
 ```
+
+See **[BULK_CATEGORIZATION_GUIDE.md](docs/BULK_CATEGORIZATION_GUIDE.md)** for bulk-specific notes.
 
 ## Adjust Tag name
 
@@ -408,7 +409,14 @@ If you have to run the application on a different port than the default port `30
 - `GET /api/word-mappings` - Get all word mappings
 - `POST /api/word-mappings` - Add new word mapping
 - `DELETE /api/word-mappings/:fromWord` - Remove word mapping
-- `GET /api/failed-transactions` - Get failed transactions list
+
+### Failed Transactions
+- `GET /api/version` - API version and capabilities (e.g. `apiVersion: 1.1.0`)
+- `GET /api/failed-transactions` - List failed transactions (deduplicated; optional `?enrich=1` for Firefly backfill)
+- `POST /api/failed-transactions/refresh` - Refresh list and run multi-pass enrich from Firefly
+- `POST /api/failed-transactions/enrich` - Enrich incomplete entries only
+- `POST /api/failed-transactions/cleanup` - Remove entries older than 7 days and duplicates
+- `DELETE /api/failed-transactions/:id` - Remove one entry
 
 ### Auto-Categorization
 - `GET /api/auto-categorization/config` - Get auto-categorization configuration
@@ -416,12 +424,20 @@ If you have to run the application on a different port than the default port `30
 - `POST /api/auto-categorization/keywords` - Add/update foreign keywords
 - `DELETE /api/auto-categorization/keywords/:keyword` - Remove foreign keyword
 
-### Category Mappings
-- `GET /api/category-mappings` - Get all category mappings
-- `POST /api/category-mappings` - Add new category mapping
-- `PUT /api/category-mappings/:id` - Update existing category mapping
-- `DELETE /api/category-mappings/:id` - Delete category mapping
-- `PATCH /api/category-mappings/:id/toggle` - Enable/disable category mapping
+### Keyword → Category Mappings
+- `GET /api/category-mappings` - Get all keyword mappings
+- `POST /api/category-mappings` - Add new keyword mapping
+- `PUT /api/category-mappings/:id` - Update keyword mapping
+- `DELETE /api/category-mappings/:id` - Delete keyword mapping
+- `PATCH /api/category-mappings/:id/toggle` - Enable/disable keyword mapping
+
+### Account → Category Mappings
+- `GET /api/account-category-mappings` - Get all account mappings
+- `POST /api/account-category-mappings` - Add account mapping
+- `PUT /api/account-category-mappings/:id` - Update account mapping
+- `DELETE /api/account-category-mappings/:id` - Delete account mapping
+- `PATCH /api/account-category-mappings/:id/toggle` - Enable/disable account mapping
+- `GET /api/accounts` - List Firefly accounts (for mapping UI)
 
 ## ✨ Key Features
 
@@ -431,7 +447,8 @@ If you have to run the application on a different port than the default port `30
 - **🔄 Real-time Processing**: Webhook integration for automatic processing of new transactions
 - **📊 Batch Processing**: Process all uncategorized or all transactions manually
 - **🎯 Smart Auto-Categorization**: Pre-categorization based on currency, country, and custom keywords
-- **🗂️ Category Mappings**: User-defined rules for automatic categorization
+- **🏦 Account → Category Mappings**: Hard per-account category assignment
+- **🗂️ Keyword → Category Mappings**: AI hints via loose keyword matching
 - **💻 Interactive Transaction Management**: Browse, filter, and manage transactions with bulk operations
 - **📈 Real-time Monitoring**: Live updates via Socket.io with progress tracking
 - **🔧 Comprehensive Configuration**: Web-based settings for all features
@@ -507,11 +524,13 @@ For detailed instructions, see **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_M
 - **Edit Category Mappings**: Full CRUD operations for category rules
 - **Intuitive workflow**: Click edit, modify values, and save changes
 
-### **🗂️ Category Mappings (Custom Rules)**
-- **Priority processing**: Category mappings are checked BEFORE auto-categorization and AI
-- **Pattern matching**: Define rules like "rewe, spar, hofer" → "Groceries"
-- **Enable/disable rules**: Toggle individual mappings without deletion
-- **Keyword-based**: Comma-separated keywords for flexible matching
+### **🏦 Account → Category Mappings**
+- **Hard rules**: Fixed category per account; highest priority in the pipeline
+- **UI**: Add form on top; mapped accounts hidden from the account dropdown
+
+### **🗂️ Keyword → Category Mappings**
+- **AI hints only**: Loose keyword match improves the OpenAI prompt; target category is a suggestion
+- **Enable/disable**: Toggle rules without deletion
 
 ### **🌍 Enhanced Auto-Categorization**
 - **Foreign/Travel Detection**: Automatic categorization for international transactions
@@ -520,30 +539,34 @@ For detailed instructions, see **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_M
 - **API savings**: Reduces OpenAI API calls for obvious foreign transactions
 
 ### **📋 Bulk Categorization**
-- **Process Uncategorized Transactions**: Categorizes only transactions without existing categories
-- **Process All Transactions**: Re-categorizes ALL transactions (with deposit filtering option)
-- **Real-time monitoring**: Progress bars, statistics, and error tracking
-- **Batch control**: Pause, resume, and cancel batch operations
+- **Same pipeline as webhook**: Account mappings → auto-cat → word mappings → AI with keyword hints
+- **Process Uncategorized / Process All**: With deposit filtering, pause/resume/cancel, live progress
+- See **[docs/BULK_CATEGORIZATION_GUIDE.md](docs/BULK_CATEGORIZATION_GUIDE.md)**
 
 ### **🔧 Word Mappings & Failed Transactions**
-- **Failed transaction tracking**: Automatic logging of categorization failures
-- **Quick mapping creation**: Create word mappings directly from failed transactions
-- **Edit existing mappings**: Modify word replacements with intuitive interface
-- **Collapsible lists**: Better organization of large mapping collections
+- **Persistent log** in `data/failed-transactions.json`; **Refresh** enriches from Firefly
+- **Deduplicated API list**; entry removed when a transaction is later categorized successfully
+- **Quick mapping creation** from failed transaction cards
 
 ## 🔧 Configuration
+
+### Data directory
+Configuration and runtime data live under `data/` (mount as a Docker volume in production):
+- `account-category-mappings.json`, `category-mappings.json`, `word-mappings.json`
+- `failed-transactions.json`, `auto-categorization-config.json`, extraction config/logs
+
+**Deploy note:** UI changes in `public/` often apply after a hard browser refresh. **Backend** changes (new API routes, categorization logic) require rebuilding and restarting the categorizer container.
 
 ## 📚 Documentation
 
 **📚 Comprehensive Guides Available:**
 
-- **[AUTO_CATEGORIZATION_GUIDE.md](AUTO_CATEGORIZATION_GUIDE.md)** - Complete guide for automatic transaction categorization with LLM
-- **[WORD_MAPPING_GUIDE.md](WORD_MAPPING_GUIDE.md)** - Advanced word-to-category mapping configuration
-- **[TRANSACTION_MANAGEMENT_GUIDE.md](TRANSACTION_MANAGEMENT_GUIDE.md)** - Interactive drag & drop transaction management interface
-- **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)** - Production Docker deployment with docker-compose
- - **[CREDIT_CARD_STATEMENT_SPLITTER.md](CREDIT_CARD_STATEMENT_SPLITTER.md)** - Split statements (CSV/PDF) into child transactions
- - **[DUPLICATE_CLEANUP_GUIDE.md](DUPLICATE_CLEANUP_GUIDE.md)** - Find and safely remove duplicates (keep one per group)
- - **[BULK_CATEGORIZATION_GUIDE.md](BULK_CATEGORIZATION_GUIDE.md)** - Run AI across uncategorized or all transactions
+- **[docs/AUTO_CATEGORIZATION_GUIDE.md](docs/AUTO_CATEGORIZATION_GUIDE.md)** - Foreign/travel auto-categorization
+- **[docs/WORD_MAPPING_GUIDE.md](docs/WORD_MAPPING_GUIDE.md)** - Word replacement before AI
+- **[docs/TRANSACTION_MANAGEMENT_GUIDE.md](docs/TRANSACTION_MANAGEMENT_GUIDE.md)** - Drag & drop transaction management
+- **[docs/DOCKER_GUIDE.md](docs/DOCKER_GUIDE.md)** - Production Docker deployment
+- **[docs/DUPLICATE_CLEANUP_GUIDE.md](docs/DUPLICATE_CLEANUP_GUIDE.md)** - Find and remove duplicates
+- **[docs/BULK_CATEGORIZATION_GUIDE.md](docs/BULK_CATEGORIZATION_GUIDE.md)** - Bulk modes and categorization precedence
 
 **Quick References:**
 - Setup and configuration
@@ -644,5 +667,15 @@ docker-compose logs -f firefly-ai-categorizer
 # Restart unhealthy container
 docker-compose restart firefly-ai-categorizer
 ```
+
+#### **Failed Transactions: Refresh returns 404 or HTML**
+The enrich/refresh API needs a current backend build:
+```bash
+docker compose build categorizer && docker compose up -d categorizer
+curl -s http://localhost:3001/api/version   # expect apiVersion 1.1.0
+```
+
+#### **Failed Transactions count dropped**
+The list is deduplicated (one row per Firefly transaction). Counts can decrease after a **container restart** (in-memory webhook jobs lost), **Cleanup**, or successful **bulk/account** categorization that removes resolved entries from `failed-transactions.json`.
 
 ### Local Installation Issues
