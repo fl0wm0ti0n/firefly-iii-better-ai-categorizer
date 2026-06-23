@@ -1,0 +1,12 @@
+{
+  "id": "T-0043",
+  "title": "Create scripts/dev-launch.sh — deterministic launch + health poll",
+  "description": "Create scripts/dev-launch.sh bash script that: (1) runs docker compose -f docker-compose.local.yml up -d --build, (2) polls http://localhost:3001/ every 2 seconds (UAT_PROCESS_HEALTH_POLL_INTERVAL_SECONDS=2) until HTTP 200 or 60 second timeout (UAT_PROCESS_HEALTH_POLL_SECONDS=60), (3) prints status/error messages, (4) exits 0 on success, 1 on timeout. Include optional port 3001 availability pre-check. Make executable (chmod +x).",
+  "acceptance_criteria_refs": ["AC-4"],
+  "decision_refs": ["DEC-0018"],
+  "dependencies": [],
+  "estimated_complexity": "medium",
+  "status": "done",
+  "files": ["scripts/dev-launch.sh"],
+  "notes": "This is the canonical reference script; agent reads start_command from dev-environment.json but the script provides the implementation pattern. Bash shebang + set -euo pipefail. Consider companion scripts/dev-stop.sh or document inline."
+}

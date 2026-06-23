@@ -1,0 +1,12 @@
+{
+  "id": "T-0050",
+  "title": "Production redeploy and verify /api/reviews returns JSON 200",
+  "description": "Rebuild and recreate the production categorizer container from the parent Firefly Docker stack using --build --force-recreate. Confirm the stale image (predating US-0004) is replaced and that an internal container probe to http://127.0.0.1:3000/api/reviews returns HTTP 200 JSON.",
+  "acceptance_criteria_refs": ["BUG-0002 AC-1", "BUG-0002 AC-2"],
+  "decision_refs": ["DEC-0020"],
+  "dependencies": [],
+  "estimated_complexity": "high",
+  "status": "done",
+  "files": ["/workdir/firefly/docker-compose.yml"],
+  "notes": "Execute from /workdir/firefly. Command: docker compose -f /workdir/firefly/docker-compose.yml up -d --build --force-recreate categorizer. Do not modify the compose file. Verify via docker exec categorizer node -e with a GET /api/reviews probe. If HTML 404 is returned, stop and investigate build cache / image tag."
+}

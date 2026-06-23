@@ -1,0 +1,59 @@
+{
+  "selected_pack": "small-intake-pack",
+  "intake_run_id": "intake-20260622-us0006-local-browser-uat",
+  "writer_id": "po-subagent",
+  "work_item_kind": "story",
+  "asked_topics": [
+    "outcome_success_criteria",
+    "impacted_components",
+    "constraints_compatibility_risks",
+    "required_tests_acceptance_checks",
+    "done_definition"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": "(none)",
+  "topic_coverage": [
+    {
+      "topic_key": "outcome_success_criteria",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Enable the agent to launch the Categorizer locally so it can run Cursor IDE browser UAT probes by itself; deterministic local dev launch path, Traefik/router or direct-port binding, populated dev-environment.json, end-to-end browser UAT self-test, production deployment untouched.",
+      "intake_run_id": "intake-20260622-us0006-local-browser-uat",
+      "turn_index": 0,
+      "ref": "ie:intake-20260622-us0006-local-browser-uat:0:b9f41b4f51d355dc"
+    },
+    {
+      "topic_key": "impacted_components",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Docker Compose and container setup, Traefik routing/labels, .cursor/dev-environment.json, docs/engineering/runbook.md UAT/dev launch pointers, docs/engineering/architecture.md runtime connectivity notes, Cursor IDE browser MCP probe wiring.",
+      "intake_run_id": "intake-20260622-us0006-local-browser-uat",
+      "turn_index": 1,
+      "ref": "ie:intake-20260622-us0006-local-browser-uat:1:3b781eb3f68b45ce"
+    },
+    {
+      "topic_key": "constraints_compatibility_risks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "No application logic changes beyond local launch support; no breaking changes to production Docker Compose services or categorizer.omniflow.cc routing; keep changes local to development/CI workflow and documentation; direct port binding may be simpler than local Traefik; ensure health endpoint GET /health and admin UI / are reachable from Cursor browser on stable local port.",
+      "intake_run_id": "intake-20260622-us0006-local-browser-uat",
+      "turn_index": 2,
+      "ref": "ie:intake-20260622-us0006-local-browser-uat:2:66cde34aa7dddfdd"
+    },
+    {
+      "topic_key": "required_tests_acceptance_checks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "AC-1 .cursor/dev-environment.json declares deterministic local launch command + health URL; AC-2 Docker Compose supports ephemeral local launch without breaking production; AC-3 Traefik/router or direct port binding exposes local service URL reachable from Cursor browser; AC-4 agent triggers launch, waits for health, opens browser probe URL; AC-5 browser probe collects console errors and /api/reviews response evidence; AC-6 user guide documents local agent-driven UAT flow (USER_GUIDE_MODE=1).",
+      "intake_run_id": "intake-20260622-us0006-local-browser-uat",
+      "turn_index": 3,
+      "ref": "ie:intake-20260622-us0006-local-browser-uat:3:fe53510d62f6ae9a"
+    },
+    {
+      "topic_key": "done_definition",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Agent can run end-to-end local browser UAT against a launched Categorizer instance; acceptance criteria pass; user guide exists; production deployment config unchanged; no regression in existing production services.",
+      "intake_run_id": "intake-20260622-us0006-local-browser-uat",
+      "turn_index": 4,
+      "ref": "ie:intake-20260622-us0006-local-browser-uat:4:97432e5179a7fbc9"
+    }
+  ],
+  "story_id": "US-0006",
+  "story_summary": "Agent-driven local Categorizer launch for Cursor browser UAT probes"
+}

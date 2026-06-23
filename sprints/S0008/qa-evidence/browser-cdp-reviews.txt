@@ -1,0 +1,12 @@
+Browser MCP CDP probe — /api/reviews
+Timestamp: 2026-06-22T22:44:55+02:00
+Method: Runtime.evaluate (awaitPromise=true, returnByValue=true)
+Expression: (async () => { const r = await fetch('/api/reviews'); const j = await r.json(); return JSON.stringify({status: r.status, body: j, type: typeof j}); })()
+
+Result:
+{
+  "type": "string",
+  "value": "{\"status\":200,\"body\":{\"success\":true,\"reviews\":[{\"id\":\"review-2\",\"transactionId\":\"tx-2\",\"status\":\"pending\",\"recommendation\":{\"preferredCategory\":\"Restaurants\"}},{\"id\":\"review-1\",\"transactionId\":\"tx-123\",\"status\":\"pending\",\"recommendation\":{\"preferredCategory\":\"Groceries\",\"historyConfidence\":0.9,\"aiCategory\":\"Restaurants\",\"aiConfidence\":0.6}}]},\"type\":\"object\"}"
+}
+
+Evidence: HTTP 200, valid JSON parsed by r.json() without throwing SyntaxError. Type "object" confirms object (not string/HTML).

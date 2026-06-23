@@ -1,0 +1,17 @@
+{
+  "id": "T-0007",
+  "sprint": "S0003",
+  "work_item": "US-0001",
+  "title": "Precedence tests cases 1-4",
+  "task": "Implement tests/resolveCategory.test.js with node:test + assert. Cover case-1-account-wins, case-2-auto-cat-wins, case-3-ai-wins, case-4-account-beats-ai using createForTest stub wiring per architecture AC-2 matrix. Assert messages name case id and expected vs actual category.",
+  "files": ["tests/resolveCategory.test.js"],
+  "acceptance": [
+    "Four required precedence cases pass via node --test",
+    "case-2 asserts classify not called; case-4 asserts classify.mock.callCount() === 0",
+    "case-3 asserts classify called once with mapped description args",
+    "Failure messages include case id (e.g. case-2-auto-cat-wins) and expected vs actual",
+    "Remove tests/_poc/ if present after green"
+  ],
+  "status": "done",
+  "required": true
+}

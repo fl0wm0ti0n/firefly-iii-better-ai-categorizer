@@ -1,0 +1,16 @@
+{
+  "id": "T-0002",
+  "sprint": "S0002",
+  "work_item": "BUG-0001",
+  "title": "App.js #getCategories structured errors",
+  "task": "Ensure GET /api/categories catch block returns operator-actionable error.message from FireflyException; log server-side; preserve { success, categories|error } contract.",
+  "files": ["src/App.js"],
+  "acceptance": [
+    "Success returns { success: true, categories: [...] }",
+    "Failure returns { success: false, error: actionable message }",
+    "error never contains Unexpected token or raw SyntaxError text",
+    "Route signature unchanged"
+  ],
+  "status": "done",
+  "required": true
+}

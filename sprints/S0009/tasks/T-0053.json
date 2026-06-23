@@ -1,0 +1,18 @@
+{
+  "id": "T-0053",
+  "title": "Verify BUG-0002 acceptance criteria",
+  "description": "Check all four BUG-0002 acceptance criteria after production redeploy and UI hardening: page load produces no error, /api/reviews returns JSON, structured errors are surfaced in the UI, and the Pending Reviews panel renders correctly.",
+  "acceptance_criteria_refs": ["BUG-0002 AC-1", "BUG-0002 AC-2", "BUG-0002 AC-3", "BUG-0002 AC-4"],
+  "decision_refs": ["DEC-0020"],
+  "dependencies": ["T-0050", "T-0051", "T-0052"],
+  "estimated_complexity": "medium",
+  "status": "done",
+  "files": ["docs/product/acceptance.md", "public/index.html"],
+  "notes": "Verification can run against the production admin UI (authenticated) or a locally launched instance. Record evidence for each AC in sprints/S0009/qa-evidence/.",
+  "verification_steps": [
+    "Reload authenticated admin UI; confirm no GET /api/reviews 404 and no SyntaxError in console (AC-1).",
+    "Probe GET /api/reviews and confirm HTTP 200 JSON {success:true,reviews:[...]} or structured {success:false,error:...} (AC-2).",
+    "If a structured {success:false,error:...} response is returned, confirm loadPendingReviews surfaces it via showToast without a JSON parse error (AC-3).",
+    "With real review data present, confirm the Pending Reviews panel renders each item with transaction summary, history category + confidence, AI category + confidence, recommended choice, and Accept/Reject actions (AC-4)."
+  ]
+}

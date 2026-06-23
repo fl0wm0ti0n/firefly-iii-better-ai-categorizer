@@ -1,0 +1,16 @@
+{
+  "id": "T-0005",
+  "sprint": "S0003",
+  "work_item": "US-0001",
+  "title": "App test seam",
+  "task": "Add App.createForTest(deps) static factory and resolveCategoryForTest(transaction, categories) async wrapper on App per DEC-0006. Assign injected openAi, accountCategoryMappingService, autoCategorizationService, wordMapping, categoryMappingService to private fields without calling run().",
+  "files": ["src/App.js"],
+  "acceptance": [
+    "createForTest(deps) returns App instance without Express/Socket.io bootstrap",
+    "Injected deps assigned to matching private fields when non-null",
+    "resolveCategoryForTest delegates to #resolveCategory",
+    "No Option B pipeline extraction or env gates added"
+  ],
+  "status": "done",
+  "required": true
+}

@@ -1,0 +1,12 @@
+Browser MCP CDP probe — /api/categories
+Timestamp: 2026-06-22T22:45:03+02:00
+Method: Runtime.evaluate (awaitPromise=true, returnByValue=true)
+Expression: (async () => { const r = await fetch('/api/categories'); const j = await r.json(); return JSON.stringify({status: r.status, body: j, type: typeof j}); })()
+
+Result:
+{
+  "type": "string",
+  "value": "{\"status\":200,\"body\":{\"success\":false,\"error\":\"fetch failed\"},\"type\":\"object\"}"
+}
+
+Evidence: HTTP 200, valid JSON parsed by r.json() without throwing SyntaxError. Structured error response (NOT HTML). Type "object" confirms object. Firefly III unreachable from local container — expected.

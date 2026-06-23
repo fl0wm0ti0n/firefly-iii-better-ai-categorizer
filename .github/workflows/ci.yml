@@ -1,0 +1,194 @@
+name: ci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      retry_count:
+        description: "Internal retry counter (do not set manually)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  MAX_CI_RETRIES: 3
+
+jobs:
+  # ── Unit / structure tests (from runbook) ──────────────────────────
+  checks:
+    runs-on: ubuntu-latest
+    outputs:
+      test_result: ${{ steps.test.outcome }}
+      lint_result: ${{ steps.lint.outcome }}
+      ci_auto_fix: ${{ steps.runbook.outputs.CI_AUTO_FIX }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: runbook
+        name: Read runbook commands
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          text = pathlib.Path("docs/engineering/runbook.md").read_text(encoding="utf-8")
+          command_section = text.split("## Notes", 1)[0]
+          def get(key):
+              m = re.search(rf"^{re.escape(key)}:[ \t]*(.*)$", command_section, re.M)
+              if not m:
+                  return ""
+              val = m.group(1).strip()
+              if val in ("", "...", "<...>", "TODO", key, f"{key}:"):
+                  return ""
+              if val.startswith(f"{key}:"):
+                  return ""
+              return val
+          keys = ["TEST_COMMAND", "LINT_COMMAND", "TYPECHECK_COMMAND", "CI_AUTO_FIX"]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              for key in keys:
+                  val = get(key)
+                  if val:
+                      f.write(f"{key}={val}\n")
+                      print(f"  {key} = '{val}'")
+                  else:
+                      print(f"  {key} = (skipped, empty)")
+          PY
+
+      - name: Test
+        id: test
+        if: ${{ steps.runbook.outputs.TEST_COMMAND != '' }}
+        continue-on-error: true
+        run: ${{ steps.runbook.outputs.TEST_COMMAND }}
+
+      - name: Lint
+        id: lint
+        if: ${{ steps.runbook.outputs.LINT_COMMAND != '' }}
+        continue-on-error: true
+        run: ${{ steps.runbook.outputs.LINT_COMMAND }}
+
+      - name: Typecheck
+        id: typecheck
+        if: ${{ steps.runbook.outputs.TYPECHECK_COMMAND != '' }}
+        run: ${{ steps.runbook.outputs.TYPECHECK_COMMAND }}
+
+      - name: No commands set
+        if: ${{ steps.runbook.outputs.TEST_COMMAND == '' && steps.runbook.outputs.LINT_COMMAND == '' && steps.runbook.outputs.TYPECHECK_COMMAND == '' }}
+        run: echo "no tests configured yet"
+
+      - name: Summarise results
+        if: always()
+        run: |
+          echo "### CI Results" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.runbook.outputs.TEST_COMMAND }}" = "" ] && [ "${{ steps.runbook.outputs.LINT_COMMAND }}" = "" ] && [ "${{ steps.runbook.outputs.TYPECHECK_COMMAND }}" = "" ]; then
+            echo "**no tests configured yet**" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "| Step | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Test | ${{ steps.test.outcome || 'skipped' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Lint | ${{ steps.lint.outcome || 'skipped' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Typecheck | ${{ steps.typecheck.outcome || 'skipped' }} |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if tests or lint failed
+        if: ${{ steps.test.outcome == 'failure' || steps.lint.outcome == 'failure' }}
+        run: |
+          echo "::error::Tests or lint failed. See summary above."
+          exit 1
+
+  # ── Auto-fix attempt (runs only when checks fail) ─────────────────
+  auto-fix:
+    needs: checks
+    if: ${{ failure() && needs.checks.outputs.ci_auto_fix == 'true' && (github.event_name == 'push' || github.event_name == 'pull_request') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine retry count
+        id: retry
+        run: |
+          COUNT="${{ github.event.inputs.retry_count || '0' }}"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "Current retry: $COUNT / ${{ env.MAX_CI_RETRIES }}"
+          if [ "$COUNT" -ge "${{ env.MAX_CI_RETRIES }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Max CI retries (${{ env.MAX_CI_RETRIES }}) reached. Manual intervention required."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Read runbook for fix commands
+        id: runbook
+        if: ${{ steps.retry.outputs.skip != 'true' }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          text = pathlib.Path("docs/engineering/runbook.md").read_text(encoding="utf-8")
+          command_section = text.split("## Notes", 1)[0]
+          def get(key):
+              m = re.search(rf"^{re.escape(key)}:[ \t]*(.*)$", command_section, re.M)
+              if not m:
+                  return ""
+              val = m.group(1).strip()
+              if val in ("", "...", "<...>", "TODO", key, f"{key}:"):
+                  return ""
+              if val.startswith(f"{key}:"):
+                  return ""
+              return val
+          keys = ["LINT_FIX_COMMAND", "FORMAT_COMMAND"]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              for key in keys:
+                  val = get(key)
+                  if val:
+                      f.write(f"{key}={val}\n")
+                      print(f"  {key} = '{val}'")
+                  else:
+                      print(f"  {key} = (not set)")
+          PY
+
+      - name: Run lint auto-fix
+        if: ${{ steps.retry.outputs.skip != 'true' && steps.runbook.outputs.LINT_FIX_COMMAND != '' }}
+        continue-on-error: true
+        run: ${{ steps.runbook.outputs.LINT_FIX_COMMAND }}
+
+      - name: Run formatter
+        if: ${{ steps.retry.outputs.skip != 'true' && steps.runbook.outputs.FORMAT_COMMAND != '' }}
+        continue-on-error: true
+        run: ${{ steps.runbook.outputs.FORMAT_COMMAND }}
+
+      - name: Check for changes and commit
+        if: ${{ steps.retry.outputs.skip != 'true' }}
+        id: commit
+        run: |
+          git config user.name "its-magic[bot]"
+          git config user.email "its-magic[bot]@users.noreply.github.com"
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No auto-fix changes to commit."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            NEXT=$(( ${{ steps.retry.outputs.count }} + 1 ))
+            git add -A
+            git commit -m "ci: auto-fix attempt $NEXT/${{ env.MAX_CI_RETRIES }}"
+            git push
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Fixes committed and pushed. CI will re-run automatically."
+          fi
+
+      - name: Post failure summary
+        if: ${{ steps.retry.outputs.skip == 'true' || steps.commit.outputs.has_changes == 'false' }}
+        run: |
+          echo "::error::CI failed and auto-fix could not resolve it."
+          echo ""
+          echo "What to do next:"
+          echo "  1. Pull the latest changes"
+          echo "  2. Run:  bash scripts/validate-and-push.sh"
+          echo "     (or:  powershell scripts/validate-and-push.ps1)"
+          echo "  3. Fix failures, the script loops until green, then pushes."

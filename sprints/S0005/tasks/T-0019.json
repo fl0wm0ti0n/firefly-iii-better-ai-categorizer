@@ -1,0 +1,18 @@
+{
+  "id": "T-0019",
+  "title": "Constructor + createForTest + v4 error mapping",
+  "task": "Rewrite OpenAiService constructor: replace v3 Configuration/OpenAIApi with v4 OpenAI({ apiKey, maxRetries: 0 }). Add static createForTest(deps) factory. Map v4 OpenAI.APIError.status to OpenAiException.code for 429/401/400.",
+  "files": ["src/OpenAiService.js"],
+  "acceptance": [
+    "Constructor uses new OpenAI({ apiKey, maxRetries: 0 }) from 'openai' (v4 ESM)",
+    "deps.client ?? new OpenAI(...) allows injectable mock client (DEC-0009)",
+    "static createForTest(deps) returns new OpenAiService(deps)",
+    "OpenAiException.code === error.status for APIError instances (429, 401, 400)",
+    "Non-APIError throws map to OpenAiException(null, null, 'Network error: ...')",
+    "No .data accessor on client calls (v4 returns directly)"
+  ],
+  "acceptance_mapping": ["DEC-0009", "AC-5", "R-0017"],
+  "depends_on": ["T-0018"],
+  "status": "pending",
+  "required": true
+}

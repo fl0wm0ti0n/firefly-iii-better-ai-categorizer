@@ -1,0 +1,21 @@
+# Per-version release notes — pattern example (US-0100 / DEC-0085)
+
+> **Rename at use**: copy this file to `handoffs/releases/{semver}-release-notes.md`
+> where `{semver}` is the normalized semver stem **without** a leading `v`
+> (e.g. `0.1.2-41-release-notes.md`, not `v0.1.2-41-release-notes.md`).
+>
+> **Do not overwrite** unrelated version files — target only the semver you are publishing.
+> Sprint-scoped workflow evidence stays in `handoffs/releases/Sxxxx-release-notes.md`
+> (**US-0040**); never pass `Sxxxx` notes to `gh -F`.
+
+## Work items
+
+- **US-xxxx** — One-line summary derived from sprint notes / backlog / queue precedence.
+- **BUG-xxxx** — One-line fix summary (category **Fixed** in cumulative `CHANGELOG.md`).
+
+## Sprint evidence
+
+- [`S0070`](handoffs/releases/S0070-release-notes.md)
+- [`S0071`](handoffs/releases/S0071-release-notes.md)
+
+<!-- Example coalesce: S0070 + S0071 → semver 0.1.2-41 -->

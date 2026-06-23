@@ -931,14 +931,79 @@
         .side-btn { background:#fff; border:1px solid #dee2e6; border-radius:4px; padding:8px 10px; cursor:pointer; text-align:left; }
         .side-btn:hover { background:#e9ecef; }
         .side-btn.active { background:#007bff; color:#fff; border-color:#007bff; }
+        /* Segmented scope control (US-0005 / DEC-0016) */
+        .scope-selector {
+            margin-bottom: 15px;
+        }
+        .scope-selector > label:first-child {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .segmented-control {
+            display: inline-flex;
+            border: 1px solid #007bff;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .scope-pill input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            height: 0;
+        }
+        .scope-pill {
+            cursor: pointer;
+            padding: 8px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #fff;
+            color: #007bff;
+            border-right: 1px solid #007bff;
+            transition: background-color 0.2s, color 0.2s;
+            user-select: none;
+        }
+        .scope-pill:last-child {
+            border-right: none;
+        }
+        .scope-pill:hover {
+            background: #e7f3ff;
+        }
+        .scope-pill input[type="radio"]:checked + span,
+        .scope-pill.active span {
+            /* handled via JS class toggle for broader compat */
+        }
+        .scope-pill.selected {
+            background: #007bff;
+            color: #fff;
+        }
+        .scope-selector small {
+            display: block;
+            margin-top: 6px;
+            color: #6c757d;
+        }
+        @media (max-width: 600px) {
+            .segmented-control {
+                display: flex;
+                width: 100%;
+            }
+            .scope-pill {
+                flex: 1;
+                text-align: center;
+                padding: 8px 8px;
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>Firefly III Better AI Categorizer</h1>
     
-    <section class="controls">
-        <h2>General Settings</h2>
+    <section class="controls" id="panel-categorization">
+        <h2>Auto-Categorization</h2>
+
         <div style="margin-bottom: 15px;">
             <label for="auto-skip-deposits">
                 <input type="checkbox" id="auto-skip-deposits" style="margin-right: 8px;">
@@ -947,21 +1012,32 @@
             <p style="margin: 5px 0 0 0; font-size: 12px; color: #6c757d;">
                 <em>When enabled, deposit transactions (salary, refunds, etc.) will be skipped during all categorization processes.</em>
             </p>
+            <button id="btn-save-general-settings" class="btn btn-success" style="margin-top: 12px;">💾 Save General Settings</button>
         </div>
-        <button id="btn-save-general-settings" class="btn btn-success">💾 Save General Settings</button>
-        
-        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; margin-top: 15px;">
-            <strong>💡 How to use:</strong>
-            <ul style="margin: 10px 0; padding-left: 20px;">
-                <li><strong>Skip Deposits:</strong> Exclude deposits (salary, refunds, transfers in) from categorization.</li>
-                <li><strong>Save:</strong> Click “Save General Settings” to apply your preference globally.</li>
-            </ul>
-        </div>
-    </section>
+        <hr style="margin: 25px 0; border: none; border-top: 1px solid #dee2e6;">
 
-    <section class="controls" id="panel-manual">
-        <h2>Bulk Categorization</h2>
-        <div class="button-group">
+        <!-- Scope selector (US-0005 / DEC-0016) -->
+        <div class="scope-selector">
+            <label>Transaction Scope:</label>
+            <div class="segmented-control">
+                <label class="scope-pill selected">
+                    <input type="radio" name="categorization-scope" value="withdrawals" checked>
+                    <span>Withdrawals</span>
+                </label>
+                <label class="scope-pill">
+                    <input type="radio" name="categorization-scope" value="deposits">
+                    <span>Deposits</span>
+                </label>
+                <label class="scope-pill">
+                    <input type="radio" name="categorization-scope" value="both">
+                    <span>Both</span>
+                </label>
+            </div>
+            <small>Honors "Skip Deposits" setting when scope is "Both".</small>
+        </div>
+
+        <!-- Run actions -->
+        <div class="button-group" style="margin-bottom: 15px;">
             <button id="btn-process-uncategorized" class="btn btn-primary">
                 Process Uncategorized Transactions
             </button>
@@ -969,58 +1045,60 @@
                 Process All Transactions (Overwrite Categories)
             </button>
         </div>
+
         <p><small>
             <strong>Process Uncategorized:</strong> Runs automatic categorization for transactions without categories.<br>
             <strong>Process All:</strong> Runs automatic categorization for ALL transactions (withdrawals and deposits), overwriting existing categories.
         </small></p>
+
         <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; margin-top: 10px;">
             <strong>💡 How to use:</strong>
             <ul style="margin: 10px 0; padding-left: 20px;">
                 <li><strong>Process Uncategorized:</strong> Categorizes only transactions without a category.</li>
                 <li><strong>Process All:</strong> Re-categorizes everything and may overwrite existing categories.</li>
                 <li><strong>Tip:</strong> Run Category Mappings first, then use bulk to finish remaining items.</li>
-                <li><strong>Progress:</strong> Open <strong>Batch Jobs</strong> in the sidebar (or it opens automatically when you start a batch) to see live progress and results.</li>
+                <li><strong>Progress:</strong> Live progress and results appear in the Job Monitor section below.</li>
             </ul>
         </div>
-    </section>
 
-    <section class="controls">
-        <h2>Test Webhook (Live Mode)</h2>
-        <div class="test-form">
-            <div style="margin-bottom: 10px;">
-                <label for="test-description">Transaction Description:</label>
-                <input type="text" id="test-description" placeholder="e.g. Purchase at Amazon" 
-                       value="Test transaction - Purchase at Amazon" style="width: 100%; padding: 5px; margin-top: 5px;">
+        <!-- Test Webhook form (collapsible, US-0005 / DEC-0017) -->
+        <details style="margin-top: 20px; margin-bottom: 15px;">
+            <summary>Test Webhook Configuration</summary>
+            <div class="test-form" style="margin-top: 15px;">
+                <div style="margin-bottom: 10px;">
+                    <label for="test-description">Transaction Description:</label>
+                    <input type="text" id="test-description" placeholder="e.g. Purchase at Amazon"
+                           value="Test transaction - Purchase at Amazon" style="width: 100%; padding: 5px; margin-top: 5px;">
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <label for="test-destination">Destination Name:</label>
+                    <input type="text" id="test-destination" placeholder="e.g. Amazon.com"
+                           value="Amazon.com" style="width: 100%; padding: 5px; margin-top: 5px;">
+                </div>
+                <button id="btn-test-webhook" class="btn btn-success">
+                    🧪 Test Webhook Categorization
+                </button>
             </div>
-            <div style="margin-bottom: 10px;">
-                <label for="test-destination">Destination Name:</label>
-                <input type="text" id="test-destination" placeholder="e.g. Amazon.com" 
-                       value="Amazon.com" style="width: 100%; padding: 5px; margin-top: 5px;">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label for="test-type">Transaction Type:</label>
-                <select id="test-type" style="width: 100%; padding: 5px; margin-top: 5px;">
-                    <option value="withdrawal">Withdrawal</option>
-                    <option value="deposit">Deposit</option>
-                </select>
-            </div>
-            <button id="btn-test-webhook" class="btn btn-success">
-                🧪 Test Webhook Categorization
-            </button>
-        </div>
-        <p><small>
-            <strong>Test Webhook:</strong> Simulates a Firefly III webhook call to test the AI categorization without creating real transactions.
-        </small></p>
-    </section>
+            <p><small>
+                <strong>Test Webhook:</strong> Simulates a Firefly III webhook call to test the AI categorization without creating real transactions.
+                Inherits scope from the Transaction Scope selector above.
+            </small></p>
+        </details>
 
-    <section class="controls" id="panel-batch">
-        <h2>Batch Jobs</h2>
+        <!-- Job Monitor -->
+        <h3 style="margin-top: 25px;">Job Monitor</h3>
+
+        <h4 style="margin-top: 15px; margin-bottom: 10px;">Batch Jobs</h4>
         <div id="batch-mount"></div>
+
+        <h4 style="margin-top: 15px; margin-bottom: 10px;">Individual Jobs</h4>
+        <div id="mount"></div>
+
         <div style="background: #e7f3ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; margin-top: 12px;">
             <strong>How to use:</strong>
             <ul style="margin: 10px 0; padding-left: 20px;">
-                <li><strong>Progress:</strong> After you start “Process Uncategorized” or “Process All” under Bulk Categorization, live status appears here (updates via WebSocket).</li>
-                <li><strong>Controls:</strong> Pause, resume, or cancel a running job when buttons are shown.</li>
+                <li><strong>Progress:</strong> After you start "Process Uncategorized" or "Process All", live status appears here (updates via WebSocket).</li>
+                <li><strong>Controls:</strong> Pause, resume, or cancel a running batch job when buttons are shown.</li>
                 <li><strong>History:</strong> Finished jobs stay listed so you can review counts and errors.</li>
             </ul>
         </div>
@@ -1088,7 +1166,7 @@
     </section>
 
     <section class="controls">
-        <h2>Auto-Categorization (Foreign/Travel Detection)</h2>
+        <h2>Foreign/Travel Detection</h2>
         
         <div style="margin-bottom: 20px;">
             <h3>Configuration</h3>
@@ -1258,6 +1336,37 @@
                     <div id="account-category-mappings-list"></div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section class="controls" id="panel-reviews">
+        <h2>Pending Reviews</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <span id="review-pending-count" style="font-size: 16px; font-weight: bold; color: #495057;">0 pending</span>
+                    <span id="review-oldest-age" style="font-size: 13px; color: #6c757d; margin-left: 15px;"></span>
+                </div>
+                <button id="btn-refresh-reviews" class="btn btn-primary">🔄 Refresh</button>
+            </div>
+            
+            <div id="review-list" style="display: flex; flex-direction: column; gap: 15px;">
+                <div id="review-empty" style="text-align: center; padding: 40px; color: #6c757d; font-style: italic;">
+                    No pending reviews.
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #28a745; margin-top: 10px;">
+            <strong>💡 How to use:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li><strong>History suggestion:</strong> Category based on account's past transactions (confidence = dominant category share)</li>
+                <li><strong>AI suggestion:</strong> Category from OpenAI classification (confidence from structured output)</li>
+                <li><strong>Recommendation:</strong> System suggests the higher-confidence option</li>
+                <li><strong>Accept:</strong> Apply the recommended category to the transaction in Firefly</li>
+                <li><strong>Reject:</strong> Dismiss the review without applying any category</li>
+            </ul>
         </div>
     </section>
 
@@ -1446,10 +1555,6 @@
         </div>
     </section>
 
-    <section class="controls" id="panel-individual">
-        <h2>Individual Jobs</h2>
-        <div id="mount"></div>
-    </section>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -1464,7 +1569,6 @@
     const btnSaveGeneralSettings = document.getElementById('btn-save-general-settings');
     const testDescription = document.getElementById('test-description');
     const testDestination = document.getElementById('test-destination');
-    const testType = document.getElementById('test-type');
 
     // Word mapping elements
     const btnRefreshFailed = document.getElementById('btn-refresh-failed');
@@ -1512,13 +1616,17 @@
         btnProcessUncategorized.disabled = true;
         btnProcessUncategorized.textContent = '⏳ Starting…';
         try {
-            const response = await fetch('/api/process-uncategorized', { method: 'POST' });
+            const scope = document.querySelector('input[name="categorization-scope"]:checked')?.value || 'withdrawals';
+            const response = await fetch('/api/process-uncategorized', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scope })
+            });
             const result = await response.json();
             if (!result.success) {
                 alert('Error: ' + (result.error || 'Unknown error'));
             } else {
-                try { window.__showPanel && window.__showPanel('panel-batch'); } catch (_) {}
-                try { showToast('Batch started — progress is shown under Batch Jobs.', 'success'); } catch (_) {}
+                try { showToast('Batch started — progress is shown in the job monitor below.', 'success'); } catch (_) {}
             }
         } catch (error) {
             alert('Error: ' + error.message);
@@ -1534,13 +1642,17 @@
         btnProcessAll.disabled = true;
         btnProcessAll.textContent = '⏳ Starting…';
         try {
-            const response = await fetch('/api/process-all', { method: 'POST' });
+            const scope = document.querySelector('input[name="categorization-scope"]:checked')?.value || 'withdrawals';
+            const response = await fetch('/api/process-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scope })
+            });
             const result = await response.json();
             if (!result.success) {
                 alert('Error: ' + (result.error || 'Unknown error'));
             } else {
-                try { window.__showPanel && window.__showPanel('panel-batch'); } catch (_) {}
-                try { showToast('Batch started — progress is shown under Batch Jobs.', 'success'); } catch (_) {}
+                try { showToast('Batch started — progress is shown in the job monitor below.', 'success'); } catch (_) {}
             }
         } catch (error) {
             alert('Error: ' + error.message);
@@ -1553,9 +1665,9 @@
     btnTestWebhook.addEventListener('click', async () => {
         const description = testDescription.value.trim();
         const destination = testDestination.value.trim();
-        const type = testType.value.trim();
+        const scope = document.querySelector('input[name="categorization-scope"]:checked').value;
         
-        if (!description || !destination || !type) {
+        if (!description || !destination) {
             alert('Please fill in all fields');
             return;
         }
@@ -1572,7 +1684,7 @@
                 body: JSON.stringify({
                     description: description,
                     destination_name: destination,
-                    transaction_type: type
+                    scope: scope
                 })
             });
             
@@ -1583,7 +1695,7 @@ Transaction: "${result.test_data.description}"
 Destination: "${result.test_data.destination_name}"
 ID: ${result.test_data.transaction_id}
 
-Check the individual jobs section below to see the categorization result.`);
+See job monitor below.`);
             } else {
                 alert('Error: ' + result.error);
             }
@@ -3051,11 +3163,21 @@ Check the individual jobs section below to see the categorization result.`);
         selectEl.appendChild(opt);
     }
 
+    function truncateDropdownError(message, maxLen = 120) {
+        const text = String(message || 'Failed to load categories');
+        return text.length > maxLen ? `${text.slice(0, maxLen - 1)}…` : text;
+    }
+
     async function loadCategoriesForKeywordMappings() {
         try {
             const r = await fetch('/api/categories');
             const j = await r.json();
-            if (!j.success) throw new Error(j.error || 'Failed to load categories');
+            if (!j.success) {
+                if (mappingTargetCategory) {
+                    mappingTargetCategory.innerHTML = `<option value="">${escapeHtml(truncateDropdownError(j.error))}</option>`;
+                }
+                return;
+            }
             const cats = Array.isArray(j.categories) ? j.categories : [];
             if (!mappingTargetCategory) return;
             if (!cats.length) {
@@ -3169,10 +3291,14 @@ Check the individual jobs section below to see the categorization result.`);
             const accJson = await accRes.json();
             const catJson = await catRes.json();
             if (accJson.success) accountMappingAccounts = accJson.accounts || [];
-            if (catJson.success) accountMappingCategories = catJson.categories || [];
+            if (catJson.success) {
+                accountMappingCategories = catJson.categories || [];
+            } else if (acmTargetCategory) {
+                acmTargetCategory.innerHTML = `<option value="">${escapeHtml(truncateDropdownError(catJson.error))}</option>`;
+            }
 
             populateAccountMappingAccountSelect(editingAccountId);
-            populateAccountMappingCategorySelect();
+            if (catJson.success) populateAccountMappingCategorySelect();
         } catch (error) {
             console.error('Error loading accounts/categories:', error);
             if (acmAccount) acmAccount.innerHTML = '<option value="">Failed to load accounts</option>';
@@ -3330,6 +3456,193 @@ Check the individual jobs section below to see the categorization result.`);
         addAccountCategoryMappingForm?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         acmAccount?.focus();
     };
+
+    // ===== Pending Reviews Panel =====
+    async function loadPendingReviews() {
+        try {
+            const response = await fetch('/api/reviews');
+            const contentType = response.headers.get('content-type') || '';
+            if (!response.ok || !contentType.includes('application/json')) {
+                const status = response.status;
+                const statusText = response.statusText;
+                throw new Error(
+                    `Server returned an unexpected response for pending reviews (HTTP ${status} ${statusText}). ` +
+                    `Please check that the categorizer service is running and up to date.`
+                );
+            }
+            const result = await response.json();
+            if (result.success) {
+                renderPendingReviews(result.reviews || []);
+            } else {
+                console.error('Failed to load reviews:', result.error);
+                showToast('Failed to load pending reviews', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading reviews:', error);
+            showToast('Error loading reviews: ' + error.message, 'error');
+        }
+    }
+
+    function renderPendingReviews(reviews) {
+        const reviewList = document.getElementById('review-list');
+        const reviewEmpty = document.getElementById('review-empty');
+        const reviewCount = document.getElementById('review-pending-count');
+        const reviewAge = document.getElementById('review-oldest-age');
+
+        reviewCount.textContent = `${reviews.length} pending`;
+
+        if (reviews.length === 0) {
+            reviewEmpty.style.display = 'block';
+            reviewList.innerHTML = '';
+            reviewList.appendChild(reviewEmpty);
+            reviewAge.textContent = '';
+            return;
+        }
+
+        reviewEmpty.style.display = 'none';
+        reviewList.innerHTML = '';
+
+        // Calculate oldest item age
+        const oldest = reviews.reduce((oldest, r) => {
+            const ts = new Date(r.timestamp);
+            return !oldest || ts < oldest ? ts : oldest;
+        }, null);
+        if (oldest) {
+            const ageMs = Date.now() - oldest.getTime();
+            const ageMins = Math.floor(ageMs / 60000);
+            const ageHours = Math.floor(ageMins / 60);
+            const ageDays = Math.floor(ageHours / 24);
+            let ageText = '';
+            if (ageDays > 0) ageText = `Oldest: ${ageDays}d ago`;
+            else if (ageHours > 0) ageText = `Oldest: ${ageHours}h ago`;
+            else if (ageMins > 0) ageText = `Oldest: ${ageMins}m ago`;
+            else ageText = 'Oldest: just now';
+            reviewAge.textContent = ageText;
+        }
+
+        reviews.forEach(review => {
+            const item = createReviewItem(review);
+            reviewList.appendChild(item);
+        });
+    }
+
+    function createReviewItem(review) {
+        const item = document.createElement('div');
+        item.style.cssText = 'border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; background: white;';
+        item.setAttribute('data-review-id', review.id);
+
+        const historyConf = ((review.historyConfidence || 0) * 100).toFixed(1);
+        const aiConf = ((review.aiConfidence || 0) * 100).toFixed(1);
+        const timestamp = new Date(review.timestamp).toLocaleString();
+
+        item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <div style="flex: 1;">
+                    <div style="font-size: 14px; font-weight: bold; color: #212529; margin-bottom: 4px;">
+                        ${escapeHtml(review.description || '(no description)')}
+                    </div>
+                    <div style="font-size: 12px; color: #6c757d;">
+                        ${timestamp} • Account ID: ${escapeHtml(review.accountId || 'N/A')} • Transaction ID: ${escapeHtml(review.transactionId || 'N/A')}
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                    <div style="font-size: 11px; color: #6c757d; margin-bottom: 4px;">History Suggestion</div>
+                    <div style="font-size: 14px; font-weight: bold; color: #495057;">
+                        ${escapeHtml(review.historyCategory || 'None')}
+                    </div>
+                    <div style="font-size: 12px; color: #007bff; margin-top: 2px;">
+                        Confidence: ${historyConf}%
+                    </div>
+                </div>
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                    <div style="font-size: 11px; color: #6c757d; margin-bottom: 4px;">AI Suggestion</div>
+                    <div style="font-size: 14px; font-weight: bold; color: #495057;">
+                        ${escapeHtml(review.aiCategory || 'None')}
+                    </div>
+                    <div style="font-size: 12px; color: #28a745; margin-top: 2px;">
+                        Confidence: ${aiConf}%
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: #e7f3ff; padding: 10px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #007bff;">
+                <div style="font-size: 11px; color: #6c757d; margin-bottom: 4px;">Recommendation</div>
+                <div style="font-size: 14px; font-weight: bold; color: #007bff;">
+                    ${escapeHtml(review.recommendation || 'None')}
+                </div>
+                <div style="font-size: 11px; color: #6c757d; margin-top: 2px;">
+                    ${escapeHtml(review.reason || '')}
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-danger" onclick="rejectReview('${review.id}')">
+                    ❌ Reject
+                </button>
+                <button class="btn btn-success" onclick="acceptReview('${review.id}')">
+                    ✅ Accept
+                </button>
+            </div>
+        `;
+
+        return item;
+    }
+
+    async function acceptReview(reviewId) {
+        if (!confirm('Accept this review and apply the recommended category to Firefly?')) return;
+
+        try {
+            const response = await fetch(`/api/reviews/${reviewId}/accept`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            if (result.success) {
+                showToast('Review accepted and category applied', 'success');
+                loadPendingReviews();
+            } else {
+                showToast('Failed to accept review: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error accepting review:', error);
+            showToast('Error accepting review: ' + error.message, 'error');
+        }
+    }
+
+    async function rejectReview(reviewId) {
+        if (!confirm('Reject this review without applying any category?')) return;
+
+        try {
+            const response = await fetch(`/api/reviews/${reviewId}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            if (result.success) {
+                showToast('Review rejected', 'success');
+                loadPendingReviews();
+            } else {
+                showToast('Failed to reject review: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error rejecting review:', error);
+            showToast('Error rejecting review: ' + error.message, 'error');
+        }
+    }
+
+    // Expose functions globally
+    window.acceptReview = acceptReview;
+    window.rejectReview = rejectReview;
+
+    // Initialize review panel
+    const btnRefreshReviews = document.getElementById('btn-refresh-reviews');
+    if (btnRefreshReviews) {
+        btnRefreshReviews.addEventListener('click', loadPendingReviews);
+    }
+    loadPendingReviews();
 
     function showAddCategoryMappingForm() {
         addCategoryMappingForm.style.display = 'block';
@@ -4986,22 +5299,19 @@ try {
         return h ? h.parentElement : null;
       }
 
-      // Identify panels (per requested groups)
+        // Identify panels (per requested groups)
       let panels = [
         // Categorizer group
-        { cat: 'Categorizer', id: 'panel-auto', title: 'Auto-Categorization', el: findPanelByH2('Auto-Categorization') },
-        { cat: 'Categorizer', id: 'panel-general', title: 'General Settings', el: findPanelByH2('General Settings') },
+        { cat: 'Categorizer', id: 'panel-categorization', title: 'Auto-Categorization', el: document.getElementById('panel-categorization') },
         { cat: 'Categorizer', id: 'panel-cmap', title: 'Keyword → Category Mappings', el: findPanelByH2('Keyword → Category Mappings') },
         { cat: 'Categorizer', id: 'panel-acmap', title: 'Account → Category Mappings', el: findPanelByH2('Account → Category Mappings') },
         { cat: 'Categorizer', id: 'panel-failed', title: 'Word Mappings & Failed', el: findPanelByH2('Word Mappings & Failed Transactions') },
         { cat: 'Categorizer', id: 'panel-txm', title: 'Transaction Management', el: findPanelByH2('Transaction Management') },
-        { cat: 'Categorizer', id: 'panel-manual', title: 'Bulk Categorization', el: document.getElementById('panel-manual') },
-        { cat: 'Categorizer', id: 'panel-batch', title: 'Batch Jobs', el: document.getElementById('panel-batch') },
-        { cat: 'Categorizer', id: 'panel-individual', title: 'Individual Jobs', el: document.getElementById('panel-individual') },
+        { cat: 'Categorizer', id: 'panel-reviews', title: 'Pending Reviews', el: document.getElementById('panel-reviews') },
+        { cat: 'Categorizer', id: 'panel-auto', title: 'Foreign/Travel Detection', el: findPanelByH2('Foreign/Travel Detection') },
 
         // Maintenance group
         { cat: 'Maintenance', id: 'panel-duplicates', title: 'Duplicate cleanup', el: document.getElementById('panel-duplicates') },
-        { cat: 'Maintenance', id: 'panel-webhook', title: 'Test Webhook', el: findPanelByH2('Test Webhook') },
 
         // Special tools group
         { cat: 'Special tools', id: 'extraction', title: 'Credit Card Statement Splitter', el: document.getElementById('extraction') }
@@ -5081,7 +5391,7 @@ try {
       });
 
       // Default view
-      const defaultId = panels.find(p => p.id === 'extraction')?.id || panels[0]?.id;
+      const defaultId = panels.find(p => p.id === 'panel-categorization')?.id || panels[0]?.id;
       if (defaultId) showPanel(defaultId);
     } catch(_) {}
   })();

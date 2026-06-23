@@ -1,0 +1,198 @@
+{
+  "phase_id": "plan-verify",
+  "role": "qa",
+  "timestamp": "2026-06-22T22:21:00+02:00",
+  "sprint_id": "S0008",
+  "story": "US-0006",
+  "title": "Agent-driven local Categorizer launch for Cursor browser UAT probes",
+  "artifacts_read": [
+    "docs/product/acceptance.md (US-0006 AC-1 through AC-6)",
+    "sprints/S0008/summary.md",
+    "sprints/S0008/tasks.md",
+    "sprints/S0008/tasks/T-0040.json",
+    "sprints/S0008/tasks/T-0041.json",
+    "sprints/S0008/tasks/T-0042.json",
+    "sprints/S0008/tasks/T-0043.json",
+    "sprints/S0008/tasks/T-0044.json",
+    "sprints/S0008/tasks/T-0045.json",
+    "sprints/S0008/tasks/T-0046.json",
+    "sprints/S0008/tasks/T-0047.json"
+  ],
+  "verdict": "pass_with_findings",
+  "ac_to_task_matrix": {
+    "AC-1": {
+      "description": "dev-environment.json declares start_command, health_url, poll_seconds, env_file, required_env_vars, browser_probe_url",
+      "tasks": ["T-0041", "T-0042"],
+      "primary": "T-0041",
+      "coverage": "covered",
+      "notes": "T-0041 creates the real .cursor/dev-environment.json with all AC-1 fields (start_command, health_url, poll_seconds:60, poll_interval_seconds:2, env_file, required_env_vars, browser_probe_url, connect.health_path:/). T-0042 creates .env.example matching env_file contract."
+    },
+    "AC-2": {
+      "description": "Docker Compose service config supports ephemeral local launch without breaking production",
+      "tasks": ["T-0040"],
+      "primary": "T-0040",
+      "coverage": "covered",
+      "notes": "T-0040 creates docker-compose.local.yml per DEC-0018: standalone file with explicit -f flag, service firefly-ai-categorizer, port 3001:3000, no Traefik labels, restart:no. No override/auto-merge risk with parent stack."
+    },
+    "AC-3": {
+      "description": "Local service URL reachable from Cursor IDE browser MCP — via direct port binding with explicit notes in runbook",
+      "tasks": ["T-0040", "T-0043", "T-0044", "T-0045"],
+      "primary": "T-0044",
+      "coverage": "covered",
+      "notes": "T-0040 provides direct port binding (3001:3000). T-0043 implements the launch script that makes the URL reachable. T-0044 documents port binding in runbook. T-0045 documents the probe workflow."
+    },
+    "AC-4": {
+      "description": "Agent can trigger launch, wait for health, open browser_probe_url",
+      "tasks": ["T-0043", "T-0045", "T-0047"],
+      "primary": "T-0043",
+      "coverage": "covered",
+      "notes": "T-0043 creates scripts/dev-launch.sh (launch + health poll 60s/2s). T-0045 documents the agent probe workflow. T-0047 is the E2E test verifying the full flow."
+    },
+    "AC-5": {
+      "description": "Browser UAT probe collects console error evidence and /api/reviews response without JSON SyntaxError on HTML",
+      "tasks": ["T-0045", "T-0047"],
+      "primary": "T-0045",
+      "coverage": "covered",
+      "notes": "T-0045 documents the probe workflow including console error collection via CDP and /api/reviews response handling (JSON success vs HTML structured error). T-0047 is E2E test including /api/reviews JSON check."
+    },
+    "AC-6": {
+      "description": "docs/user-guides/US-0006.md documents agent-driven UAT flow (USER_GUIDE_MODE=1)",
+      "tasks": ["T-0046"],
+      "primary": "T-0046",
+      "coverage": "covered",
+      "notes": "T-0046 creates user guide with standard schema (Purpose, Prerequisites, Usage, Example, Limitations, Troubleshooting) and USER_GUIDE_MODE=1."
+    }
+  },
+  "documentation_enablers": {
+    "T-0042": {
+      "description": ".env.example documents required env vars",
+      "ac_covered": "AC-1 (env_file contract)",
+      "notes": "Fixes latent docs bug (R-0023 Q3): runbook references .env.example but file was never committed."
+    },
+    "T-0044": {
+      "description": "Runbook section for local agent-driven launch",
+      "ac_covered": "AC-3",
+      "notes": "Documents direct port binding, ephemeral nature, cross-refs to user guide + architecture."
+    }
+  },
+  "all_6_acceptance_criteria_covered": true,
+  "gap_analysis": {
+    "gaps": [],
+    "summary": "No gaps found. All 6 acceptance criteria (AC-1 through AC-6) have at least one associated task."
+  },
+  "orphan_analysis": {
+    "orphans": [],
+    "summary": "No orphan tasks. All 8 tasks reference at least one acceptance criterion from US-0006."
+  },
+  "dependency_validation": {
+    "result": "pass",
+    "details": [
+      {
+        "task": "T-0040",
+        "declared_deps": [],
+        "valid": true,
+        "notes": "No dependencies — Phase 1 parallel."
+      },
+      {
+        "task": "T-0041",
+        "declared_deps": [],
+        "valid": true,
+        "notes": "No dependencies — Phase 1 parallel."
+      },
+      {
+        "task": "T-0042",
+        "declared_deps": [],
+        "valid": true,
+        "notes": "No dependencies — Phase 1 parallel."
+      },
+      {
+        "task": "T-0043",
+        "declared_deps": [],
+        "valid": true,
+        "notes": "No hard deps in JSON. Implicit runtime dependency on T-0040 (compose file) — acceptable; script references docker-compose.local.yml which is created in parallel Phase 1."
+      },
+      {
+        "task": "T-0044",
+        "declared_deps": ["T-0040", "T-0041"],
+        "valid": true,
+        "notes": "Dependencies valid — needs compose (T-0040) and dev-env JSON (T-0041) to document them."
+      },
+      {
+        "task": "T-0045",
+        "declared_deps": ["T-0043"],
+        "valid": true,
+        "notes": "Dependency valid — needs launch script (T-0043) to document/validate the probe workflow. Note: tasks.md summary says 'depends on T-0040' but JSON says T-0043. JSON is authoritative; both Phase 1 so no conflict."
+      },
+      {
+        "task": "T-0046",
+        "declared_deps": ["T-0040", "T-0041", "T-0043"],
+        "valid": true,
+        "notes": "Dependencies valid — needs compose (T-0040), dev-env JSON (T-0041), and launch script (T-0043) to document the full workflow."
+      },
+      {
+        "task": "T-0047",
+        "declared_deps": ["T-0043", "T-0044", "T-0045"],
+        "valid": true,
+        "notes": "Dependency valid. Note: tasks.md summary lists T-0043,T-0044,T-0045 as deps; JSON is identical. All referenced tasks exist and are earlier in the chain."
+      }
+    ],
+    "tasks_md_vs_json_discrepancies": [
+      {
+        "task": "T-0045",
+        "tasks_md_deps": "T-0040",
+        "json_deps": "T-0043",
+        "resolution": "JSON is authoritative. T-0043 is the more precise dependency (launch script). tasks.md overview table may have listed T-0040 but JSON spec says T-0043. Both are Phase 1 so no scheduling impact."
+      },
+      {
+        "task": "T-0047",
+        "tasks_md_deps": "T-0043, T-0044, T-0045",
+        "json_deps": "T-0043, T-0044, T-0045",
+        "resolution": "Consistent."
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "F-0001",
+      "severity": "info",
+      "title": "T-0043 implicit dependency on T-0040 (compose file)",
+      "description": "T-0043 (dev-launch.sh) has no explicit dependency on T-0040 (docker-compose.local.yml) in its JSON. The script invokes 'docker compose -f docker-compose.local.yml' — it requires the compose file to exist at runtime. Both are Phase 1 parallel tasks, so this is acceptable: the execution order guarantees T-0040 completes before T-0043 is attempted (since they are in the same parallel phase, both must succeed before Phase 2). Not a blocker; could be improved by adding T-0040 to T-0043's depends_on for explicitness."
+    },
+    {
+      "id": "F-0002",
+      "severity": "info",
+      "title": "tasks.md vs JSON dependency discrepancy for T-0045",
+      "description": "tasks.md overview table lists T-0045 dependencies as 'T-0043' (correct) but tasks.md body says 'depends on T-0043' (also correct). Earlier sprint-plan summary listed 'T-0040'. The JSON (T-0043) is authoritative. No impact — tasks.md body is consistent with JSON."
+    },
+    {
+      "id": "F-0003",
+      "severity": "info",
+      "title": "AC-1 health_url targets GET / not GET /health",
+      "description": "AC-1 text mentions 'health_url reachable at GET http://localhost:<port>/health' but the architectural decision (R-0023, DEC-0018) resolved the health probe target as GET / (matching Dockerfile HEALTHCHECK and App.js root route). T-0041 correctly implements health_url: http://localhost:3001/ and connect.health_path: /. AC-1 is covered by the resolution of this discrepancy in earlier phases. The AC text predates the research phase resolution; the task correctly follows the resolved design."
+    },
+    {
+      "id": "F-0004",
+      "severity": "minor",
+      "title": "T-0045 broad AC coverage (AC-3, AC-4, AC-5)",
+      "description": "T-0045 references AC-3, AC-4, and AC-5 in its JSON. This is acceptable since it documents the integrated probe workflow that spans those concerns. However, the task description says it primarily 'documents' the workflow — actual validation is deferred to T-0047. Ensure T-0045 deliverable includes both documentation AND at least a dry-run validation attempt (even if Docker is unavailable, the attempt should be documented)."
+    },
+    {
+      "id": "F-0005",
+      "severity": "minor",
+      "title": "T-0047 E2E test requires Docker daemon — conditional execution",
+      "description": "T-0047 E2E test has a conditional execution path: 'If Docker unavailable locally, document as not-executed with rationale.' This is noted in the task. During QA phase, verify that T-0047 was either fully executed OR explicitly documented as not-executed with Docker unavailable rationale. Partial execution (health poll only, no browser probe) would leave AC-5 unverified."
+    }
+  ],
+  "summary": {
+    "task_count": 8,
+    "ac_count": 6,
+    "all_ac_covered": true,
+    "no_orphan_tasks": true,
+    "all_deps_valid": true,
+    "findings_count": 5,
+    "critical_findings": 0,
+    "minor_findings": 2,
+    "info_findings": 3,
+    "recommendation": "Proceed to execute. All 6 acceptance criteria have task coverage. No critical gaps. Minor findings are non-blocking and can be addressed during execution/QA phases."
+  }
+}

@@ -1,0 +1,7 @@
+T-0053 AC-3 Structured error surfacing verification
+Method: Overrode window.fetch('/api/reviews') to return HTTP 500 text/html.
+Called loadPendingReviews().
+Result toast captured:
+  msg: "Error loading reviews: Server returned an unexpected response for pending reviews (HTTP 500 Internal Server Error). Please check that the categorizer service is running and up to date."
+  type: "error"
+No JSON SyntaxError thrown.

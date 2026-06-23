@@ -1,0 +1,98 @@
+{
+  "sprint_id": "S0006",
+  "work_item": "US-0004",
+  "verification_phase": "plan-verify",
+  "timestamp": "2026-06-14T20:45:00Z",
+  "verdict": "pass_with_findings",
+  "ac_coverage_matrix": {
+    "AC-1": {
+      "status": "covered",
+      "tasks": ["T-0024", "T-0025"],
+      "notes": "T-0024 implements FireflyService.getAccountHistory() with pagination + 1-hour cache (DEC-0011); T-0025 implements dominance calculator with 80% threshold + 10 min tx minimum (DEC-0012), configurable via data/dominance-config.json"
+    },
+    "AC-2": {
+      "status": "covered",
+      "tasks": ["T-0025"],
+      "notes": "T-0025 returns { dominantCategory, dominance, confidence: dominance } when threshold met (confidence = dominant share per AC-2)"
+    },
+    "AC-3": {
+      "status": "covered",
+      "tasks": ["T-0026"],
+      "notes": "T-0026 extends OpenAiService.classify() schema with confidence field (DEC-0014); return shape { category, confidence, prompt, response }"
+    },
+    "AC-4": {
+      "status": "covered",
+      "tasks": ["T-0027", "T-0028"],
+      "notes": "T-0027 integrates history + AI comparison in #resolveCategory, queues for review when both present; T-0028 implements PendingReviewService with JSON persistence (DEC-0013)"
+    },
+    "AC-5": {
+      "status": "covered",
+      "tasks": ["T-0029", "T-0030"],
+      "notes": "T-0029 provides GET /api/reviews endpoint; T-0030 implements UI review panel with transaction summary, history/AI badges with confidence, recommendation, accept/reject buttons"
+    },
+    "AC-6": {
+      "status": "covered",
+      "tasks": ["T-0029", "T-0030"],
+      "notes": "T-0029 provides POST /api/reviews/:id/accept (applies category + tag to Firefly) and POST /api/reviews/:id/reject (dismisses without mutation); T-0030 provides UI buttons"
+    },
+    "AC-7": {
+      "status": "covered",
+      "tasks": ["T-0027"],
+      "notes": "T-0027 inserts history check after word/keyword hints in #resolveCategory; hard rules (account mapping step 1, auto-cat step 2) still short-circuit before history analysis per DEC-0001"
+    },
+    "AC-8": {
+      "status": "NOT_COVERED",
+      "tasks": [],
+      "notes": "AC-8 requires docs/user-guides/US-0004.md to document review workflow (USER_GUIDE_MODE=1). No task explicitly creates this user guide document. T-0031 covers tests for AC-1 through AC-8 but does not create the user guide itself."
+    }
+  },
+  "gaps_identified": [
+    {
+      "gap_id": "GAP-001",
+      "severity": "medium",
+      "ac": "AC-8",
+      "description": "Missing task to create docs/user-guides/US-0004.md",
+      "impact": "AC-8 cannot be satisfied without explicit user guide documentation task",
+      "recommendation": "Add task T-0032 to create docs/user-guides/US-0004.md following the pattern established by US-0002 (docs/user-guides/US-0002.md). User guide should document: review workflow, pending review queue, accept/reject actions, confidence interpretation, threshold configuration."
+    }
+  ],
+  "decision_compliance": {
+    "DEC-0011": {
+      "status": "compliant",
+      "task": "T-0024",
+      "notes": "1-hour in-memory cache implemented via #accountHistoryCache Map with 3600000ms TTL"
+    },
+    "DEC-0012": {
+      "status": "compliant",
+      "task": "T-0025",
+      "notes": "80% dominance threshold + 10 min tx minimum, configurable via data/dominance-config.json"
+    },
+    "DEC-0013": {
+      "status": "compliant",
+      "task": "T-0028",
+      "notes": "In-memory array + write-through JSON persistence at data/pending-category-reviews.json; async serialization via Node.js event loop"
+    },
+    "DEC-0014": {
+      "status": "compliant",
+      "task": "T-0026",
+      "notes": "Extend classify() schema with confidence field (type: number, min: 0, max: 1); preserve strict: true + additionalProperties: false"
+    }
+  },
+  "dependency_chain_validation": {
+    "status": "valid",
+    "chain": "T-0024 ─┐\nT-0025 ─┤\n        ├→ T-0027 → T-0031\nT-0026 ─┤\n        │\nT-0028 → T-0029 → T-0030",
+    "notes": "Dependency chain is logically sound. T-0024/T-0025/T-0026/T-0028 can run in parallel (no dependencies). T-0027 depends on all four (integration). T-0029 depends on T-0028 (queue persistence). T-0030 depends on T-0029 (REST API). T-0031 depends on T-0025/T-0028/T-0027 (tests)."
+  },
+  "task_count": {
+    "planned": 8,
+    "required_for_ac": 9,
+    "sprint_cap": 12,
+    "within_cap": true,
+    "notes": "8 tasks planned (T-0024–T-0031); 9 tasks required to cover AC-8 (add T-0032 for user guide); 9 ≤ 12 (SPRINT_MAX_TASKS), so no split required"
+  },
+  "risks_assessment": {
+    "status": "acceptable",
+    "notes": "8 risks identified (H1–H8) in sprint.json; all have mitigations; no critical blockers"
+  },
+  "recommendation": "Add task T-0032 to create docs/user-guides/US-0004.md. Update sprint.json task count to 9. Re-run plan-verify after task addition."
+}

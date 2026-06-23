@@ -1,0 +1,20 @@
+{
+  "id": "T-0006",
+  "sprint": "S0003",
+  "work_item": "US-0001",
+  "title": "Test fixtures",
+  "task": "Create tests/fixtures/categories.js (makeCategoriesMap), transactions.js (makeWithdrawalTx), stubs.js (OpenAi, account mapping, auto-cat, passthrough word/category mapping stubs) per architecture # US-0001 mock fixtures reference.",
+  "files": [
+    "tests/fixtures/categories.js",
+    "tests/fixtures/transactions.js",
+    "tests/fixtures/stubs.js"
+  ],
+  "acceptance": [
+    "makeCategoriesMap exports Map with Groceries, Travel & Foreign, Restaurants, Utilities",
+    "makeWithdrawalTx returns Firefly webhook-shaped transaction object",
+    "Stub factories match production service method signatures",
+    "Fixtures import cleanly from ESM test files without mutating repo data/"
+  ],
+  "status": "done",
+  "required": true
+}

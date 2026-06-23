@@ -1,0 +1,59 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: runbook
+        name: Read deploy commands
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          text = pathlib.Path("docs/engineering/runbook.md").read_text()
+          command_section = text.split("## Notes", 1)[0]
+
+          def get(key):
+              m = re.search(rf"^{re.escape(key)}:[ \t]*(.*)$", command_section, re.M)
+              val = (m.group(1) or "").strip() if m else ""
+              if val in ("", "...", "<...>", "TODO", key, f"{key}:"):
+                  return ""
+              if val.startswith(f"{key}:"):
+                  return ""
+              return val
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"DEPLOY_STAGING_COMMAND={get('DEPLOY_STAGING_COMMAND')}\n")
+              f.write(f"DEPLOY_PROD_COMMAND={get('DEPLOY_PROD_COMMAND')}\n")
+          PY
+      - name: Deploy staging
+        if: inputs.environment == 'staging'
+        run: |
+          if [ -z "${{ steps.runbook.outputs.DEPLOY_STAGING_COMMAND }}" ]; then
+            echo "Missing DEPLOY_STAGING_COMMAND"
+            exit 1
+          fi
+          ${{ steps.runbook.outputs.DEPLOY_STAGING_COMMAND }}
+      - name: Deploy prod
+        if: inputs.environment == 'prod'
+        run: |
+          if [ -z "${{ steps.runbook.outputs.DEPLOY_PROD_COMMAND }}" ]; then
+            echo "Missing DEPLOY_PROD_COMMAND"
+            exit 1
+          fi
+          ${{ steps.runbook.outputs.DEPLOY_PROD_COMMAND }}
+

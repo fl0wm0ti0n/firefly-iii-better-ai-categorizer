@@ -1,0 +1,12 @@
+{
+  "id": "T-0039",
+  "title": "Backend: update #processUncategorizedTransactions, #processAllTransactions, #onTestWebhook to accept optional scope field and apply filter logic",
+  "description": "Update backend handlers in src/App.js to accept an optional scope field in the request body and apply transaction type filtering: (1) #processUncategorizedTransactions(scope) — filter by transaction type based on scope, (2) #processAllTransactions(scope) — same filter logic, (3) #onTestWebhook(req, res) — map scope to transaction_type for test webhook. Scope values: 'withdrawals' (force skipDeposits=true), 'deposits' (exclude withdrawals), 'both' (honor saved skipDeposits config). Backward compatible: absent scope → existing behavior.",
+  "acceptance_criteria_refs": ["AC-3", "AC-6"],
+  "decision_refs": ["DEC-0016", "DEC-0017"],
+  "dependencies": ["T-0037", "T-0038"],
+  "estimated_complexity": "medium",
+  "status": "completed",
+  "files": ["src/App.js"],
+  "notes": "Filter logic per DEC-0016: scope='withdrawals' → only withdrawals; scope='deposits' → only deposits; scope='both' → honor auto-skip-deposits config. Webhook scope mapping per DEC-0017: withdrawals→withdrawal, deposits→deposit, both→withdrawal (default)."
+}

@@ -1,0 +1,4 @@
+T-0052 Regression test run
+Command: bash tests/run-tests.sh
+Exit code: 0
+Result: 18/18 tests pass

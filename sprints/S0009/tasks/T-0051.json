@@ -1,0 +1,12 @@
+{
+  "id": "T-0051",
+  "title": "Defensive UI hardening in loadPendingReviews",
+  "description": "Modify public/index.html:3461-3485 so loadPendingReviews checks response.ok and Content-Type before parsing JSON, and surfaces structured backend errors via showToast with a user-friendly message. Keep console.error for full diagnostics.",
+  "acceptance_criteria_refs": ["BUG-0002 AC-1", "BUG-0002 AC-3"],
+  "decision_refs": ["DEC-0020"],
+  "dependencies": [],
+  "estimated_complexity": "medium",
+  "status": "done",
+  "files": ["public/index.html"],
+  "notes": "Target function loadPendingReviews currently calls response.json() unconditionally. Add response.ok guard, content-type check, and structured error handling. The live public/ mount means this change takes effect without requiring a container rebuild."
+}

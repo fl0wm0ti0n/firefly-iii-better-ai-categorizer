@@ -1,0 +1,21 @@
+{
+  "id": "T-0029",
+  "title": "REST API endpoints — GET /api/reviews, POST accept/reject",
+  "task": "Add REST routes in App.js run() method: GET /api/reviews (pending only), GET /api/reviews/all (all reviews), POST /api/reviews/:id/accept (apply category + tag to Firefly), POST /api/reviews/:id/reject (dismiss without Firefly mutation). Accept endpoint calls fireflyService.setCategory + addTag.",
+  "files": ["src/App.js"],
+  "acceptance": [
+    "GET /api/reviews returns { success: true, reviews: [...pending], count }",
+    "GET /api/reviews/all returns { success: true, reviews: [...all], count }",
+    "POST /api/reviews/:id/accept applies chosen category to Firefly via setCategory",
+    "POST /api/reviews/:id/accept adds FIREFLY_TAG via addTag",
+    "POST /api/reviews/:id/accept returns { success: true, review } with updated status",
+    "POST /api/reviews/:id/reject returns { success: true, review } without Firefly mutation",
+    "Both accept/reject return 404 { success: false, error: 'Review not found' } for missing id",
+    "Both accept/reject return 500 with error message on Firefly API failure",
+    "req.body.category optional on accept (falls back to recommendation.preferredCategory)"
+  ],
+  "acceptance_mapping": ["AC-5", "AC-6", "R-0021"],
+  "depends_on": ["T-0028"],
+  "status": "pending",
+  "required": true
+}

@@ -1,0 +1,7 @@
+T-0053 Browser console evidence (local instance)
+URL: http://localhost:3001/
+Method: Runtime.evaluate installed console.error/warn capture on page.
+Pending Reviews panel expanded; loadPendingReviews executed.
+Captured errors/warnings: []
+No SyntaxError observed.
+No GET /api/reviews 404 observed.

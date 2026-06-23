@@ -1,0 +1,56 @@
+# Local agent-driven ephemeral launch (US-0006)
+#
+# Purpose: Enables the Cursor IDE agent (or operator) to start the Categorizer
+# service locally without affecting the production deployment.
+#
+# Usage:
+#   docker compose -f docker-compose.local.yml up -d --build
+#   docker compose -f docker-compose.local.yml down
+#
+# Per DEC-0018: explicit -f flag prevents auto-merge with parent stack.
+# Per R-0023: port 3001:3000, healthcheck probes GET / (not /health),
+#             service name firefly-ai-categorizer, no profiles, no Traefik.
+
+version: '3.8'
+
+services:
+  firefly-ai-categorizer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: firefly-ai-categorizer-local
+    restart: "no"
+    ports:
+      - "3001:3000"
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./public:/app/public:ro
+    environment:
+      - NODE_ENV=production
+      - ENABLE_UI=true
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    user: "1001:1001"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    read_only: false
+    security_opt:
+      - no-new-privileges:true

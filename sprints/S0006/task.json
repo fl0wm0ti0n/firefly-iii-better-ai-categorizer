@@ -1,0 +1,178 @@
+{
+  "sprint": "S0006",
+  "work_item": "US-0004",
+  "tasks": [
+    {
+      "id": "T-0024",
+      "title": "FireflyService.getAccountHistory() with pagination + 1-hour cache",
+      "task": "Add getTransactionsByAccountId(accountId, { limit, type }) with paginated fetch on /api/v1/accounts/{id}/transactions?type=withdrawal. Add getCachedAccountHistory(accountId) wrapper with in-memory Map<accountId, {data, timestamp}> and 1-hour TTL (3600000 ms). Add private #accountHistoryCache field.",
+      "files": ["src/FireflyService.js"],
+      "acceptance": [
+        "getTransactionsByAccountId() paginates through all pages using page + limit params",
+        "Response headers include Accept: application/json and Bearer auth",
+        "Non-ok responses throw FireflyException with status + body",
+        "getCachedAccountHistory() returns cached data when timestamp < 1 hour old",
+        "getCachedAccountHistory() fetches fresh data when cache expired or missing",
+        "#accountHistoryCache is Map<accountId, {data, timestamp}>",
+        "Cache TTL is 3600000 ms (1 hour) per DEC-0011"
+      ],
+      "acceptance_mapping": ["DEC-0011", "AC-1", "R-0018"],
+      "depends_on": [],
+      "status": "pending",
+      "required": true
+    },
+    {
+      "id": "T-0025",
+      "title": "Dominance calculator module with 80% threshold + 10 min tx",
+      "task": "Create src/HistoryAnalysisService.js with analyzeAccountHistory(transactions) method. Filter transactions with category_id set. Return { dominantCategory, dominance, confidence, categorizedCount, categoryCounts } when dominance >= threshold (default 0.80) and categorizedCount >= minTransactionCount (default 10). Return { insufficientData: true } or { belowThreshold: true } otherwise. Support optional data/dominance-config.json for configurable threshold.",
+      "files": ["src/HistoryAnalysisService.js"],
+      "acceptance": [
+        "analyzeAccountHistory() filters transactions with non-null category_id",
+        "Returns { dominantCategory: null, insufficientData: true } when categorized < 10 (default)",
+        "Returns { dominantCategory, belowThreshold: true } when dominance < 0.80 (default)",
+        "Returns { dominantCategory, dominance, confidence: dominance, categorizedCount, categoryCounts } when threshold met",
+        "confidence = dominance (dominant share) per AC-2",
+        "Default threshold 0.80 (80%) per DEC-0012",
+        "Default minTransactionCount 10 per DEC-0012",
+        "Optional data/dominance-config.json overrides defaults",
+        "getThreshold() returns current dominance threshold",
+        "Tie-breaking: first encountered category wins (document behavior)"
+      ],
+      "acceptance_mapping": ["DEC-0012", "AC-1", "AC-2", "R-0020"],
+      "depends_on": [],
+      "status": "pending",
+      "required": true
+    },
+    {
+      "id": "T-0026",
+      "title": "Extend OpenAiService.classify() with confidence field",
+      "task": "Extend #buildCategorySchema() to add confidence: { type: 'number', minimum: 0, maximum: 1 } to properties and required array. Update classify() return shape to include confidence field. Update response mapping: UNKNOWN → confidence: 0, valid → confidence from parsed || 0.5, refusal → confidence: 0, parse failure → confidence: 0. Update #generatePrompt() with confidence scoring instructions.",
+      "files": ["src/OpenAiService.js"],
+      "acceptance": [
+        "#buildCategorySchema() includes confidence: { type: 'number', minimum: 0, maximum: 1 } in properties",
+        "#buildCategorySchema() required array includes both 'category' and 'confidence'",
+        "classify() return shape: { category, confidence, prompt, response }",
+        "UNKNOWN → { category: null, confidence: parsed.confidence || 0, response: 'UNKNOWN', prompt }",
+        "Valid enum → { category: parsed.category, confidence: parsed.confidence || 0.5, response, prompt }",
+        "Refusal → { category: null, confidence: 0, response: refusal, prompt }",
+        "Parse failure → { category: null, confidence: 0, response: rawContent, prompt } + console.warn",
+        "#generatePrompt() includes confidence scoring instructions (0.9–1.0 high, 0.6–0.8 moderate, 0.3–0.5 low, 0.0–0.2 very uncertain)",
+        "strict: true + additionalProperties: false preserved"
+      ],
+      "acceptance_mapping": ["DEC-0014", "AC-3", "R-0019"],
+      "depends_on": [],
+      "status": "pending",
+      "required": true
+    },
+    {
+      "id": "T-0027",
+      "title": "App.js #resolveCategory integration — history + AI comparison + queue",
+      "task": "Insert history dominance check in #resolveCategory() after word/keyword hints and before AI classification. Fetch cached account history via this.#firefly.getCachedAccountHistory(accountId). Run HistoryAnalysisService.analyzeAccountHistory(). If dominance threshold met, build historySuggestion. After AI classify, call #compareHistoryAndAi() to create review queue entry. Handle queuedForReview flag in #processTransaction() — skip setCategory + addTag when queued.",
+      "files": ["src/App.js"],
+      "acceptance": [
+        "History fetch occurs after word/keyword hints and before AI classification in #resolveCategory",
+        "History fetch failure logs warning and continues without history suggestion (non-blocking)",
+        "historySuggestion built when dominance >= threshold: { category, confidence, basis }",
+        "#compareHistoryAndAi() creates review entry with transactionSummary, historySuggestion, aiSuggestion, recommendation",
+        "Recommendation logic: higher confidence wins; tie-break prefers history (empirical)",
+        "Recommendation reasons: history_and_ai_agree, history_and_ai_disagree, history_only, ai_only",
+        "Returns { category: null, queuedForReview: true, reviewId } when queued",
+        "#processTransaction() checks queuedForReview flag and skips setCategory + addTag",
+        "Hard rules (account mapping step 1, auto-cat step 2) still short-circuit before history (AC-7)",
+        "Duplicate transactionId check prevents duplicate queue entries"
+      ],
+      "acceptance_mapping": ["AC-4", "AC-7", "DEC-0001"],
+      "depends_on": ["T-0024", "T-0025", "T-0026", "T-0028"],
+      "status": "pending",
+      "required": true
+    },
+    {
+      "id": "T-0028",
+      "title": "Review queue persistence — data/pending-category-reviews.json",
+      "task": "Create src/PendingReviewService.js with JSON file persistence at data/pending-category-reviews.json. Implement CRUD: loadReviews(), saveReviews(), addReview(review), acceptReview(id, chosenCategory), rejectReview(id), getPendingReviews(), getAllReviews(). Duplicate check on addReview (same transactionId + status=pending). Async serialization per DEC-0013.",
+      "files": ["src/PendingReviewService.js"],
+      "acceptance": [
+        "loadReviews() reads data/pending-category-reviews.json on constructor",
+        "loadReviews() handles ENOENT gracefully (empty array)",
+        "saveReviews() writes JSON with 2-space indent",
+        "addReview() checks for duplicate (same transactionId + status=pending) — returns existing",
+        "addReview() prepends new review (unshift) and saves",
+        "acceptReview(id, chosenCategory) sets status='accepted', resolvedAt, resolvedBy='operator', resolvedChoice",
+        "rejectReview(id) sets status='rejected', resolvedAt, resolvedBy='operator', resolvedChoice=null",
+        "getPendingReviews() returns only status='pending' items",
+        "getAllReviews() returns all items (copy)",
+        "Uses storage.js dataFile() + ensureDataDir() pattern (DEC-0004)"
+      ],
+      "acceptance_mapping": ["DEC-0013", "DEC-0004", "AC-4", "R-0021"],
+      "depends_on": [],
+      "status": "pending",
+      "required": true
+    },
+    {
+      "id": "T-0029",
+      "title": "REST API endpoints — GET /api/reviews, POST accept/reject",
+      "task": "Add REST routes in App.js run() method: GET /api/reviews (pending only), GET /api/reviews/all (all reviews), POST /api/reviews/:id/accept (apply category + tag to Firefly), POST /api/reviews/:id/reject (dismiss without Firefly mutation). Accept endpoint calls fireflyService.setCategory + addTag.",
+      "files": ["src/App.js"],
+      "acceptance": [
+        "GET /api/reviews returns { success: true, reviews: [...pending], count }",
+        "GET /api/reviews/all returns { success: true, reviews: [...all], count }",
+        "POST /api/reviews/:id/accept applies chosen category to Firefly via setCategory",
+        "POST /api/reviews/:id/accept adds FIREFLY_TAG via addTag",
+        "POST /api/reviews/:id/accept returns { success: true, review } with updated status",
+        "POST /api/reviews/:id/reject returns { success: true, review } without Firefly mutation",
+        "Both accept/reject return 404 { success: false, error: 'Review not found' } for missing id",
+        "Both accept/reject return 500 with error message on Firefly API failure",
+        "req.body.category optional on accept (falls back to recommendation.preferredCategory)"
+      ],
+      "acceptance_mapping": ["AC-5", "AC-6", "R-0021"],
+      "depends_on": ["T-0028"],
+      "status": "pending",
+      "required": true
+    },
+    {
+      "id": "T-0030",
+      "title": "UI review panel — sidebar entry, transaction summary, accept/reject buttons",
+      "task": "Add review queue panel to public/index.html: sidebar entry under Categorizer group with badge count, panel layout with summary (pending count + oldest age), dynamic review item rendering (transaction summary, history badge with confidence, AI badge with confidence, recommendation), Accept and Reject buttons with fetch to REST API. Load review queue on panel open.",
+      "files": ["public/index.html"],
+      "acceptance": [
+        "Sidebar entry 'Pending Reviews' with icon and badge (#review-queue-badge) under Categorizer group",
+        "Badge shows pending count; hidden when 0",
+        "Panel shows pending count and oldest item age",
+        "Review item displays: description, account name, amount + currency, date",
+        "History badge shows category + confidence percentage with color coding (green ≥80%, amber ≥50%, red <50%)",
+        "AI badge shows category + confidence percentage with same color coding",
+        "Recommendation shows preferred category and source (history or ai)",
+        "Accept button calls POST /api/reviews/:id/accept and reloads queue",
+        "Reject button calls POST /api/reviews/:id/reject and reloads queue",
+        "Error handling: alert on fetch failure or API error response"
+      ],
+      "acceptance_mapping": ["AC-5", "AC-6"],
+      "depends_on": ["T-0029"],
+      "status": "pending",
+      "required": true
+    },
+    {
+      "id": "T-0031",
+      "title": "Tests — dominance algorithm, queue persistence, API endpoints, UI smoke test",
+      "task": "Create tests/historyAnalysisService.test.js (hist-1–hist-5), tests/pendingReviewService.test.js (queue-1–queue-4). Update tests/resolveCategory.test.js stubs to include confidence field in classify() return. Run full bash tests/run-tests.sh green.",
+      "files": ["tests/historyAnalysisService.test.js", "tests/pendingReviewService.test.js", "tests/resolveCategory.test.js"],
+      "acceptance": [
+        "hist-1-no-transactions: empty array → { dominantCategory: null, insufficientData: true }",
+        "hist-2-below-min-count: 5 categorized tx → { dominantCategory: null, insufficientData: true }",
+        "hist-3-below-threshold: 100 tx, 65% dominance → { dominantCategory: 'X', belowThreshold: true }",
+        "hist-4-above-threshold: 100 tx, 85% dominance → { dominantCategory: 'X', dominance: 0.85, confidence: 0.85 }",
+        "hist-5-perfect-dominance: 50 tx, 100% → { dominantCategory: 'X', dominance: 1.0 }",
+        "queue-1-add-review: addReview() → review in getPendingReviews()",
+        "queue-2-accept-review: acceptReview(id) → status='accepted', resolvedAt set",
+        "queue-3-reject-review: rejectReview(id) → status='rejected', resolvedChoice null",
+        "queue-4-duplicate-check: addReview() same transactionId → returns existing",
+        "resolveCategory.test.js 4/4 cases still pass with confidence field in stubs",
+        "bash tests/run-tests.sh exits 0 with all tests passing"
+      ],
+      "acceptance_mapping": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+      "depends_on": ["T-0025", "T-0028", "T-0027"],
+      "status": "pending",
+      "required": true
+    }
+  ]
+}

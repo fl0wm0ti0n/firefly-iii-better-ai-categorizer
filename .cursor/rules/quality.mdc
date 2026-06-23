@@ -1,0 +1,49 @@
+---
+description: "Quality gates and small-step execution"
+globs: ["**/*"]
+---
+
+- Prefer small, atomic changes tied to a single task.
+- Run tests, lint, and typecheck when commands are configured in
+  `docs/engineering/runbook.md` (`TEST_COMMAND`, `LINT_COMMAND`, `TYPECHECK_COMMAND`).
+- If `AUTO_INSTALL_DEPS=1` in `.cursor/scratchpad.md`, install required
+  runtimes/libs without asking (package manager only).
+- If `AUTO_RELEASE_NOTES=1` in `.cursor/scratchpad.md`, generate release notes
+  automatically (scripted).
+- If `PERMISSION_MODE=auto`, do not ask for routine permission prompts.
+- If `RUN_TESTS_ON_EDIT=1`, run configured tests after meaningful edits.
+- If `LOOP_UNTIL_GREEN=1`, iterate fix/test until green, bounded by
+  `AUTO_LOOP_MAX_CYCLES` when set.
+- Update `docs/engineering/state.md` after meaningful changes.
+- If tests fail and commands are set, fix or document before proceeding.
+- Scripts that call subprocesses must use timeouts to prevent infinite hangs.
+  Use `-NonInteractive` for PowerShell, `< /dev/null` for sh, and respect
+  `TEST_TIMEOUT_SECONDS` from the runbook. Never use `Read-Host` or `read`
+  in code paths reachable without user interaction.
+- Quality chain: Cursor AI loop (in-editor) → `scripts/validate-and-push`
+  (local pre-push) → CI auto-fix (GitHub Actions). Each layer catches issues
+  the previous layer missed.
+- Before pushing, recommend running `scripts/validate-and-push.ps1` (Windows)
+  or `bash scripts/validate-and-push.sh` (Linux/Mac) to catch failures locally.
+- `LINT_FIX_COMMAND` and `FORMAT_COMMAND` in the runbook enable automatic
+  formatting/lint fixes both locally and in CI.
+- Remote config validation errors (when `REMOTE_EXECUTION=1`) must be fail-fast
+  and actionable using this format:
+  `[REMOTE_CONFIG_ERROR] <path>: expected <rule>, got <actual>. Fix: <hint>.`
+  Include all of: failing path, expected rule/range, actual value or type, and
+  a concrete remediation hint.
+- Runtime QA autopilot failures (US-0065) must use deterministic reason codes
+  and evidence:
+  `RUNTIME_STARTUP_FAILED`, `RUNTIME_ENDPOINT_UNREACHABLE`,
+  `RUNTIME_LOG_CRITICAL_DETECTED`, `RUNTIME_RETRY_BUDGET_EXHAUSTED`,
+  `RUNTIME_STACK_PROFILE_UNRESOLVED`.
+  Include startup command/profile, runtime mode, health result, retry ledger,
+  and log summary in QA artifacts.
+- User-visible internal metadata (US-0071 / DEC-0053): do not introduce
+  planning-shaped tokens (`US-[0-9]{4}`, `DEC-[0-9]{4}`, `R-[0-9]{4}`) into
+  operator-visible strings under inclusive scan roots (`bin/`, root installers,
+  `packaging/**`, `scripts/validate-and-push.*`). Use
+  `python scripts/check-user-visible-metadata.py` before handoff; on leakage use
+  `USER_VISIBLE_INTERNAL_METADATA_DETECTED` with path evidence and remediation
+  per `docs/engineering/runbook.md`.
+

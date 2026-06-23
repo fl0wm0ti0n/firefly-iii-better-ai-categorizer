@@ -1,0 +1,12 @@
+{
+  "id": "T-0047",
+  "title": "E2E test — verify local launch health poll + browser probe end-to-end",
+  "description": "Execute end-to-end integration test: (1) run scripts/dev-launch.sh, (2) verify health poll succeeds (curl http://localhost:3001/ returns HTTP 200), (3) verify GET /api/reviews returns JSON, (4) optionally use Cursor browser MCP to navigate browser_probe_url, (5) run docker compose -f docker-compose.local.yml down, (6) record test results. Test cases: valid .env launch, missing .env, port occupied, /api/reviews response, browser navigate.",
+  "acceptance_criteria_refs": ["AC-4", "AC-5"],
+  "decision_refs": ["DEC-0018"],
+  "dependencies": ["T-0043", "T-0044", "T-0045"],
+  "estimated_complexity": "medium",
+  "status": "done",
+  "files": [],
+  "notes": "Requires Docker daemon and network. If Docker unavailable locally, document as not-executed with rationale. Do NOT modify production deployment. Report results in sprint summary."
+}

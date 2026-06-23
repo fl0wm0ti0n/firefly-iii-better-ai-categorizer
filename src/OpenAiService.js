@@ -1,4 +1,4 @@
-import {Configuration, OpenAIApi} from "openai";
+import OpenAI from 'openai';
 import {getConfigVariable} from "./util.js";
 
 export default class OpenAiService {
@@ -11,20 +11,19 @@ export default class OpenAiService {
         lastReset: Date.now()
     };
 
-    constructor() {
-        const apiKey = getConfigVariable("OPENAI_API_KEY")
+    constructor(deps = {}) {
+        const apiKey = getConfigVariable("OPENAI_API_KEY", false);
 
-        const configuration = new Configuration({
-            apiKey
-        });
+        this.#openAi = deps.client ?? new OpenAI({ apiKey: apiKey || 'missing', maxRetries: 0 });
 
-        this.#openAi = new OpenAIApi(configuration)
-        
-        // Modell aus Umgebungsvariablen lesen
         const envModel = getConfigVariable("OPENAI_MODEL", false);
         if (envModel) {
             this.setModel(envModel);
         }
+    }
+
+    static createForTest(deps = {}) {
+        return new OpenAiService(deps);
     }
 
     async matchAccount(accountNames, destinationName, description, transactionType = 'withdrawal') {
@@ -47,7 +46,6 @@ export default class OpenAiService {
             const txBlock = `Transaction:\n- Payee: ${destinationName || ''}\n- Description: ${description || ''}\n- Type: ${transactionType}`;
             const rulesBlock = `Rules:\n- ${rules.join('\n- ')}`;
             const prompt = `${header}\n\n${accountsBlock}\n\n${txBlock}\n\n${guidance}\n\n${rulesBlock}\n\nReturn ONLY JSON object: {"name": "<exact from list or null>", "confidence": 0..1}`;
-            // Estimated token count (rough: 1 token ≈ 4 chars)
             const estimatedTokens = Math.ceil((prompt.length + 50) / 4);
             try {
                 console.info('ai-merchant-prompt', {
@@ -61,7 +59,7 @@ export default class OpenAiService {
                     prompt
                 });
             } catch (_) {}
-            const response = await this.#openAi.createChatCompletion({
+            const response = await this.#openAi.chat.completions.create({
                 model: this.#model,
                 messages: [
                     { role: 'system', content: 'You are an assistant that chooses the best matching account name from a provided list. Respond with strict JSON only.' },
@@ -70,7 +68,7 @@ export default class OpenAiService {
                 max_tokens: 80,
                 temperature: 0.1
             });
-            const content = response.data.choices?.[0]?.message?.content || '{}';
+            const content = response.choices?.[0]?.message?.content || '{}';
             try {
                 console.info('ai-merchant-raw', { content: String(content).substring(0, 2000) });
             } catch (_) {}
@@ -78,7 +76,6 @@ export default class OpenAiService {
             try {
                 json = JSON.parse(content);
             } catch (_) {
-                // try to extract object
                 const m = content.match(/\{[\s\S]*\}/);
                 json = m ? JSON.parse(m[0]) : {};
             }
@@ -99,13 +96,12 @@ export default class OpenAiService {
     }
 
     async classify(categories, destinationName, description, transactionType = 'withdrawal', options = {}) {
-        try {
-            const prompt = this.#generatePrompt(categories, destinationName, description, transactionType, options);
+        const prompt = this.#generatePrompt(categories, destinationName, description, transactionType, options);
+        const estimatedTokens = Math.ceil((prompt.length + 50) / 4);
 
-            // Estimated token count (rough: 1 token ≈ 4 characters)
-            const estimatedTokens = Math.ceil((prompt.length + 50) / 4);
-            
-            const response = await this.#openAi.createChatCompletion({
+        try {
+            const categoryNames = categories.filter(Boolean);
+            const response = await this.#openAi.chat.completions.create({
                 model: this.#model,
                 messages: [
                     {
@@ -121,41 +117,47 @@ export default class OpenAiService {
                 temperature: 0.1,
                 top_p: 1,
                 frequency_penalty: 0,
-                presence_penalty: 0
+                presence_penalty: 0,
+                response_format: {
+                    type: 'json_schema',
+                    json_schema: {
+                        name: 'transaction_category',
+                        strict: true,
+                        schema: this.#buildCategorySchema(categoryNames)
+                    }
+                }
             });
 
-            // Statistiken aktualisieren
             this.#stats.totalRequests++;
             this.#stats.totalTokens += estimatedTokens;
 
-            let guess = response.data.choices[0].message.content;
-            guess = guess.replace("\n", "");
-            guess = guess.trim();
+            const message = response.choices[0].message;
 
-            if (categories.indexOf(guess) === -1) {
-                console.warn(`OpenAI could not classify the transaction.`);
-                console.warn(`Prompt: ${prompt}`);
-                console.warn(`OpenAI's guess: ${guess}`);
-                console.warn(`Available categories: ${categories.join(", ")}`);
-                return {
-                    prompt,
-                    response: guess,
-                    category: null
-                };
+            if (message.refusal) {
+                return { category: null, confidence: 0, response: message.refusal, prompt };
+            }
+
+            const rawContent = message.content;
+            let parsed;
+            try {
+                parsed = JSON.parse(rawContent);
+            } catch (parseErr) {
+                console.warn(`OpenAI returned non-JSON content: ${rawContent}`);
+                return { category: null, confidence: 0, response: rawContent, prompt };
+            }
+
+            const guess = parsed.category;
+            const confidence = typeof parsed.confidence === 'number' ? parsed.confidence : 0;
+            if (guess === 'UNKNOWN') {
+                return { category: null, confidence: confidence || 0, response: 'UNKNOWN', prompt };
             }
 
             console.info(`✅ Successfully classified transaction as: ${guess}`);
-            return {
-                prompt,
-                response: guess,
-                category: guess
-            };
+            return { category: guess, confidence: confidence || 0.5, response: guess, prompt };
 
         } catch (error) {
-            if (error.response) {
-                const status = error.response.status;
-                const errorData = error.response.data;
-                
+            if (error instanceof OpenAI.APIError) {
+                const status = error.status;
                 if (status === 429) {
                     this.#stats.rateLimitHits++;
                     console.error("🚨 OpenAI Rate Limit/Quota exceeded:");
@@ -163,25 +165,46 @@ export default class OpenAiService {
                     console.error("   - Try again in a few minutes");
                     console.error("   - Check your OpenAI billing dashboard");
                     console.error(`📊 Current session stats: ${this.#stats.totalRequests} requests, ${this.#stats.totalTokens} tokens, ${this.#stats.rateLimitHits} rate limits`);
-                    throw new OpenAiException(status, error.response, "Rate limit exceeded. Please check your OpenAI quota and billing.");
+                    throw new OpenAiException(status, error, "Rate limit exceeded. Please check your OpenAI quota and billing.");
                 } else if (status === 401) {
                     console.error("🚨 OpenAI Authentication failed:");
                     console.error("   - Check your OPENAI_API_KEY");
-                    throw new OpenAiException(status, error.response, "Invalid API key. Please check your OPENAI_API_KEY.");
+                    throw new OpenAiException(status, error, "Invalid API key. Please check your OPENAI_API_KEY.");
                 } else if (status === 400) {
                     console.error("🚨 OpenAI Bad Request:");
                     console.error("   - Invalid request parameters");
-                    console.error("   - Error details:", errorData);
-                    throw new OpenAiException(status, error.response, `Bad request: ${errorData?.error?.message || 'Unknown error'}`);
+                    console.error("   - Error details:", error.message);
+                    throw new OpenAiException(status, error, error.message);
                 } else {
-                    console.error(`🚨 OpenAI API Error (${status}):`, errorData);
-                    throw new OpenAiException(status, error.response, errorData?.error?.message || errorData);
+                    console.error(`🚨 OpenAI API Error (${status}):`, error.message);
+                    throw new OpenAiException(status, error, error.message);
                 }
-            } else {
-                console.error("🚨 Network error while communicating with OpenAI:", error.message);
-                throw new OpenAiException(null, null, `Network error: ${error.message}`);
             }
+            console.error("🚨 Network error while communicating with OpenAI:", error.message);
+            throw new OpenAiException(null, null, `Network error: ${error.message}`);
         }
+    }
+
+    #buildCategorySchema(categories) {
+        const enumValues = [...categories.filter(Boolean), 'UNKNOWN'];
+        return {
+            type: 'object',
+            properties: {
+                category: {
+                    type: 'string',
+                    enum: enumValues,
+                    description: 'Exact category name from the provided list, or UNKNOWN if none fits',
+                },
+                confidence: {
+                    type: 'number',
+                    minimum: 0,
+                    maximum: 1,
+                    description: 'Confidence score between 0 and 1 indicating certainty of classification',
+                },
+            },
+            required: ['category', 'confidence'],
+            additionalProperties: false,
+        };
     }
 
     #generatePrompt(categories, destinationName, description, transactionType, options = {}) {
@@ -203,6 +226,11 @@ ${typeGuidance}${suggested}
 Rules:
 - Respond with ONLY the exact category name from the list above
 - If no category fits well, respond with "UNKNOWN"
+- Provide a confidence score between 0 and 1:
+  * 0.9–1.0: Clear match, high certainty
+  * 0.6–0.8: Reasonable match, moderate certainty
+  * 0.3–0.5: Uncertain match, low certainty
+  * 0.0–0.2: Very uncertain, likely wrong
 - Pay attention to transaction type: withdrawals are expenses, deposits are income
 - Do not explain your reasoning`;
     }
@@ -242,13 +270,13 @@ Rules:
                 { role: 'system', content: `You extract individual purchase transactions from statement text (language/layout varies). Return ONLY a JSON array of objects {"description": string, "destination_name": string, "amount": number, "date": "YYYY-MM-DD"|null}. Amount must be the billed/charged amount in ${currency} (account currency), not the original foreign currency. Include small conversion fee rows. Amounts must be positive for purchases. No additional text.` },
                 { role: 'user', content: text.substring(0, 12000) }
             ];
-            const response = await this.#openAi.createChatCompletion({
+            const response = await this.#openAi.chat.completions.create({
                 model: this.#model,
                 messages,
                 temperature: 0.1,
                 max_tokens: 800
             });
-            const content = response.data.choices?.[0]?.message?.content || '[]';
+            const content = response.choices?.[0]?.message?.content || '[]';
             const jsonText = this.#safeExtractJson(content);
             const parsed = JSON.parse(jsonText);
             if (options.returnRaw) {

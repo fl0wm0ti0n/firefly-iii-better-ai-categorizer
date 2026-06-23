@@ -1,0 +1,12 @@
+component_id: api-gateway
+repo_id: example-producer
+owner: team-example
+status: active
+exposed_contracts:
+  - contract_id: public-api
+    api_spec_ref: contracts/public-api.yaml
+    version: 1.0.1
+consumed_contracts: []
+protected_interfaces:
+  - interface_id: public-api-v1
+    description: Public API contract expected to remain stable for non-target work.

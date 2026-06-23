@@ -1,0 +1,118 @@
+{
+  "libraries": [
+    {
+      "name": "csv-parse",
+      "purpose": "Parse CSV credit-card statements in TransactionExtractionService",
+      "scope": "runtime",
+      "version": "^5.5.6"
+    },
+    {
+      "name": "dotenv",
+      "purpose": "Load .env configuration at process start (index.js)",
+      "scope": "runtime",
+      "version": "^16.5.0"
+    },
+    {
+      "name": "express",
+      "purpose": "HTTP server, REST API, static UI when ENABLE_UI=true",
+      "scope": "runtime",
+      "version": "^4.18.2"
+    },
+    {
+      "name": "multer",
+      "purpose": "Multipart upload for extraction CSV/PDF endpoints",
+      "scope": "runtime",
+      "version": "^1.4.5-lts.2"
+    },
+    {
+      "name": "openai",
+      "purpose": "OpenAI SDK v3 — transaction classification and account matching",
+      "scope": "runtime",
+      "version": "^3.2.1"
+    },
+    {
+      "name": "pdf-parse",
+      "purpose": "Extract text from PDF credit-card statements",
+      "scope": "runtime",
+      "version": "^1.1.1"
+    },
+    {
+      "name": "queue",
+      "purpose": "Serial async job queue for webhook and batch categorization",
+      "scope": "runtime",
+      "version": "^7.0.0"
+    },
+    {
+      "name": "socket.io",
+      "purpose": "Real-time job/batch progress events to public/index.html",
+      "scope": "runtime",
+      "version": "^4.6.1"
+    },
+    {
+      "name": "uuid",
+      "purpose": "Generate job and batch job IDs in JobList",
+      "scope": "runtime",
+      "version": "^9.0.0"
+    },
+    {
+      "name": "nodemon",
+      "purpose": "Dev auto-restart (npm run dev)",
+      "scope": "dev",
+      "version": "^3.0.2"
+    }
+  ],
+  "runtime": [
+    {
+      "name": "node",
+      "constraint": ">=18.0.0",
+      "purpose": "Application runtime (ES modules, native fetch)"
+    },
+    {
+      "name": "npm",
+      "constraint": ">=8.0.0",
+      "purpose": "Dependency install and npm scripts"
+    },
+    {
+      "name": "docker",
+      "purpose": "Production deployment via parent Firefly stack or standalone-dev profile",
+      "image": "node:18-alpine"
+    }
+  ],
+  "services": [
+    {
+      "name": "firefly-iii",
+      "purpose": "Source of transactions, categories, accounts; webhook trigger",
+      "auth": "FIREFLY_PERSONAL_TOKEN (Bearer)",
+      "env": ["FIREFLY_URL"]
+    },
+    {
+      "name": "openai-api",
+      "purpose": "LLM categorization and account matching",
+      "auth": "OPENAI_API_KEY",
+      "env": ["OPENAI_MODEL"]
+    }
+  ],
+  "tooling": [
+    {
+      "name": "github-actions",
+      "purpose": "CI (runbook-driven test/lint), deploy workflow_dispatch",
+      "paths": [".github/workflows/ci.yml", ".github/workflows/deploy.yml"]
+    },
+    {
+      "name": "its-magic",
+      "purpose": "Cursor agent workflow, validation scripts, engineering docs",
+      "version": "0.1.2-48",
+      "paths": [".cursor/", "scripts/", "docs/engineering/", "its_magic/"]
+    },
+    {
+      "name": "python3",
+      "purpose": "its-magic validation, materialize_codebase_map.py, CI runbook parser",
+      "note": "Not required for npm start; required for engineering gates"
+    },
+    {
+      "name": "dumb-init",
+      "purpose": "PID 1 signal handling in production Docker image",
+      "scope": "container"
+    }
+  ]
+}

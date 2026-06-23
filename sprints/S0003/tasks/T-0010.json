@@ -1,0 +1,16 @@
+{
+  "id": "T-0010",
+  "sprint": "S0003",
+  "work_item": "US-0001",
+  "title": "CI checks verification",
+  "task": "Verify .github/workflows/ci.yml checks job reads TEST_COMMAND from runbook and conditionally executes it. Run bash tests/run-tests.sh locally as CI proxy; confirm no workflow edit needed when runbook updated.",
+  "files": [".github/workflows/ci.yml"],
+  "acceptance": [
+    "CI checks job step runs when TEST_COMMAND non-empty (verify conditional)",
+    "Local bash tests/run-tests.sh passes as CI proxy",
+    "AC-5 satisfied: CI will report pass/fail from updated TEST_COMMAND",
+    "No spurious workflow change unless runbook parser requires fix"
+  ],
+  "status": "done",
+  "required": true
+}

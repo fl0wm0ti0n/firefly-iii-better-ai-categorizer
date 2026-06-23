@@ -1,0 +1,121 @@
+{
+  "sprint": "S0004",
+  "work_item": "US-0002",
+  "phase": "verify-work",
+  "verified_at": "2026-06-14T15:43:00Z",
+  "verdict": "pass",
+  "steps": [
+    {
+      "id": "uat-1",
+      "ac_ref": "AC-3",
+      "description": "Operator scenario walkthrough — doc map answers 'where do I look?'",
+      "result": "pass",
+      "note": "11 scenario rows + core link table; all canonical surfaces reachable"
+    },
+    {
+      "id": "uat-2",
+      "ac_ref": "AC-3",
+      "description": "Link integrity — all relative links from US-0002.md resolve on disk",
+      "result": "pass",
+      "note": "34 links checked; 0 missing targets"
+    },
+    {
+      "id": "uat-3",
+      "ac_ref": "AC-3",
+      "description": "User-guide schema — six required H2 sections present",
+      "result": "pass",
+      "note": "Purpose, Prerequisites, Usage steps, Example, Limitations, Troubleshooting"
+    },
+    {
+      "id": "uat-4",
+      "ac_ref": "AC-1",
+      "description": "CODEBASE_ANALYSIS reflects gpt-4o-mini, DEC-0001 five-step, API v1.1.0, test harness",
+      "result": "pass",
+      "note": "Lines 26, 58, 225–231, 253–259 verified"
+    },
+    {
+      "id": "uat-5",
+      "ac_ref": "AC-2",
+      "description": "README coverage validator brownfield path exits 0",
+      "result": "pass",
+      "note": "--no-template-parity --report exit 0; status PASS, coverage_missing []"
+    },
+    {
+      "id": "uat-6",
+      "ac_ref": "AC-4",
+      "description": "Pipeline order consistent across vision, README, CODEBASE_ANALYSIS",
+      "result": "pass",
+      "note": "Account → Category Mappings → auto-cat → word mappings → keyword hints → AI"
+    },
+    {
+      "id": "uat-7",
+      "ac_ref": "AC-3",
+      "description": "Troubleshooting section points to README § Troubleshooting and quality gates",
+      "result": "pass",
+      "note": "runbook TEST_COMMAND + validate_readme_feature_coverage.py; developer README § Quality gates"
+    },
+    {
+      "id": "uat-8",
+      "ac_ref": "AC-1",
+      "description": "Regression guard — tests/run-tests.sh",
+      "result": "pass",
+      "note": "exit 0, 4/4 pass (~515ms)"
+    }
+  ],
+  "passed": 8,
+  "failed": 0,
+  "deferred": 0,
+  "operator_actions_required": [],
+  "probe_results": [
+    {
+      "probe_id": "us0002-verify-work-doc-map-scenarios",
+      "probe_kind": "doc_walkthrough",
+      "step_id": "uat-1",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS"
+    },
+    {
+      "probe_id": "us0002-verify-work-link-integrity",
+      "probe_kind": "cli_smoke",
+      "step_id": "uat-2",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS",
+      "note": "34 links, 0 missing"
+    },
+    {
+      "probe_id": "us0002-verify-work-pipeline-trace",
+      "probe_kind": "doc_walkthrough",
+      "step_id": "uat-6",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS"
+    },
+    {
+      "probe_id": "us0002-verify-work-troubleshooting",
+      "probe_kind": "doc_walkthrough",
+      "step_id": "uat-7",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS"
+    },
+    {
+      "probe_id": "us0002-verify-work-validator",
+      "probe_kind": "cli_smoke",
+      "step_id": "uat-5",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS",
+      "command": "python3 scripts/validate_readme_feature_coverage.py --no-template-parity --report",
+      "exit_code": 0
+    },
+    {
+      "probe_id": "us0002-verify-work-regression",
+      "probe_kind": "test",
+      "step_id": "uat-8",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS",
+      "command": "bash tests/run-tests.sh",
+      "exit_code": 0,
+      "stack_profile": "node"
+    }
+  ],
+  "browser_probe_mode": "cursor",
+  "browser_probe_reason_code": "UAT_BROWSER_PROBE_NOT_APPLICABLE"
+}

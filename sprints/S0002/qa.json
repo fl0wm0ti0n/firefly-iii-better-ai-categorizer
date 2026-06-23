@@ -1,0 +1,56 @@
+{
+  "sprint": "S0002",
+  "work_item": "BUG-0001",
+  "orchestrator_run_id": "auto-20260613T122818Z-bug0001",
+  "verified_at": "2026-06-13T12:36:52Z",
+  "role": "qa",
+  "verdict": "pass",
+  "verdict_note": "PASS with deferred AC-4 and T-0004 row 5 (healthy Firefly + PAT)",
+  "acceptance": {
+    "AC-1": { "result": "pass", "note": "No Unexpected token console error on updated runtime" },
+    "AC-2": { "result": "pass", "note": "Structured success:false with actionable error; mock HTML 200 verified" },
+    "AC-3": { "result": "pass", "note": "Accept header + content-type guard in FireflyService.getCategories()" },
+    "AC-4": { "result": "deferred", "reason_code": "UAT_PROBE_FORBIDDEN", "note": "Firefly reachable; PAT not auto-read" }
+  },
+  "blocking_findings": [],
+  "informational_findings": [
+    {
+      "id": "QA-INFO-1",
+      "severity": "info",
+      "reason_code": "RUNTIME_DEPLOYMENT_STALE",
+      "summary": "Docker categorizer on port 3000 serves pre-fix code (Jun 12 image)"
+    },
+    {
+      "id": "QA-INFO-2",
+      "severity": "info",
+      "reason_code": "TEST_SCAFFOLD_UNSUPPORTED_STACK",
+      "summary": "npm test exits 1; no test harness (US-0001)"
+    },
+    {
+      "id": "QA-INFO-3",
+      "severity": "info",
+      "reason_code": "METADATA_SANITIZATION_POLICY_MISSING",
+      "summary": "check-user-visible-metadata.py not present"
+    }
+  ],
+  "mock_verification": {
+    "firefly_service": { "total": 5, "passed": 5, "failed": 0 },
+    "app_route_proxy": { "passed": true }
+  },
+  "generated_test": {
+    "stack_profile": "node",
+    "command": "npm test",
+    "result": "fail",
+    "reason_code": "TEST_SCAFFOLD_UNSUPPORTED_STACK"
+  },
+  "runtime": {
+    "mode": "local",
+    "stack_profile": "node",
+    "health_target": "http://localhost:3001/",
+    "health_result": "pass",
+    "final_verdict": "pass",
+    "reason_code": "RUNTIME_STARTUP_OK"
+  },
+  "browser_probe_mode": "cursor",
+  "next_phase": "verify-work"
+}

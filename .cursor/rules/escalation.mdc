@@ -1,0 +1,11 @@
+---
+description: "Decision gate and escalation logic"
+globs: ["**/*"]
+---
+
+- Trigger a decision when scope, security, data migration, or architecture
+  changes are high impact or unclear.
+- Create `decisions/DEC-xxxx.md` with 2-3 options and a recommendation.
+- Pause execution until a decision is made and recorded in
+  `docs/engineering/decisions.md`.
+

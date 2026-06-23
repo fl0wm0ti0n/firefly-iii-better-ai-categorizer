@@ -1,0 +1,16 @@
+{
+  "id": "T-0012",
+  "sprint": "S0004",
+  "work_item": "US-0002",
+  "title": "Vendor minimal scripts/installer.py stub",
+  "task": "Create scripts/installer.py exposing merge_scratchpad_layers(repo_root) per DEC-0055 so validate_readme_feature_coverage.py can import installer without kit parent checkout.",
+  "files": ["scripts/installer.py"],
+  "acceptance": [
+    "merge_scratchpad_layers(repo_root) returns (merged_dict, paths) tuple",
+    "Reads .cursor/scratchpad.md and optional .cursor/scratchpad.local.md overlay",
+    "No runtime/API changes; minimal stub compatible with existing validator scripts",
+    "python -c \"import installer\" succeeds with PYTHONPATH=scripts"
+  ],
+  "status": "pending",
+  "required": true
+}

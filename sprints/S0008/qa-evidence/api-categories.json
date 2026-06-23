@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-06-22T22:44:41+02:00",
+  "method": "curl",
+  "endpoint": "/api/categories",
+  "http_status": 200,
+  "response": {
+    "success": false,
+    "error": "fetch failed"
+  },
+  "note": "Structured JSON error response (Firefly III unreachable from local container). NOT HTML crash."
+}

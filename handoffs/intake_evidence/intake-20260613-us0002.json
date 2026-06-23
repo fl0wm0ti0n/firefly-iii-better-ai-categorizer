@@ -1,0 +1,83 @@
+{
+  "selected_pack": "small-intake-pack",
+  "intake_run_id": "intake-20260613-us0002",
+  "writer_id": "po-subagent",
+  "orchestrator_run_id": "auto-20260613T125508Z-us0002",
+  "asked_topics": [
+    "outcome_success_criteria",
+    "impacted_components",
+    "constraints_compatibility_risks",
+    "required_tests_acceptance_checks",
+    "done_definition"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": "(none)",
+  "prior_intake_evidence_ref": "handoffs/intake_evidence/intake-20260612-product-backfill.json",
+  "prior_intake_confirmation": "scope_validated_refresh",
+  "topic_coverage": [
+    {
+      "topic_key": "outcome_success_criteria",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Align product and user documentation with shipped categorizer: refresh stale docs/CODEBASE_ANALYSIS.md (model, mapping layers, API v1.1.0), make README feature coverage report green under README_FEATURE_COVERAGE_ENFORCE=1, add docs/user-guides/US-0002.md, and reconcile vision.md pipeline narrative with README.",
+      "intake_run_id": "intake-20260613-us0002",
+      "turn_index": 0,
+      "ref": "ie:intake-20260613-us0002:0:e0a415abc6149f56"
+    },
+    {
+      "topic_key": "impacted_components",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "docs/CODEBASE_ANALYSIS.md (primary drift target), README.md feature sections and pipeline diagram, docs/product/vision.md (post-US-0001 test harness + pipeline consistency), docs/user-guides/US-0002.md (new), scripts/validate_readme_feature_coverage.py report output, docs/engineering/runbook.md TEST_COMMAND cross-check, docs/developer/README.md if project README gate surfaces gaps.",
+      "intake_run_id": "intake-20260613-us0002",
+      "turn_index": 1,
+      "ref": "ie:intake-20260613-us0002:1:95403575bb8ecd76"
+    },
+    {
+      "topic_key": "constraints_compatibility_risks",
+      "satisfied_by": "delegation_ref",
+      "quoted_user_text": "Documentation-only vertical slice — no runtime or API contract changes. scope_out: marketing site and translations. README_FEATURE_COVERAGE_ENFORCE=1 and PROJECT_README_ENFORCE=1 may block release until gaps closed. US-0001 test harness shipped (S0003) — CODEBASE_ANALYSIS and vision must not contradict runbook TEST_COMMAND. Prior plan_area documentation mapped to US-0002 in product backfill.",
+      "intake_run_id": "intake-20260613-us0002",
+      "turn_index": 2,
+      "ref": "ie:intake-20260613-us0002:2:de30000b6e54f103",
+      "delegation_scope": "docs/product/backlog.md US-0002, docs/engineering/spec-pack/US-0002-crs.md, intake-20260612-product-backfill.json plan_area documentation",
+      "delegation_rationale": "Product backfill (2026-06-12) established US-0002 boundaries and deferred doc-debt note in R-0003; drain-advance after US-0001/S0003 confirms documentation plan area still maps to this story.",
+      "delegation_confidence": "high"
+    },
+    {
+      "topic_key": "required_tests_acceptance_checks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "AC-1: CODEBASE_ANALYSIS reflects gpt-4o-mini, full mapping-layer pipeline, API v1.1.0. AC-2: validate_readme_feature_coverage.py --report exits 0. AC-3: US-0002 user guide with Purpose/Prerequisites/Usage/Example/Limitations/Troubleshooting. AC-4: vision and README categorization pipeline descriptions consistent.",
+      "intake_run_id": "intake-20260613-us0002",
+      "turn_index": 3,
+      "ref": "ie:intake-20260613-us0002:3:760d1549ff4ef9cb",
+      "evidence_source": "equivalent_evidence_ref",
+      "equivalent_evidence_ref": "docs/product/acceptance.md#US-0002"
+    },
+    {
+      "topic_key": "done_definition",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Done when all US-0002 acceptance rows pass: analysis doc current, README coverage gate green, operator user guide published at docs/user-guides/US-0002.md, and vision/README pipeline language aligned — no code changes required.",
+      "intake_run_id": "intake-20260613-us0002",
+      "turn_index": 4,
+      "ref": "ie:intake-20260613-us0002:4:50fe7198ba2cd1f0"
+    }
+  ],
+  "candidate_story_ids": [
+    "US-0002"
+  ],
+  "decomposition": {
+    "decision": "single",
+    "story_count": 1,
+    "rationale": "Documentation alignment remains one operator-facing vertical slice: stale analysis refresh, README gate, user guide, and vision consistency ship together.",
+    "alternative_considered": "Split CODEBASE_ANALYSIS refresh vs README/user-guide work — rejected; partial delivery leaves enforce gates red and operators with conflicting doc surfaces."
+  },
+  "drift_audit": {
+    "codebase_analysis_gaps": [
+      "OpenAiService cites GPT-3.5-turbo-instruct; production default is gpt-4o-mini (README, package.json)",
+      "Pipeline section omits account-category mappings as DEC-0001 step 1",
+      "Missing CategoryMappingService, WordMappingService, AutoCategorizationService detail vs README",
+      "No GET /api/version or apiVersion 1.1.0 mention",
+      "No test harness / TEST_COMMAND section post-US-0001"
+    ],
+    "research_ref": "R-0009"
+  }
+}

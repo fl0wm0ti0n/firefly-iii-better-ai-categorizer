@@ -1,0 +1,21 @@
+{
+  "id": "T-0026",
+  "title": "Extend OpenAiService.classify() with confidence field",
+  "task": "Extend #buildCategorySchema() to add confidence: { type: 'number', minimum: 0, maximum: 1 } to properties and required array. Update classify() return shape to include confidence field. Update response mapping: UNKNOWN → confidence: 0, valid → confidence from parsed || 0.5, refusal → confidence: 0, parse failure → confidence: 0. Update #generatePrompt() with confidence scoring instructions.",
+  "files": ["src/OpenAiService.js"],
+  "acceptance": [
+    "#buildCategorySchema() includes confidence: { type: 'number', minimum: 0, maximum: 1 } in properties",
+    "#buildCategorySchema() required array includes both 'category' and 'confidence'",
+    "classify() return shape: { category, confidence, prompt, response }",
+    "UNKNOWN → { category: null, confidence: parsed.confidence || 0, response: 'UNKNOWN', prompt }",
+    "Valid enum → { category: parsed.category, confidence: parsed.confidence || 0.5, response, prompt }",
+    "Refusal → { category: null, confidence: 0, response: refusal, prompt }",
+    "Parse failure → { category: null, confidence: 0, response: rawContent, prompt } + console.warn",
+    "#generatePrompt() includes confidence scoring instructions (0.9–1.0 high, 0.6–0.8 moderate, 0.3–0.5 low, 0.0–0.2 very uncertain)",
+    "strict: true + additionalProperties: false preserved"
+  ],
+  "acceptance_mapping": ["DEC-0014", "AC-3", "R-0019"],
+  "depends_on": [],
+  "status": "pending",
+  "required": true
+}

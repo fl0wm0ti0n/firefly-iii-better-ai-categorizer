@@ -8,6 +8,8 @@ import AutoCategorizationService from "./AutoCategorizationService.js";
 import CategoryMappingService from "./CategoryMappingService.js";
 import AccountCategoryMappingService from "./AccountCategoryMappingService.js";
 import TransactionExtractionService from "./TransactionExtractionService.js";
+import HistoryAnalysisService from "./HistoryAnalysisService.js";
+import PendingReviewService from "./PendingReviewService.js";
 import multer from 'multer';
 import {Server} from "socket.io";
 import * as http from "http";
@@ -35,6 +37,8 @@ export default class App {
     #categoryMappingService;
     #accountCategoryMappingService;
     #transactionExtractionService;
+    #historyAnalysisService;
+    #pendingReviewService;
 
     #server;
     #io;
@@ -49,6 +53,33 @@ export default class App {
         this.#ENABLE_UI = getConfigVariable("ENABLE_UI", 'false') === 'true';
     }
 
+    static createForTest(deps = {}) {
+        const app = new App();
+        if (deps.openAi != null) app.#openAi = deps.openAi;
+        if (deps.firefly != null) app.#firefly = deps.firefly;
+        if (deps.accountCategoryMappingService != null) {
+            app.#accountCategoryMappingService = deps.accountCategoryMappingService;
+        }
+        if (deps.autoCategorizationService != null) {
+            app.#autoCategorizationService = deps.autoCategorizationService;
+        }
+        if (deps.wordMapping != null) app.#wordMapping = deps.wordMapping;
+        if (deps.categoryMappingService != null) {
+            app.#categoryMappingService = deps.categoryMappingService;
+        }
+        if (deps.historyAnalysisService != null) {
+            app.#historyAnalysisService = deps.historyAnalysisService;
+        }
+        if (deps.pendingReviewService != null) {
+            app.#pendingReviewService = deps.pendingReviewService;
+        }
+        return app;
+    }
+
+    async resolveCategoryForTest(transaction, categories) {
+        return this.#resolveCategory(transaction, categories);
+    }
+
     async run() {
         this.#firefly = new FireflyService();
         this.#openAi = new OpenAiService();
@@ -58,6 +89,8 @@ export default class App {
         this.#categoryMappingService = new CategoryMappingService();
         this.#accountCategoryMappingService = new AccountCategoryMappingService();
         this.#transactionExtractionService = new TransactionExtractionService();
+        this.#historyAnalysisService = new HistoryAnalysisService();
+        this.#pendingReviewService = new PendingReviewService();
 
         this.#queue = new Queue({
             timeout: 30 * 1000,
@@ -162,6 +195,11 @@ export default class App {
         this.#express.delete('/api/account-category-mappings/:id', this.#onDeleteAccountCategoryMapping.bind(this))
         this.#express.patch('/api/account-category-mappings/:id/toggle', this.#onToggleAccountCategoryMapping.bind(this))
 
+        // Review queue endpoints (US-0004)
+        this.#express.get('/api/reviews', this.#onGetReviews.bind(this));
+        this.#express.post('/api/reviews/:id/accept', this.#onAcceptReview.bind(this));
+        this.#express.post('/api/reviews/:id/reject', this.#onRejectReview.bind(this));
+
         // Transaction management endpoints
         this.#express.get('/api/transactions/list', this.#getTransactionsList.bind(this));
         this.#express.post('/api/transactions/update-categories', this.#updateTransactionCategories.bind(this));
@@ -205,11 +243,15 @@ export default class App {
     async #getCategories(req, res) {
         try {
             const categoriesMap = await this.#firefly.getCategories();
-            const categories = Array.from(categoriesMap.keys());
+            const categories = Array.from(categoriesMap.keys()).sort((a, b) =>
+                String(a).localeCompare(String(b))
+            );
             res.json({ success: true, categories });
         } catch (error) {
             console.error('Error getting categories:', error);
-            res.json({ success: false, error: error.message });
+            const message = error?.message || 'Failed to load categories from Firefly III';
+            const trimmed = message.length > 500 ? `${message.slice(0, 497)}...` : message;
+            res.json({ success: false, error: trimmed });
         }
     }
 
@@ -322,7 +364,24 @@ export default class App {
                 },
             };
 
-            const { category, prompt, response, autoRule } = await this.#resolveCategory(fakeTransaction, categories);
+            const resolved = await this.#resolveCategory(fakeTransaction, categories);
+            
+            // US-0004: Handle queued for review
+            if (resolved.queuedForReview) {
+                console.info(`📝 Transaction "${description}" queued for review`);
+                const newData = Object.assign({}, job.data);
+                newData.category = null;
+                newData.prompt = resolved.prompt;
+                newData.response = resolved.response;
+                newData.autoRule = 'queued_for_review';
+                newData.queuedForReview = true;
+                newData.reviewId = resolved.reviewId;
+                this.#jobList.updateJobData(job.id, newData);
+                this.#jobList.setJobFinished(job.id);
+                return;
+            }
+            
+            const { category, prompt, response, autoRule } = resolved;
             if (category && autoRule === 'account_category_mapping') {
                 console.info(`🏷️ Account mapped: "${description}" → "${category}"`);
             } else if (category && autoRule === 'category_mapping_hint') {
@@ -366,8 +425,9 @@ export default class App {
 
     #onProcessUncategorized(req, res) {
         try {
-            console.info("Manual processing of uncategorized transactions triggered");
-            this.#processUncategorizedTransactions().catch(err => {
+            const scope = req.body?.scope || null;
+            console.info("Manual processing of uncategorized transactions triggered", scope ? `(scope: ${scope})` : '');
+            this.#processUncategorizedTransactions(scope).catch(err => {
                 console.error("processUncategorizedTransactions failed:", err);
             });
             res.json({ success: true, message: "Processing started" });
@@ -379,8 +439,9 @@ export default class App {
 
     #onProcessAll(req, res) {
         try {
-            console.info("Manual processing of all transactions triggered");
-            this.#processAllTransactions().catch(err => {
+            const scope = req.body?.scope || null;
+            console.info("Manual processing of all transactions triggered", scope ? `(scope: ${scope})` : '');
+            this.#processAllTransactions(scope).catch(err => {
                 console.error("processAllTransactions failed:", err);
             });
             res.json({ success: true, message: "Processing started" });
@@ -398,7 +459,15 @@ export default class App {
             const testDescription = req.body?.description || "Test transaction - Purchase at Amazon";
             const testDestination = req.body?.destination_name || "Amazon.com";
             const testTransactionId = req.body?.transaction_id || "test-" + Date.now();
-            const testType = req.body?.transaction_type || "withdrawal";
+            
+            // Map scope to transaction type (US-0005 / DEC-0017)
+            let testType;
+            if (req.body?.scope) {
+                const scopeMap = { withdrawals: 'withdrawal', deposits: 'deposit', both: 'withdrawal' };
+                testType = scopeMap[req.body.scope] || 'withdrawal';
+            } else {
+                testType = req.body?.transaction_type || "withdrawal";  // backward compat
+            }
             
             const fakeWebhookPayload = {
                 trigger: "STORE_TRANSACTION",
@@ -421,7 +490,7 @@ export default class App {
                 body: fakeWebhookPayload
             };
             
-            console.info(`🧪 Testing categorization for: "${testDescription}" → "${testDestination}"`);
+            console.info(`🧪 Testing categorization for: "${testDescription}" → "${testDestination}" (type: ${testType})`);
             
             this.#handleWebhook(fakeReq, res);
             res.json({ 
@@ -756,12 +825,13 @@ export default class App {
         }
     }
 
-    async #processUncategorizedTransactions() {
+    async #processUncategorizedTransactions(scope = null) {
         let transactions = await this.#firefly.getAllUncategorizedTransactions();
         
-        // Filter out deposits if skipDeposits is enabled
+        // Apply scope filter (US-0005 / DEC-0016)
         const autoConfig = this.#autoCategorizationService.getConfig();
-        if (autoConfig.skipDeposits) {
+        if (scope === 'withdrawals') {
+            // Force skip deposits
             const originalCount = transactions.length;
             transactions = transactions.filter(transaction => {
                 const firstTx = transaction.attributes.transactions[0];
@@ -769,7 +839,31 @@ export default class App {
             });
             const filteredCount = originalCount - transactions.length;
             if (filteredCount > 0) {
-                console.info(`⏭️ Skipped ${filteredCount} deposit transactions (skipDeposits enabled)`);
+                console.info(`⏭️ Skipped ${filteredCount} deposit transactions (scope: withdrawals)`);
+            }
+        } else if (scope === 'deposits') {
+            // Process only deposits
+            const originalCount = transactions.length;
+            transactions = transactions.filter(transaction => {
+                const firstTx = transaction.attributes.transactions[0];
+                return firstTx.type === 'deposit';
+            });
+            const filteredCount = originalCount - transactions.length;
+            if (filteredCount > 0) {
+                console.info(`⏭️ Skipped ${filteredCount} withdrawal transactions (scope: deposits)`);
+            }
+        } else {
+            // scope === 'both' or null — honor config
+            if (autoConfig.skipDeposits) {
+                const originalCount = transactions.length;
+                transactions = transactions.filter(transaction => {
+                    const firstTx = transaction.attributes.transactions[0];
+                    return firstTx.type !== 'deposit';
+                });
+                const filteredCount = originalCount - transactions.length;
+                if (filteredCount > 0) {
+                    console.info(`⏭️ Skipped ${filteredCount} deposit transactions (skipDeposits enabled)`);
+                }
             }
         }
         
@@ -847,12 +941,13 @@ export default class App {
         console.info(`Batch processing completed. Processed: ${processedCount}, Success: ${successCount}, Errors: ${errorCount}`);
     }
 
-    async #processAllTransactions() {
+    async #processAllTransactions(scope = null) {
         let transactions = await this.#firefly.getAllTransactions();
         
-        // Filter out deposits if skipDeposits is enabled
+        // Apply scope filter (US-0005 / DEC-0016)
         const autoConfig = this.#autoCategorizationService.getConfig();
-        if (autoConfig.skipDeposits) {
+        if (scope === 'withdrawals') {
+            // Force skip deposits
             const originalCount = transactions.length;
             transactions = transactions.filter(transaction => {
                 const firstTx = transaction.attributes.transactions[0];
@@ -860,7 +955,31 @@ export default class App {
             });
             const filteredCount = originalCount - transactions.length;
             if (filteredCount > 0) {
-                console.info(`⏭️ Skipped ${filteredCount} deposit transactions (skipDeposits enabled)`);
+                console.info(`⏭️ Skipped ${filteredCount} deposit transactions (scope: withdrawals)`);
+            }
+        } else if (scope === 'deposits') {
+            // Process only deposits
+            const originalCount = transactions.length;
+            transactions = transactions.filter(transaction => {
+                const firstTx = transaction.attributes.transactions[0];
+                return firstTx.type === 'deposit';
+            });
+            const filteredCount = originalCount - transactions.length;
+            if (filteredCount > 0) {
+                console.info(`⏭️ Skipped ${filteredCount} withdrawal transactions (scope: deposits)`);
+            }
+        } else {
+            // scope === 'both' or null — honor config
+            if (autoConfig.skipDeposits) {
+                const originalCount = transactions.length;
+                transactions = transactions.filter(transaction => {
+                    const firstTx = transaction.attributes.transactions[0];
+                    return firstTx.type !== 'deposit';
+                });
+                const filteredCount = originalCount - transactions.length;
+                if (filteredCount > 0) {
+                    console.info(`⏭️ Skipped ${filteredCount} deposit transactions (skipDeposits enabled)`);
+                }
             }
         }
         
@@ -1135,6 +1254,27 @@ export default class App {
             );
         }
 
+        // US-0004: History dominance check (after word/keyword hints, before AI)
+        const accountId = firstTx.source_id;
+        let historySuggestion = null;
+        if (accountId && this.#historyAnalysisService) {
+            try {
+                const cachedHistory = await this.#firefly.getCachedAccountHistory(accountId);
+                const historyResult = this.#historyAnalysisService.analyzeAccountHistory(cachedHistory);
+                if (historyResult.dominantCategory && historyResult.confidence >= this.#historyAnalysisService.getThreshold()) {
+                    historySuggestion = {
+                        category: historyResult.dominantCategory,
+                        confidence: historyResult.confidence,
+                    };
+                    console.info(
+                        `📊 History suggestion for account ${accountId}: "${historyResult.dominantCategory}" (confidence: ${(historyResult.confidence * 100).toFixed(1)}%)`
+                    );
+                }
+            } catch (error) {
+                console.warn(`⚠️ Failed to fetch/analyze account history for ${accountId}:`, error.message);
+            }
+        }
+
         const aiResult = await this.#retryWithBackoff(async () => {
             return await this.#openAi.classify(
                 categoryNames,
@@ -1144,6 +1284,14 @@ export default class App {
                 classifyOptions
             );
         });
+
+        // US-0004: Compare history and AI, queue for review if needed
+        if (historySuggestion && aiResult?.category && categories.has(aiResult.category)) {
+            const comparison = this.#compareHistoryAndAi(historySuggestion, aiResult, transaction);
+            if (comparison.queuedForReview) {
+                return comparison;
+            }
+        }
 
         if (aiResult?.category && categories.has(aiResult.category)) {
             return {
@@ -1160,6 +1308,59 @@ export default class App {
             response: aiResult?.response || '',
             autoRule: null,
         };
+    }
+
+    #compareHistoryAndAi(historySuggestion, aiResult, transaction) {
+        const firstTx = transaction?.attributes?.transactions?.[0] || {};
+        const historyCategory = historySuggestion.category;
+        const aiCategory = aiResult.category;
+        const historyConfidence = historySuggestion.confidence;
+        const aiConfidence = aiResult.confidence || 0.5;
+
+        // Determine recommendation
+        let recommendation;
+        let reason;
+        if (historyCategory === aiCategory) {
+            recommendation = historyCategory;
+            reason = 'Both history and AI agree';
+        } else if (historyConfidence > aiConfidence) {
+            recommendation = historyCategory;
+            reason = `History confidence (${(historyConfidence * 100).toFixed(1)}%) > AI confidence (${(aiConfidence * 100).toFixed(1)}%)`;
+        } else {
+            recommendation = aiCategory;
+            reason = `AI confidence (${(aiConfidence * 100).toFixed(1)}%) >= History confidence (${(historyConfidence * 100).toFixed(1)}%)`;
+        }
+
+        // Queue for review (no silent apply per operator requirement)
+        if (this.#pendingReviewService) {
+            const reviewId = `review-${transaction.id}-${Date.now()}`;
+            const review = {
+                id: reviewId,
+                transactionId: transaction.id,
+                accountId: firstTx.source_id,
+                description: firstTx.description || '(no description)',
+                historyCategory,
+                historyConfidence,
+                aiCategory,
+                aiConfidence,
+                recommendation,
+                reason,
+                timestamp: new Date().toISOString(),
+            };
+            this.#pendingReviewService.addReview(review);
+            console.info(
+                `📝 Queued for review: "${firstTx.description}" — History: "${historyCategory}" (${(historyConfidence * 100).toFixed(1)}%), AI: "${aiCategory}" (${(aiConfidence * 100).toFixed(1)}%), Recommendation: "${recommendation}"`
+            );
+            return {
+                queuedForReview: true,
+                reviewId,
+                recommendation,
+                prompt: `History vs AI comparison`,
+                response: `Queued for review. History: "${historyCategory}" (${(historyConfidence * 100).toFixed(1)}%), AI: "${aiCategory}" (${(aiConfidence * 100).toFixed(1)}%). Recommendation: "${recommendation}" (${reason})`,
+            };
+        }
+
+        return { queuedForReview: false };
     }
 
     // Helper method for retry logic with rate limits
@@ -1186,6 +1387,16 @@ export default class App {
             const description = firstTransaction.description || "(no description)";
 
             const resolved = await this.#resolveCategory(transaction, categories);
+            
+            // US-0004: Handle queued for review
+            if (resolved.queuedForReview) {
+                console.info(`📝 Batch transaction ${transaction.id} queued for review: "${description}"`);
+                if (batchJobId) {
+                    this.#jobList.updateBatchJobProgress(batchJobId, { success: 1 });
+                }
+                return 'queued';
+            }
+            
             const category = resolved.category;
             const result = {
                 category,
@@ -1250,6 +1461,56 @@ export default class App {
             }
             
             return false;
+        }
+    }
+
+    async #onGetReviews(req, res) {
+        try {
+            const reviews = this.#pendingReviewService.getPendingReviews();
+            res.json({ success: true, reviews });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onAcceptReview(req, res) {
+        try {
+            const { id } = req.params;
+            const { category } = req.body || {};
+            const review = await this.#pendingReviewService.acceptReview(id, category);
+            if (!review) {
+                return res.status(404).json({ success: false, error: 'Review not found' });
+            }
+            const chosenCategory = review.resolvedChoice || review.recommendation;
+            if (chosenCategory && review.transactionId) {
+                try {
+                    await this.#firefly.updateTransactionCategory(review.transactionId, chosenCategory);
+                    console.info(`✅ Review accepted: transaction ${review.transactionId} → "${chosenCategory}"`);
+                } catch (err) {
+                    console.error(`❌ Failed to apply category for accepted review ${id}:`, err.message);
+                    return res.status(500).json({ success: false, error: `Category update failed: ${err.message}` });
+                }
+            }
+            res.json({ success: true, review });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onRejectReview(req, res) {
+        try {
+            const { id } = req.params;
+            const review = await this.#pendingReviewService.rejectReview(id);
+            if (!review) {
+                return res.status(404).json({ success: false, error: 'Review not found' });
+            }
+            console.info(`❌ Review rejected: transaction ${review.transactionId}`);
+            res.json({ success: true, review });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
         }
     }
 

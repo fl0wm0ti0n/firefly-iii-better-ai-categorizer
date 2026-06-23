@@ -1,0 +1,15 @@
+{
+  "id": "T-0015",
+  "sprint": "S0004",
+  "work_item": "US-0002",
+  "title": "README/dev coverage lines (post-DONE predicate)",
+  "task": "Add R-0013 coverage lines: its_magic/README.md ## Other useful capabilities H2 with US-0002 bullet; docs/developer/README.md § Quality gates traceability line.",
+  "files": ["its_magic/README.md", "docs/developer/README.md"],
+  "acceptance": [
+    "its_magic/README.md has ## Other useful capabilities with **US-0002** reference",
+    "docs/developer/README.md § Quality gates includes US-0002 traceability line",
+    "Coverage lines added before US-0002 DONE flip"
+  ],
+  "status": "pending",
+  "required": true
+}

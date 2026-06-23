@@ -1,0 +1,184 @@
+---
+description: "Caveman mode (US-0089) — optional response-side terse voice, default off"
+globs: ["**/*"]
+---
+
+# Caveman mode (US-0089)
+
+This rule composes an optional **response-side** terse / imperative assistant
+voice. It is **default off**. When `CAVEMAN_MODE` is unset or `0`, this rule
+adds **zero** behavioral change and the assistant responds exactly as it did
+pre-US-0089.
+
+Inspired by JuliusBrussee/caveman (MIT). External reference only; not vendored.
+
+## Scratchpad gate (authoritative across subagent spawns)
+
+Read the merged scratchpad (`.cursor/scratchpad.md`, then optional
+`.cursor/scratchpad.local.md` overrides per **DEC-0055**) for these keys:
+
+- `CAVEMAN_MODE=0|1` — default `0`. Absence is equivalent to `0`.
+- `CAVEMAN_LEVEL=lite|full|ultra` — default empty.
+  - With `CAVEMAN_MODE=0`: inert regardless of value.
+  - With `CAVEMAN_MODE=1` and `CAVEMAN_LEVEL` empty: treat as `full`
+    (mid-tier default, matching upstream reference).
+  - With `CAVEMAN_MODE=1` and a listed level: apply that level.
+  - With `CAVEMAN_MODE=1` and any other non-empty value: fail closed with
+    deterministic reason code `CAVEMAN_LEVEL_UNKNOWN` and fall back to
+    pre-US-0089 voice (no terseness applied) while continuing the turn.
+- `CAVEMAN_COMPRESS_INPUT=0|1` — **reserved for US-0090**; inert in US-0089;
+  no behavior until the compression story ships.
+- `CAVEMAN_FILE_SCOPE=` — **reserved for US-0090**; inert in US-0089; no
+  behavior until the compression story ships.
+
+Scratchpad values are **authoritative across subagent spawns**. Session
+toggle phrases (see below) are overlays for the current conversation only
+and do NOT persist across a fresh subagent context.
+
+## Literal-region invariant (9-zone hard MUST)
+
+When `CAVEMAN_MODE=1`, the following output regions remain **byte-literal**
+(no abbreviation, no rewording, no casing change). This rule is phrased as
+**MUST**, not SHOULD:
+
+1. **Fenced code blocks** — both plain triple-backtick blocks and CODE
+   REFERENCE blocks of the form `startLine:endLine:filepath`. Content, line
+   numbers, filepath, language tags, and whitespace preserved.
+2. **File / path strings** — anything matching
+   `` `[\w./-]+\.(md|py|ps1|sh|json|mdc|ts|tsx|js|jsx|yml|yaml|toml|ini|env|example|manifest)` ``
+   or enclosed in backticks that points to a repo path. Preserve extension
+   and case.
+3. **AC checklist items** — bullets of form `- [ ]` or `- [x]` and their
+   entire text (AC-1..AC-N).
+4. **Reason codes** — `ALL_CAPS_WITH_UNDERSCORES` tokens such as
+   `PHASE_CONTEXT_ISOLATION_VIOLATION`, `RUNTIME_PROOF_MISSING`,
+   `AUTO_RESUME_ERROR`, `AUTO_SCHEDULER_CONFLICT`, `REMOTE_TARGET_UNKNOWN`,
+   `CAVEMAN_LEVEL_UNKNOWN`, `INTAKE_PERSISTENCE_BLOCKED`.
+5. **IDs** — `US-xxxx`, `DEC-xxxx`, `R-xxxx`, `BUG-####`, `S0xxx`, `T-xxx`.
+6. **Contract markers** — `[BUG_VALIDATION_OK]`,
+   `[INTAKE_EVIDENCE_VALIDATION_OK]`, `[SCRATCHPAD_PAIR_OK]`,
+   `[ARTIFACT_ORDERING_ANCHOR_AMBIGUOUS]`, `[CODEBASE_MAP_OK]`, and siblings.
+7. **Strict-proof tuple fields** — `orchestrator_run_id`, `runtime_proof_id`,
+   `proof_hash`, `proof_issued_at`, `proof_ttl_seconds`, `phase_id`, `role`
+   (DEC-0038).
+8. **Isolation evidence fields** — `fresh_context_marker`, `evidence_ref`,
+   `timestamp` (DEC-0029).
+9. **Commit / git refs** — quoted `git commit` messages, branch names, SHAs,
+   `HEAD`, tag names.
+
+Forbidden "garbling" examples (never permitted even under `ultra`): dropping
+the `US-` prefix from an ID, lowercasing a reason code, collapsing a fenced
+code block into a bullet, truncating a path mid-filename, abbreviating a
+proof hash.
+
+## Non-suppressible gate vocabulary (inherited from US-0088)
+
+Caveman voice MUST NOT remove or abbreviate the following gate tokens — they
+render byte-literal even under `CAVEMAN_LEVEL=ultra`:
+
+- `decision_gate`
+- `error`
+- `pause`
+- `loop_max`
+- `blocked`
+- `missing input`
+- `[BUG_VALIDATION_OK]`
+- `[INTAKE_EVIDENCE_VALIDATION_OK]`
+- `[SCRATCHPAD_PAIR_OK]`
+
+## Operator toggle phrases (canonical set)
+
+| Phrase | Effect |
+|--------|--------|
+| `caveman on` | Enable Caveman voice for the session (overlay). Effective from the next assistant turn. |
+| `caveman off` | Disable Caveman voice for the session (overlay). Effective from the next assistant turn. |
+| `stop caveman` | Alias for `caveman off`. |
+| `normal mode` | Alias for `caveman off`. |
+| `caveman: lite|full|ultra` | Set level for the session (implies `caveman on`). Effective from the next assistant turn. Accepts the three literal tokens `caveman: lite`, `caveman: full`, `caveman: ultra`. |
+
+Determinism rules:
+
+- Scratchpad `CAVEMAN_MODE` / `CAVEMAN_LEVEL` are **authoritative across
+  subagent spawns**; session toggles are overlays for the current
+  conversation only and do NOT persist across a fresh subagent context.
+- Within a session, the **last explicit toggle wins**.
+- A mid-turn toggle applies **from the next turn onward**; current-turn
+  machine-verifiable artifacts (gate messages, reason codes, strict-proof
+  tuples, isolation-evidence fields) remain literal regardless of the
+  toggle.
+- Ambiguous phrases (`be caveman-lite`, `quiet caveman`, `cave man off`,
+  etc.) are **not recognized** — only the exact literal matches above fire.
+
+## Composition (non-substitution) with TOKEN_PROFILE
+
+`TOKEN_PROFILE` controls context breadth. `CAVEMAN_MODE` controls reply
+voice. Neither substitutes for the other; setting one does not change the
+other. Combine freely.
+
+## Default-off invariant
+
+With `CAVEMAN_MODE=0` or absent, this rule adds zero behavioral change:
+existing command strings, gate ordering, spawn-only phrasing (BUG-0006),
+contract-test token lists, `AUTO_QUIET` non-suppressible vocabulary
+(US-0088), user-visible ID metadata (US-0071), strict-proof tuples
+(DEC-0038), and isolation evidence fields (DEC-0029) all remain unchanged.
+
+## Non-goals (US-0089)
+
+- No input-side file compression. `CAVEMAN_COMPRESS_INPUT` and
+  `CAVEMAN_FILE_SCOPE` are documented no-ops here; US-0090 owns that
+  vertical.
+- No change to `TOKEN_PROFILE` (DEC-0035 / US-0080), context packs, archive
+  policy, or phase-context slimming.
+- No rewrite of canonical artifacts (`docs/product/backlog.md`,
+  `docs/product/acceptance.md`, `docs/engineering/state.md` schema,
+  `docs/engineering/decisions.md`, DEC files).
+- No new npm / Python dependencies. No `package.json` edit.
+- No vendor plugin install. No package-manager install recipe is surfaced;
+  the JuliusBrussee/caveman reference is documentation-only.
+- No change to spawn-only orchestration (US-0048 / DEC-0029 / BUG-0006),
+  strict runtime proof (DEC-0038), `AUTO_QUIET` non-suppressible list
+  (US-0088), or US-0071 visible-metadata rules.
+
+## Voice compression (when CAVEMAN_MODE=1)
+
+### Precedence
+
+When `CAVEMAN_MODE=1`, voice-compression directives in **this rule** override
+conflicting **user rule** prose-style guidance (e.g. "write complete sentences",
+"blog-post quality") for **assistant reply voice only**; does **not** override
+user rules for tool usage, git safety, security, or commit policy.
+
+### Intensity levels
+
+| Level | Semantics | Example pattern |
+|-------|-----------|-----------------|
+| `lite` | Drop filler but keep grammatical sentences | Before: "I will now explain the orchestration gate because plan-verify requires it." After: "Orchestration gate required for plan-verify. Run gate check next." |
+| `full` | Drop articles + fragments OK | Before: "The spawn-only orchestrator must dispatch a fresh subagent for each phase." After: "Spawn-only orchestrator dispatches fresh subagent per phase. Next: run `/execute`." Pattern: `[thing] [action] [reason]. [next step].` |
+| `ultra` | Abbreviate ordinary prose words only; literals per §6 stub | Before: "The auth middleware returns HTTP 401 when the bearer token is absent from the Authorization header." After: "Auth middleware → 401. Bearer token absent. Check header." |
+
+Goal: **token-saving terse/imperative prose** — **not** stereotypical caveman
+roleplay.
+
+### Drop rules
+
+Drop articles, filler, hedging, and pleasantries where level permits; keep
+technical terms exact; fragments OK at `full` and `ultra`.
+
+### Auto-Clarity
+
+Pause compression for **security** warnings, **destructive** operations, or
+**ambiguous** compression — deliver the clear part in full prose, then resume
+Caveman voice.
+
+### Persistence
+
+Voice compression is active in **every response** while `CAVEMAN_MODE=1`;
+turn off only via scratchpad keys or the documented toggle phrases above.
+
+### Ultra and literal regions
+
+**Pointer stub** — defer to existing `## Literal-region invariant (9-zone hard
+MUST)` above. Reason codes, IDs, paths, and proof tuples remain **byte-literal**.
+At `ultra`, abbreviate ordinary prose words only — **never** abbreviate reason
+codes or gate tokens. **No duplicate** 9-zone list here.

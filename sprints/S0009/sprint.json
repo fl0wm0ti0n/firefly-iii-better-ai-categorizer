@@ -1,0 +1,24 @@
+{
+  "id": "S0009",
+  "goal": "Close BUG-0002: redeploy the stale production categorizer image so GET /api/reviews returns JSON 200, harden public/index.html loadPendingReviews against HTML responses, confirm existing regression tests still pass, and verify all four BUG-0002 acceptance criteria.",
+  "scope": [
+    "BUG-0002",
+    "DEC-0020",
+    "/workdir/firefly/docker-compose.yml",
+    "public/index.html:3461-3485"
+  ],
+  "risks": [
+    "RA-1: --build --force-recreate may still use a cached layer and leave /api/reviews missing (Low/High — verify internal probe before declaring success)",
+    "RA-2: Basic Auth middleware blocks external validation probe (Medium/Medium — use authenticated browser session or supply credentials)",
+    "RA-3: UI hardening masks future backend regressions (Low/Low — keep console.error; only the toast is friendlier)",
+    "RA-4: Future src/ changes silently missed because of restart: unless-stopped + live public/ mount (Medium/High — runbook rule: any src/ change requires rebuild)",
+    "RA-5: Redeploy introduces dependency/environment drift (Low/Medium — CI regression pass; post-deploy smoke /api/reviews, /api/categories, /api/version)"
+  ],
+  "work_item_kind": "bug",
+  "orchestrator_run_id": "auto-20260623T235900Z-bug0002",
+  "decisions": ["DEC-0020"],
+  "tasks": ["T-0050", "T-0051", "T-0052", "T-0053"],
+  "task_count": 4,
+  "sprint_cap": 12,
+  "split_required": false
+}

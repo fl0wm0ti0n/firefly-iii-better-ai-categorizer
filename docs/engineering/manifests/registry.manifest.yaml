@@ -1,0 +1,20 @@
+schema_version: 1
+generated_at: "2026-03-01T00:00:00Z"
+repos:
+  - repo_id: example-producer
+    repo_url_or_path: ./example-producer
+    owner: team-example
+    status: active
+    manifest_ref: docs/engineering/manifests/repo.manifest.yaml
+contracts:
+  - contract_id: public-api
+    producer_repo: example-producer
+    producer_component: api-gateway
+    contract_ref: contracts/public-api.yaml
+    version: 1.0.1
+compatibility_links:
+  - contract_id: public-api
+    consumer_repo: example-consumer
+    consumer_component: web-app
+    expected_version_range: ^1.0.0
+    criticality: medium

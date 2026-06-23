@@ -1,0 +1,12 @@
+{
+  "id": "T-0042",
+  "title": "Create .env.example — document required env vars with placeholder values",
+  "description": "Create .env.example documenting required environment variables: FIREFLY_URL, FIREFLY_PERSONAL_TOKEN, OPENAI_API_KEY, ENABLE_UI, PORT. Use placeholder values only (no secrets). Add comments explaining each variable. Fixes latent docs bug (runbook references .env.example but it was never committed — R-0023 Q3).",
+  "acceptance_criteria_refs": ["AC-1"],
+  "decision_refs": [],
+  "dependencies": [],
+  "estimated_complexity": "low",
+  "status": "done",
+  "files": [".env.example"],
+  "notes": "R-0023 Q3 confirmed .env.example is missing (latent docs bug). Required vars per architecture env contract. ENABLE_UI=true needed for browser UAT. PORT=3000 is container-internal default; host port 3001 via compose mapping."
+}

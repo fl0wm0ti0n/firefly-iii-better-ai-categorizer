@@ -1,0 +1,20 @@
+{
+  "id": "T-0020",
+  "title": "#buildCategorySchema + classify() Structured Outputs",
+  "task": "Add private #buildCategorySchema(categories) building json_schema with runtime enum [...categories, 'UNKNOWN']. Rewrite classify() to use chat.completions.create with response_format json_schema strict:true. Map UNKNOWN→null, refusal→null. Remove post-hoc indexOf validation.",
+  "files": ["src/OpenAiService.js"],
+  "acceptance": [
+    "#buildCategorySchema returns { type: 'object', properties: { category: { type: 'string', enum: [...categories.filter(Boolean), 'UNKNOWN'] } }, required: ['category'], additionalProperties: false }",
+    "classify() sends response_format: { type: 'json_schema', json_schema: { name: 'transaction_category', strict: true, schema: ... } }",
+    "parsed.category === 'UNKNOWN' returns { category: null, response: 'UNKNOWN', prompt }",
+    "Valid enum returns { category: guess, response: guess, prompt }",
+    "message.refusal set returns { category: null, response: refusal, prompt }",
+    "JSON parse failure returns { category: null, response: rawContent, prompt } + console.warn",
+    "Post-hoc categories.indexOf(guess) removed (schema enforcement replaces it)",
+    "External contract { category, prompt, response } preserved"
+  ],
+  "acceptance_mapping": ["AC-1", "AC-2", "R-0016"],
+  "depends_on": ["T-0019"],
+  "status": "pending",
+  "required": true
+}

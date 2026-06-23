@@ -1,0 +1,15 @@
+{
+  "id": "T-0017",
+  "sprint": "S0004",
+  "work_item": "US-0002",
+  "title": "Validator --report green + runbook flag",
+  "task": "Update runbook canonical validator command with --no-template-parity; run validate_readme_feature_coverage.py --no-template-parity --report and confirm exit 0.",
+  "files": ["docs/engineering/runbook.md"],
+  "acceptance": [
+    "Runbook documents --no-template-parity for validate_readme_feature_coverage.py",
+    "python scripts/validate_readme_feature_coverage.py --no-template-parity --report exits 0",
+    "Report shows coverage_missing: [] after T-0015 coverage lines"
+  ],
+  "status": "pending",
+  "required": true
+}

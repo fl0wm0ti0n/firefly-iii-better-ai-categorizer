@@ -1,0 +1,21 @@
+{
+  "id": "S0005",
+  "goal": "OpenAI Structured Outputs migration — upgrade openai@^4, injectable client seam (DEC-0009), classify() json_schema + UNKNOWN enum, sibling methods v4 call-path (DEC-0010), unit tests. No operator UX change.",
+  "scope": [
+    "US-0003",
+    "src/OpenAiService.js",
+    "package.json",
+    "tests/openAiService.test.js",
+    "tests/resolveCategory.test.js"
+  ],
+  "risks": [
+    "O1: Constructor shared by 3 methods — partial migration regression; mitigate via unit tests + unchanged resolveCategory stubs",
+    "O2: SDK + app double-retry on 429; mitigate via maxRetries: 0 on client (DEC-0010)",
+    "O3: gpt-3.5-turbo classify 400 on json_schema; acceptable — default gpt-4o-mini",
+    "O4: v4 APIError shape drift; mitigate via OpenAiException.code mapping at boundary",
+    "O5: Very long category names inflate schema; low risk — typical Firefly <50 cats (R-0016)",
+    "O6: Unit tests over-mock wiring; mitigate via oai-1 asserting runtime enum on captured request"
+  ],
+  "work_item_kind": "story",
+  "orchestrator_run_id": "auto-20260614T161000Z-us0003"
+}

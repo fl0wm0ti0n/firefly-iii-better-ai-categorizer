@@ -1,0 +1,11 @@
+{
+  "task": "Rename and reorder sidebar entries so the main feature is Auto-Categorization",
+  "acceptance": [
+    "Categorization panel is renamed to Auto-Categorization",
+    "Foreign/Travel Detection panel no longer claims the Auto-Categorization name",
+    "General Settings section merged into Auto-Categorization panel and removed from sidebar",
+    "Categorizer group sidebar order is Auto-Categorization, Keyword → Category Mappings, Account → Category Mappings, Word Mappings & Failed, Transaction Management, Pending Reviews, Foreign/Travel Detection",
+    "Tests pass"
+  ],
+  "status": "closed"
+}

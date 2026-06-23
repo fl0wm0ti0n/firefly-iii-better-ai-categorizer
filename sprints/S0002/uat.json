@@ -1,0 +1,99 @@
+{
+  "sprint": "S0002",
+  "work_item": "BUG-0001",
+  "phase": "verify-work",
+  "verified_at": "2026-06-13T12:38:16Z",
+  "verdict": "pass_with_deferred_operator_uat",
+  "steps": [
+    {
+      "id": "uat-1",
+      "ac_ref": "AC-4",
+      "description": "Healthy Firefly — keyword-mapping and account-mapping dropdown population",
+      "result": "deferred",
+      "note": "Firefly reachable (localhost:888, docker firefly:8080); valid PAT required — UAT_PROBE_FORBIDDEN"
+    },
+    {
+      "id": "uat-2",
+      "ac_ref": "AC-1, AC-2",
+      "description": "Misconfigured Firefly — structured API error, no Unexpected token console error",
+      "result": "pass",
+      "note": "Port 3001: {success:false,error:fetch failed}; dropdown shows fetch failed; 0 console errors"
+    },
+    {
+      "id": "uat-3",
+      "ac_ref": "AC-2",
+      "description": "Invalid PAT — structured error (401 / non-JSON guard)",
+      "result": "pass",
+      "note": "Mock 401 in execute/QA; Firefly API returns JSON 401 with Accept: application/json"
+    },
+    {
+      "id": "uat-4",
+      "ac_ref": "AC-2",
+      "description": "Empty categories — { success: true, categories: [] }",
+      "result": "pass",
+      "note": "Mock empty data verified in execute + QA"
+    },
+    {
+      "id": "uat-5",
+      "ac_ref": "T-0004",
+      "description": "Webhook / bulk regression — category resolution when Firefly healthy",
+      "result": "deferred",
+      "note": "Requires healthy Firefly + valid PAT; operator action at release"
+    }
+  ],
+  "passed": 3,
+  "failed": 0,
+  "deferred": 2,
+  "operator_actions_required": [
+    "Redeploy/restart categorizer Docker on port 3000 (stale image still returns Unexpected token <)",
+    "Provide valid FIREFLY_PAT in deployment env for AC-4 dropdown population UAT",
+    "Post-release: confirm keyword + account-mapping dropdowns populate and run test-webhook smoke"
+  ],
+  "probe_results": [
+    {
+      "probe_id": "bug0001-verify-work-browser",
+      "probe_kind": "browser_smoke",
+      "step_id": "uat-2",
+      "passed": true,
+      "reason_code": "UAT_BROWSER_PROBE_PASS",
+      "navigation_url": "http://localhost:3001/",
+      "browser_evidence_refs": [
+        "sprints/S0002/evidence/browser/verify-work-console-summary.json",
+        "sprints/S0002/evidence/browser/console-summary.json"
+      ],
+      "note": "Keyword mapping Target Category shows fetch failed (not parse jargon); 0 console errors"
+    },
+    {
+      "probe_id": "bug0001-verify-work-firefly-reachability",
+      "probe_kind": "api_health",
+      "step_id": "uat-1",
+      "passed": false,
+      "reason_code": "UAT_PROBE_FORBIDDEN",
+      "note": "Firefly reachable; categories API returns 401 without PAT — healthy dropdown population not automatable"
+    },
+    {
+      "probe_id": "bug0001-verify-work-stale-docker",
+      "probe_kind": "api_health",
+      "step_id": "uat-2",
+      "passed": false,
+      "reason_code": "RUNTIME_DEPLOYMENT_STALE",
+      "note": "Port 3000 Docker categorizer still returns Unexpected token < — redeploy required before operator UAT on production port"
+    },
+    {
+      "probe_id": "bug0001-api-categories-mock",
+      "probe_kind": "api_health",
+      "step_id": "uat-3",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS",
+      "note": "Mock HTML 200 and 401 cases verified in execute + QA"
+    },
+    {
+      "probe_id": "bug0001-healthy-dropdown",
+      "probe_kind": "browser_smoke",
+      "step_id": "uat-1",
+      "passed": false,
+      "reason_code": "UAT_PROBE_FORBIDDEN",
+      "note": "AC-4 deferred — operator PAT-backed UAT required"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "T-0011",
+  "sprint": "S0003",
+  "work_item": "US-0001",
+  "title": "Optional stretch cases 5-6",
+  "task": "Add case-5-stale-mapping (account maps to absent category, auto stub wins) and case-6-ai-invalid (AI returns absent category, result.category null) to resolveCategory.test.js.",
+  "files": ["tests/resolveCategory.test.js"],
+  "acceptance": [
+    "case-5-stale-mapping falls through to auto-cat when mapped category absent from Map",
+    "case-6-ai-invalid returns category null with prompt/response preserved",
+    "Optional t.capture on stderr for case-5 warn path"
+  ],
+  "status": "pending",
+  "required": false
+}

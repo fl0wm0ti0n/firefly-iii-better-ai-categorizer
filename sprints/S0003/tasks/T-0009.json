@@ -1,0 +1,16 @@
+{
+  "id": "T-0009",
+  "sprint": "S0003",
+  "work_item": "US-0001",
+  "title": "Runbook and npm test",
+  "task": "Update docs/engineering/runbook.md TEST_COMMAND to bash tests/run-tests.sh; document Windows powershell runner. Replace package.json scripts.test stub with delegation to canonical shell runner.",
+  "files": ["docs/engineering/runbook.md", "package.json"],
+  "acceptance": [
+    "Runbook frontmatter TEST_COMMAND is bash tests/run-tests.sh",
+    "Runbook body documents Windows: powershell -ExecutionPolicy Bypass -File tests/run-tests.ps1",
+    "npm test invokes canonical runner (not echo exit 1 stub)",
+    "AC-3 dual-runner documented; AC-4 npm delegation satisfied"
+  ],
+  "status": "done",
+  "required": true
+}

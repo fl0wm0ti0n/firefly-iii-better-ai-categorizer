@@ -1,0 +1,167 @@
+{
+  "selected_pack": "first-intake-pack",
+  "intake_run_id": "intake-20260612-product-backfill",
+  "writer_id": "po-intake-agent",
+  "asked_topics": [
+    "users_problem",
+    "runtime_target_environment",
+    "language_framework_runtime",
+    "architecture_preference",
+    "ui_design_expectations",
+    "security_compliance",
+    "non_functional_priorities",
+    "scope_timeline"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": "(none)",
+  "topic_coverage": [
+    {
+      "topic_key": "users_problem",
+      "satisfied_by": "delegation_ref",
+      "quoted_user_text": "Firefly III users need automatic transaction categorization without manual rule maintenance for every merchant.",
+      "intake_run_id": "intake-20260612-product-backfill",
+      "turn_index": 0,
+      "ref": "ie:intake-20260612-product-backfill:0:9eca9cc79244f6bc",
+      "delegation_scope": "Existing README and architecture baseline",
+      "delegation_rationale": "Brownfield product; problem statement documented in README and codebase-map.",
+      "delegation_confidence": "high"
+    },
+    {
+      "topic_key": "runtime_target_environment",
+      "satisfied_by": "delegation_ref",
+      "quoted_user_text": "Production: Docker categorizer service in parent Firefly stack (port 3000, Traefik). Dev: Node 18+ local or standalone-dev compose profile.",
+      "intake_run_id": "intake-20260612-product-backfill",
+      "turn_index": 1,
+      "ref": "ie:intake-20260612-product-backfill:1:9dad6de4ae3d741b",
+      "delegation_scope": "docs/engineering/architecture.md deployment section",
+      "delegation_rationale": "DEC-0002 and codebase-map confirm deployment topology.",
+      "delegation_confidence": "high"
+    },
+    {
+      "topic_key": "language_framework_runtime",
+      "satisfied_by": "delegation_ref",
+      "quoted_user_text": "Node.js 18+ ES modules, Express 4, Socket.io, OpenAI SDK v3, JSON file persistence under data/.",
+      "intake_run_id": "intake-20260612-product-backfill",
+      "turn_index": 2,
+      "ref": "ie:intake-20260612-product-backfill:2:978da743e5cfe184",
+      "delegation_scope": "package.json and src/ layout",
+      "delegation_rationale": "Stack enumerated in codebase-map and architecture.",
+      "delegation_confidence": "high"
+    },
+    {
+      "topic_key": "architecture_preference",
+      "satisfied_by": "delegation_ref",
+      "quoted_user_text": "Retain monolithic App.js with service classes and unified #resolveCategory pipeline; evolve incrementally with tests first.",
+      "intake_run_id": "intake-20260612-product-backfill",
+      "turn_index": 3,
+      "ref": "ie:intake-20260612-product-backfill:3:f3fc71aec35f682b",
+      "delegation_scope": "DEC-0001, DEC-0004, architecture evolution paths",
+      "delegation_rationale": "Architecture baseline accepted 2026-06-12; no rewrite requested.",
+      "delegation_confidence": "high"
+    },
+    {
+      "topic_key": "ui_design_expectations",
+      "satisfied_by": "delegation_ref",
+      "quoted_user_text": "Optional admin UI (ENABLE_UI): vanilla HTML/CSS/JS side panel, drag-drop transaction management, collapsible sections, Socket.io progress.",
+      "intake_run_id": "intake-20260612-product-backfill",
+      "turn_index": 4,
+      "ref": "ie:intake-20260612-product-backfill:4:b93da18039256372",
+      "delegation_scope": "public/index.html and README UI sections",
+      "delegation_rationale": "UI exists and is documented; user did not request redesign.",
+      "delegation_confidence": "high"
+    },
+    {
+      "topic_key": "security_compliance",
+      "satisfied_by": "delegation_ref",
+      "quoted_user_text": "PAT and OpenAI key via env; GDPR-aware personal finance sidecar; transaction description/payee sent to OpenAI with operator consent.",
+      "intake_run_id": "intake-20260612-product-backfill",
+      "turn_index": 5,
+      "ref": "ie:intake-20260612-product-backfill:5:f4e7ad41457f8b23",
+      "delegation_scope": "README privacy section, scratchpad COMPLIANCE_PROFILES=GDPR",
+      "delegation_rationale": "Security posture documented; SECURITY_REVIEW=0 adds no extra gate.",
+      "delegation_confidence": "medium"
+    },
+    {
+      "topic_key": "non_functional_priorities",
+      "satisfied_by": "delegation_ref",
+      "quoted_user_text": "Priority: serial queue (rate-limit safety), cost reduction via pre-AI rules, restart-safe config in data/ volume, test harness before refactors.",
+      "intake_run_id": "intake-20260612-product-backfill",
+      "turn_index": 6,
+      "ref": "ie:intake-20260612-product-backfill:6:e58106e257d3a6d0",
+      "delegation_scope": "architecture NFR table and state.md risks R6/R1",
+      "delegation_rationale": "Engineering state identifies test gap as top risk.",
+      "delegation_confidence": "high"
+    },
+    {
+      "topic_key": "scope_timeline",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Fill docs/product/vision.md, backlog.md, and acceptance.md for the existing Firefly III AI Categorizer using its-magic intake.",
+      "intake_run_id": "intake-20260612-product-backfill",
+      "turn_index": 7,
+      "ref": "ie:intake-20260612-product-backfill:7:6da0088f53e3eb23"
+    }
+  ],
+  "candidate_story_ids": [
+    "US-0001",
+    "US-0002",
+    "US-0003"
+  ],
+  "plan_area_inventory": [
+    {
+      "plan_area_id": "quality-engineering",
+      "title": "Test harness and CI"
+    },
+    {
+      "plan_area_id": "documentation",
+      "title": "Product and user documentation"
+    },
+    {
+      "plan_area_id": "ai-reliability",
+      "title": "OpenAI classification reliability"
+    },
+    {
+      "plan_area_id": "categorization-pipeline",
+      "title": "Core categorization pipeline"
+    },
+    {
+      "plan_area_id": "deployment",
+      "title": "Production deployment"
+    }
+  ],
+  "plan_area_coverage": [
+    {
+      "plan_area_id": "quality-engineering",
+      "story_ids": [
+        "US-0001"
+      ]
+    },
+    {
+      "plan_area_id": "documentation",
+      "story_ids": [
+        "US-0002"
+      ]
+    },
+    {
+      "plan_area_id": "ai-reliability",
+      "story_ids": [
+        "US-0003"
+      ]
+    },
+    {
+      "plan_area_id": "categorization-pipeline",
+      "deferred_ref": "architecture-baseline-2026-06-12",
+      "deferred_reason": "Pipeline implemented and operational per DEC-0001; maintenance only until tests exist."
+    },
+    {
+      "plan_area_id": "deployment",
+      "deferred_ref": "dec-0002-parent-stack",
+      "deferred_reason": "Production path defined in DEC-0002; no deployment change requested."
+    }
+  ],
+  "coverage_complete": true,
+  "decomposition": {
+    "decision": "split",
+    "story_count": 3,
+    "rationale": "Brownfield codebase with distinct risk boundaries: quality gates, documentation, AI reliability."
+  }
+}

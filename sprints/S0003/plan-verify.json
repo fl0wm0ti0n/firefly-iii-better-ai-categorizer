@@ -1,0 +1,71 @@
+{
+  "sprint": "S0003",
+  "work_item": "US-0001",
+  "orchestrator_run_id": "auto-20260613T124124Z-us0001",
+  "verified_at": "2026-06-13T12:47:40Z",
+  "verdict": "pass",
+  "role": "qa",
+  "coverage": [
+    {
+      "acceptance_id": "US-0001-AC-1",
+      "criterion": "tests/run-tests.sh exists, is executable, and exits 0 on Linux CI",
+      "tasks": ["T-0007", "T-0008", "T-0010"],
+      "covered": true,
+      "notes": "T-0008 creates executable bash runner with set -euo pipefail and node --test tests/; T-0007 supplies passing tests required for exit 0; T-0010 verifies CI checks job executes runbook TEST_COMMAND when non-empty."
+    },
+    {
+      "acceptance_id": "US-0001-AC-2",
+      "criterion": "Tests cover #resolveCategory precedence (account mapping beats auto-cat beats AI mock) with at least 4 cases",
+      "tasks": ["T-0005", "T-0006", "T-0007", "T-0011"],
+      "covered": true,
+      "notes": "T-0005 adds createForTest/resolveCategoryForTest seam (DEC-0006); T-0006 provides fixture/stub factories; T-0007 implements four required cases (account-wins, auto-cat-wins, ai-wins, account-beats-ai) per architecture AC-2 matrix; T-0011 optional stretch cases 5–6."
+    },
+    {
+      "acceptance_id": "US-0001-AC-3",
+      "criterion": "docs/engineering/runbook.md TEST_COMMAND points to the working runner (OS-aware or dual sh/ps documented)",
+      "tasks": ["T-0008", "T-0009"],
+      "covered": true,
+      "notes": "T-0008 creates Linux runner; T-0009 updates runbook frontmatter TEST_COMMAND to bash tests/run-tests.sh and documents Windows powershell runner in body. Current runbook still references missing ps1-only command — addressed by T-0009."
+    },
+    {
+      "acceptance_id": "US-0001-AC-4",
+      "criterion": "npm test delegates to the test runner or documents the canonical command",
+      "tasks": ["T-0009"],
+      "covered": true,
+      "notes": "T-0009 replaces package.json scripts.test stub (currently exit 1) with delegation to bash tests/run-tests.sh. package.json and runbook updated together per T-0009/T-0010 risk note."
+    },
+    {
+      "acceptance_id": "US-0001-AC-5",
+      "criterion": "CI workflow checks job runs TEST_COMMAND when set and reports pass/fail",
+      "tasks": ["T-0009", "T-0010"],
+      "covered": true,
+      "notes": "ci.yml already reads TEST_COMMAND from runbook frontmatter and conditionally runs it (checks job step at lines 65–67); T-0009 updates runbook value; T-0010 verifies wiring without workflow edit unless bootstrap parser requires fix."
+    }
+  ],
+  "gaps": [],
+  "decision_gate": false,
+  "optional_tasks": [
+    {
+      "task_id": "T-0011",
+      "required_for_acceptance": false,
+      "rationale": "AC-2 satisfied by T-0007 four required cases alone; T-0011 adds stale-mapping and invalid-AI stretch coverage per architecture optional matrix."
+    }
+  ],
+  "task_order": ["T-0005", "T-0006", "T-0007", "T-0008", "T-0009", "T-0010"],
+  "evidence_refs": [
+    "docs/product/acceptance.md",
+    "docs/engineering/architecture.md",
+    "docs/engineering/runbook.md",
+    "package.json",
+    ".github/workflows/ci.yml",
+    "sprints/S0003/tasks.md",
+    "sprints/S0003/sprint.json",
+    "sprints/S0003/tasks/T-0005.json",
+    "sprints/S0003/tasks/T-0006.json",
+    "sprints/S0003/tasks/T-0007.json",
+    "sprints/S0003/tasks/T-0008.json",
+    "sprints/S0003/tasks/T-0009.json",
+    "sprints/S0003/tasks/T-0010.json",
+    "sprints/S0003/tasks/T-0011.json"
+  ]
+}

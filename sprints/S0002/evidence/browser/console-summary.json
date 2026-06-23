@@ -1,0 +1,18 @@
+{
+  "probe_id": "bug0001-browser-smoke",
+  "navigation_url": "http://localhost:3001/",
+  "timestamp": "2026-06-13T14:38:00Z",
+  "console_error_count": 0,
+  "console_errors": [],
+  "unexpected_token_errors": 0,
+  "network_summary": {
+    "api_categories_status": "success:false",
+    "api_categories_error": "fetch failed",
+    "note": "Firefly hostname firefly_app unreachable from bare-metal QA process; ENOTFOUND"
+  },
+  "dropdown_evidence": {
+    "mappingTargetCategory": ["fetch failed"],
+    "acmTargetCategory": ["fetch failed"],
+    "hasUnexpectedTokenInDom": false
+  }
+}

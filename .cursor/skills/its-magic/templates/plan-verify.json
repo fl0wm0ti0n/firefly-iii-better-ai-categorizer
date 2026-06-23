@@ -1,0 +1,11 @@
+{
+  "sprint": "S0001",
+  "coverage": [
+    {
+      "acceptance_id": "AC-1",
+      "tasks": [],
+      "covered": false
+    }
+  ],
+  "gaps": []
+}

@@ -1,0 +1,12 @@
+{
+  "id": "T-0041",
+  "title": "Create .cursor/dev-environment.json — schema_version 1 with AC-1 fields (DEC-0019)",
+  "description": "Create the real `.cursor/dev-environment.json` (not `.example`) with deterministic launch configuration per DEC-0019. Keep schema_version: 1 and add AC-1 fields as additive extensions: start_command, stop_command, health_url, poll_seconds:60, poll_interval_seconds:2, env_file, required_env_vars, browser_probe_url, compose_file, service, connect.health_path:/",
+  "acceptance_criteria_refs": ["AC-1"],
+  "decision_refs": ["DEC-0019"],
+  "dependencies": [],
+  "estimated_complexity": "medium",
+  "status": "done",
+  "files": [".cursor/dev-environment.json"],
+  "notes": "Per DEC-0019: additive extensions on schema_version 1, no version bump. Per architecture spec: health_url http://localhost:3001/, connect.health_path /, compose_file docker-compose.local.yml, service firefly-ai-categorizer. evidence_refs: docs/engineering/research.md#r-0023"
+}

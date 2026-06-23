@@ -1,0 +1,7 @@
+T-0050 Production redeploy verification
+Command: docker compose -f /workdir/firefly/docker-compose.yml up -d --build --force-recreate categorizer
+Run from: /workdir/firefly
+Exit code: 0
+Container status after redeploy: Up 8 seconds (healthy)
+Internal probe: docker exec categorizer wget -qO- http://127.0.0.1:3000/api/reviews
+Response: {"success":true,"reviews":[]}

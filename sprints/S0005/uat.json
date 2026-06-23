@@ -1,0 +1,121 @@
+{
+  "phase": "verify-work",
+  "date": "2026-06-14",
+  "role": "qa",
+  "fresh_context_marker": "verify-work-20260614-us0003",
+  "work_item": "US-0003",
+  "sprint": "S0005",
+  "orchestrator_run_id": "auto-20260614T161000Z-us0003",
+  "user_visible": false,
+  "verdict": "PASS",
+  "validation_steps": [
+    {
+      "id": 1,
+      "name": "Operator impact",
+      "description": "Categorization behavior unchanged for end users",
+      "verdict": "PASS",
+      "evidence": "#resolveCategory pipeline unchanged; external contract preserved; 4 regression tests pass"
+    },
+    {
+      "id": 2,
+      "name": "Test harness",
+      "description": "bash tests/run-tests.sh exits 0 with 9/9 pass",
+      "verdict": "PASS",
+      "evidence": "exit 0; 9 tests; 9 pass; 0 fail; duration_ms 560.942084"
+    },
+    {
+      "id": 3,
+      "name": "Schema contract",
+      "description": "classify() json_schema response is deterministic (enum-locked)",
+      "verdict": "PASS",
+      "evidence": "response_format.type=json_schema; strict=true; enum from runtime categories + UNKNOWN; additionalProperties=false"
+    },
+    {
+      "id": 4,
+      "name": "Error resilience",
+      "description": "429 retry still works (v4 error mapping preserves status code)",
+      "verdict": "PASS",
+      "evidence": "APIError.status=429 → OpenAiException.code=429; #retryWithBackoff checks error.code===429; maxRetries:0 prevents SDK double-retry; test oai-5 confirms"
+    },
+    {
+      "id": 5,
+      "name": "Model selection",
+      "description": "OPENAI_MODEL env var still controls model selection",
+      "verdict": "PASS",
+      "evidence": "Field default gpt-4o-mini; constructor reads OPENAI_MODEL; setModel validates allowlist; classify uses this.#model"
+    },
+    {
+      "id": 6,
+      "name": "Backward compatibility",
+      "description": "Webhook/bulk/test-webhook paths still work (all funnel through #resolveCategory → classify)",
+      "verdict": "PASS",
+      "evidence": "All 3 endpoints → #resolveCategory → #retryWithBackoff → classify(); no contract changes; resolveCategory tests 1-4 unchanged"
+    },
+    {
+      "id": 7,
+      "name": "Code quality",
+      "description": "No leftover v3 patterns in OpenAiService.js",
+      "verdict": "PASS",
+      "evidence": "Grep for response.data, .data[0], v3 → 0 matches; all methods use v4 chat.completions.create"
+    },
+    {
+      "id": 8,
+      "name": "Documentation",
+      "description": "Architecture references current (model, SDK, env vars)",
+      "verdict": "PASS",
+      "evidence": "architecture.md lines 103,198,849,863,868,887,961-965 all reference openai@^4, gpt-4o-mini default, OPENAI_MODEL env, injectable client"
+    }
+  ],
+  "test_results": {
+    "total": 9,
+    "pass": 9,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "duration_ms": 560.942084,
+    "files": [
+      {
+        "file": "tests/openAiService.test.js",
+        "cases": 5,
+        "pass": 5,
+        "fail": 0
+      },
+      {
+        "file": "tests/resolveCategory.test.js",
+        "cases": 4,
+        "pass": 4,
+        "fail": 0
+      }
+    ]
+  },
+  "ac_verification": {
+    "AC-1": {
+      "description": "classify() uses Structured Outputs with category enum derived from Firefly category list",
+      "verdict": "PASS"
+    },
+    "AC-2": {
+      "description": "Invalid/hallucinated category names cannot be returned (schema enforcement)",
+      "verdict": "PASS"
+    },
+    "AC-3": {
+      "description": "Existing webhook, bulk, and test-webhook paths pass US-0001 regression tests without behavior regression on happy path",
+      "verdict": "PASS"
+    },
+    "AC-4": {
+      "description": "OPENAI_MODEL env still selects model; default remains gpt-4o-mini",
+      "verdict": "PASS"
+    },
+    "AC-5": {
+      "description": "Rate-limit backoff (#retryWithBackoff) still applies on 429 responses",
+      "verdict": "PASS"
+    }
+  },
+  "findings": [],
+  "observations": [
+    "gpt-3.5-turbo does not support json_schema (returns 400) — documented and acceptable since default is gpt-4o-mini",
+    "Schema size for typical deployments (<50 categories) is well within limits"
+  ],
+  "release_readiness": true,
+  "next_phase": "release",
+  "stop_reason": "verify-work complete"
+}

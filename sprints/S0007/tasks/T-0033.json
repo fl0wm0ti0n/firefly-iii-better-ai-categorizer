@@ -1,0 +1,12 @@
+{
+  "id": "T-0033",
+  "title": "Move Test Webhook form into unified panel; remove test-type select; make form collapsible",
+  "description": "Move the Test Webhook form from the Maintenance group into the unified panel-categorization. Remove the test-type select element — the form will inherit scope from the panel's segmented control (DEC-0016). Wrap the form in a collapsible <details> element, collapsed by default. Preserve description and destination_name input fields.",
+  "acceptance_criteria_refs": ["AC-2"],
+  "decision_refs": ["DEC-0017"],
+  "dependencies": [],
+  "estimated_complexity": "low",
+  "status": "completed",
+  "files": ["public/index.html"],
+  "notes": "Form inherits scope from panel selector. When scope is 'Both', default to 'withdrawal' for single test. test-type select removal documented in user guide (AC-8)."
+}

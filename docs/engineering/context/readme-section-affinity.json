@@ -1,0 +1,30 @@
+{
+  "affinity_version": 1,
+  "rules": [
+    {
+      "dev_h2": "Workflow",
+      "root_h2": "Commands and workflow",
+      "tag": "slash_command"
+    },
+    {
+      "dev_h2": "Quality gates",
+      "root_h2": "Other useful capabilities",
+      "tag": "scratchpad_mode"
+    },
+    {
+      "dev_h2": "Architecture notes",
+      "root_h2": "Features",
+      "tag": "distribution"
+    },
+    {
+      "dev_h2": "Quality gates",
+      "root_h2": "Commands and workflow",
+      "tag": "release_gate"
+    },
+    {
+      "dev_h2": "Engineering decisions",
+      "root_h2": "Other useful capabilities",
+      "tag": "governance"
+    }
+  ]
+}

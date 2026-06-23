@@ -1,0 +1,73 @@
+{
+  "selected_pack": "small-intake-pack",
+  "intake_run_id": "intake-20260613-us0001",
+  "writer_id": "po-subagent",
+  "orchestrator_run_id": "auto-20260613T124124Z-us0001",
+  "asked_topics": [
+    "outcome_success_criteria",
+    "impacted_components",
+    "constraints_compatibility_risks",
+    "required_tests_acceptance_checks",
+    "done_definition"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": "(none)",
+  "prior_intake_evidence_ref": "handoffs/intake_evidence/intake-20260612-product-backfill.json",
+  "prior_intake_confirmation": "scope_validated_refresh",
+  "topic_coverage": [
+    {
+      "topic_key": "outcome_success_criteria",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Bootstrap automated test harness so CI and local dev can verify categorization pipeline safely: runnable tests/run-tests.sh on Linux, #resolveCategory precedence coverage, runbook TEST_COMMAND wired, npm test delegation.",
+      "intake_run_id": "intake-20260613-us0001",
+      "turn_index": 0,
+      "ref": "ie:intake-20260613-us0001:0:e15b9a61de0b78e1"
+    },
+    {
+      "topic_key": "impacted_components",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "src/App.js (#resolveCategory pipeline), FireflyService and OpenAiService mocks, tests/ directory (new), tests/run-tests.sh and optional run-tests.ps1, docs/engineering/runbook.md TEST_COMMAND, package.json npm test script, GitHub Actions checks job.",
+      "intake_run_id": "intake-20260613-us0001",
+      "turn_index": 1,
+      "ref": "ie:intake-20260613-us0001:1:7b55ce988339e021"
+    },
+    {
+      "topic_key": "constraints_compatibility_risks",
+      "satisfied_by": "delegation_ref",
+      "quoted_user_text": "No live Firefly/OpenAI integration tests (scope_out). node:test or lightweight framework only. US-0003 blocked until US-0001 ships. Runbook cites missing tests/run-tests.ps1 (R6); Linux shell runner is primary AC-1 target. Brownfield monolithic App.js \u2014 mock services not full HTTP stack.",
+      "intake_run_id": "intake-20260613-us0001",
+      "turn_index": 2,
+      "ref": "ie:intake-20260613-us0001:2:d608646c945c96ab",
+      "delegation_scope": "docs/product/backlog.md US-0001, docs/engineering/spec-pack/US-0001-crs.md, intake-20260612-product-backfill.json",
+      "delegation_rationale": "Prior product backfill intake (2026-06-12) established US-0001 scope, risks, and dependency chain; drain-advance confirms unchanged constraints.",
+      "delegation_confidence": "high"
+    },
+    {
+      "topic_key": "required_tests_acceptance_checks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "AC-1: tests/run-tests.sh executable exits 0 on Linux CI. AC-2: \u22654 #resolveCategory precedence cases (account mapping beats auto-cat beats AI mock). AC-3: runbook TEST_COMMAND points to working runner. AC-4: npm test delegates. AC-5: CI checks job runs TEST_COMMAND.",
+      "intake_run_id": "intake-20260613-us0001",
+      "turn_index": 3,
+      "ref": "ie:intake-20260613-us0001:3:19cd37806c8d832d",
+      "evidence_source": "equivalent_evidence_ref",
+      "equivalent_evidence_ref": "docs/product/acceptance.md#US-0001"
+    },
+    {
+      "topic_key": "done_definition",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Done when all US-0001 acceptance rows pass: Linux runner green, precedence tests in place, runbook and npm test aligned, CI workflow reports pass/fail from TEST_COMMAND.",
+      "intake_run_id": "intake-20260613-us0001",
+      "turn_index": 4,
+      "ref": "ie:intake-20260613-us0001:4:47a27c92e1b05850"
+    }
+  ],
+  "candidate_story_ids": [
+    "US-0001"
+  ],
+  "decomposition": {
+    "decision": "single",
+    "story_count": 1,
+    "rationale": "US-0001 remains a single quality-engineering vertical slice; no split on drain-advance.",
+    "alternative_considered": "Split runner vs unit tests \u2014 rejected; runner and precedence tests ship together per original decomposition."
+  }
+}

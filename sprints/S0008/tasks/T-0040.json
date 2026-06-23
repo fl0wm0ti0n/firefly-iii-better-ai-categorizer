@@ -1,0 +1,12 @@
+{
+  "id": "T-0040",
+  "title": "Create docker-compose.local.yml — standalone local compose for agent-driven UAT",
+  "description": "Create a standalone Docker Compose file `docker-compose.local.yml` for ephemeral local launch of the Categorizer service. Invoked with explicit `-f` flag (DEC-0018). Service `firefly-ai-categorizer`, port 3001:3000, HEALTHCHECK probes GET / (not /health), ENABLE_UI=true, restart:no, no Traefik labels.",
+  "acceptance_criteria_refs": ["AC-2", "AC-3"],
+  "decision_refs": ["DEC-0018"],
+  "dependencies": [],
+  "estimated_complexity": "medium",
+  "status": "done",
+  "files": ["docker-compose.local.yml"],
+  "notes": "Per DEC-0018: no .override auto-merge risk. Per R-0023: service name firefly-ai-categorizer, port 3001→3000, health target GET /. No Traefik labels — direct port binding. No profiles — explicit -f is the seam."
+}

@@ -1,0 +1,116 @@
+{
+  "selected_pack": "small-intake-pack",
+  "intake_run_id": "intake-20260614-us0005-ui",
+  "writer_id": "po-subagent",
+  "orchestrator_run_id": "auto-20260614T161000Z-us0003",
+  "work_item": "US-0005",
+  "work_item_kind": "story",
+  "intake_mode": "drain-advance",
+  "prior_evidence_ref": "handoffs/intake_evidence/intake-20260613-us0005-ui-consolidation.json",
+  "prior_evidence_status": "confirmed-refreshed",
+  "asked_topics": [
+    "outcome_success_criteria",
+    "impacted_components",
+    "constraints_compatibility_risks",
+    "required_tests_acceptance_checks",
+    "done_definition"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": "(none)",
+  "topic_coverage": [
+    {
+      "topic_key": "outcome_success_criteria",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Consolidate chaotic admin UI — unify expense/income categorization controls and merge Bulk Categorization, Batch Jobs, and Individual Jobs into one Run & Monitor panel with coherent side-nav IA.",
+      "intake_run_id": "intake-20260614-us0005-ui",
+      "turn_index": 0,
+      "ref": "ie:intake-20260614-us0005-ui:0:a1b2c3d4e5f60718"
+    },
+    {
+      "topic_key": "impacted_components",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "public/index.html: setupSidePanel() panel registry (10 Categorizer entries incl. panel-manual, panel-batch, panel-individual, panel-reviews); panel-manual (Bulk Categorization), panel-batch (Batch Jobs), panel-individual (Individual Jobs); Test Webhook section (Maintenance group, line 1008); scope controls at General Settings skip-deposits (line 943), Test Webhook type select (line 1003), Transaction Management type filter (line 1302); preserve Socket.io events and REST endpoints.",
+      "intake_run_id": "intake-20260614-us0005-ui",
+      "turn_index": 1,
+      "ref": "ie:intake-20260614-us0005-ui:1:b2c3d4e5f6071829"
+    },
+    {
+      "topic_key": "constraints_compatibility_risks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Brownfield monolithic index.html (~5.9k lines); preserve side-panel nav groups (Categorizer / Special tools / Maintenance) and collapsible-section model from vision; no breaking changes to /api/process-uncategorized, /api/process-all, /api/test-webhook, batch-job control routes; US-0004 Pending Reviews panel must remain reachable in unified layout; no UI test harness exists (US-0001 covers backend only).",
+      "intake_run_id": "intake-20260614-us0005-ui",
+      "turn_index": 2,
+      "ref": "ie:intake-20260614-us0005-ui:2:c3d4e5f607182930"
+    },
+    {
+      "topic_key": "required_tests_acceptance_checks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Manual UX checklist: (1) sidebar no longer lists separate Bulk Categorization, Batch Jobs, Individual Jobs; (2) unified panel has Process Uncategorized, Process All, Test Webhook; (3) single scope control for withdrawal/deposit/both honoring skip-deposits; (4) integrated job monitor lists batch+individual jobs with type badges, live Socket.io, pause/resume/cancel; (5) starting bulk/webhook keeps operator on same panel; (6) REST endpoints unchanged; (7) nav groups preserved; (8) user guide docs/user-guides/US-0005.md.",
+      "intake_run_id": "intake-20260614-us0005-ui",
+      "turn_index": 3,
+      "ref": "ie:intake-20260614-us0005-ui:3:d4e5f60718293041"
+    },
+    {
+      "topic_key": "done_definition",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Done when operator can start any categorization run (bulk uncategorized, bulk all, test webhook) from one panel, monitor batch and individual jobs together with type badges and live progress, and expense/income scope is expressed once — with stale copy removed and user guide created (USER_GUIDE_MODE=1).",
+      "intake_run_id": "intake-20260614-us0005-ui",
+      "turn_index": 4,
+      "ref": "ie:intake-20260614-us0005-ui:4:e5f6071829304152"
+    }
+  ],
+  "candidate_story_ids": [
+    "US-0005"
+  ],
+  "decomposition": {
+    "decision": "single",
+    "story_count": 1,
+    "rationale": "Navigation IA and unified run/monitor are one operator workflow; splitting sidebar vs monitor would deliver incomplete UX.",
+    "alternative_considered": "IA-only pass without job monitor merge — rejected; leaves 'Batch Jobs / Individual Jobs separate from execution' confusion.",
+    "alternative_rejected_detail": "Split sidebar IA vs job-monitor merge — partial fix would leave execution flow confusing; operator starts bulk in one panel, monitors in another."
+  },
+  "ui_audit_refresh": {
+    "timestamp": "2026-06-14T22:15:00+02:00",
+    "sidebar_categorizer_panels": 10,
+    "panels": [
+      { "id": "panel-auto", "title": "Auto-Categorization" },
+      { "id": "panel-general", "title": "General Settings" },
+      { "id": "panel-cmap", "title": "Keyword → Category Mappings" },
+      { "id": "panel-acmap", "title": "Account → Category Mappings" },
+      { "id": "panel-failed", "title": "Word Mappings & Failed" },
+      { "id": "panel-txm", "title": "Transaction Management" },
+      { "id": "panel-manual", "title": "Bulk Categorization" },
+      { "id": "panel-batch", "title": "Batch Jobs" },
+      { "id": "panel-individual", "title": "Individual Jobs" },
+      { "id": "panel-reviews", "title": "Pending Reviews" }
+    ],
+    "maintenance_panels": [
+      { "id": "panel-duplicates", "title": "Duplicate cleanup" },
+      { "id": "panel-webhook", "title": "Test Webhook" }
+    ],
+    "special_tools_panels": [
+      { "id": "extraction", "title": "Credit Card Statement Splitter" }
+    ],
+    "consolidation_targets": ["panel-manual", "panel-batch", "panel-individual"],
+    "scope_control_locations": [
+      "General Settings: auto-skip-deposits checkbox (line 943)",
+      "Bulk Categorization: Process All copy 'ALL transactions (withdrawals and deposits)' (line 974)",
+      "Test Webhook: type select with withdrawal/deposit options (line 1003)",
+      "Transaction Management: type filter dropdown (line 1302)"
+    ],
+    "stale_copy_found": "Test Webhook alert says 'Check the individual jobs section below' (line 1617) — must be removed",
+    "auto_jump_found": "Bulk start calls window.__showPanel('panel-batch') (lines 1551, 1573) — auto-jump to Batch Jobs"
+  },
+  "acceptance_criteria_count": 8,
+  "acceptance_criteria_ids": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+  "risks": [
+    "Large monolithic HTML/JS refactor without US-0001 UI tests — manual regression checklist required",
+    "Regression in batch pause/resume/cancel or webhook test flow",
+    "US-0004 Pending Reviews panel must remain reachable after sidebar consolidation",
+    "Test Webhook currently in Maintenance group — must be reachable from unified panel without breaking Maintenance group semantics"
+  ],
+  "research_refs": ["R-0005"],
+  "decision_refs": [],
+  "spec_pack_crs": "docs/engineering/spec-pack/US-0005-crs.md",
+  "user_guide_target": "docs/user-guides/US-0005.md"
+}

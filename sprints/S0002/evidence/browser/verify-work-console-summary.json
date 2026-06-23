@@ -1,0 +1,28 @@
+{
+  "probe_id": "bug0001-verify-work-browser",
+  "phase": "verify-work",
+  "navigation_url": "http://localhost:3001/",
+  "timestamp": "2026-06-13T12:38:16Z",
+  "console_error_count": 0,
+  "console_errors": [],
+  "unexpected_token_errors": 0,
+  "network_summary": {
+    "api_categories_status": "success:false",
+    "api_categories_error": "fetch failed",
+    "firefly_host_reachable_from_docker": true,
+    "firefly_unauthenticated_401": true,
+    "note": "Firefly on localhost:888 reachable; categorizer bare-metal QA uses firefly_app hostname (ENOTFOUND). Docker categorizer can reach firefly:8080 but needs valid PAT for categories."
+  },
+  "dropdown_evidence": {
+    "mappingTargetCategory": ["fetch failed"],
+    "hasUnexpectedTokenInDom": false,
+    "healthy_population_verified": false,
+    "healthy_population_blocker": "UAT_PROBE_FORBIDDEN — PAT not auto-read"
+  },
+  "deployment_notes": {
+    "port_3000_stale_docker": true,
+    "port_3000_api_error": "Unexpected token < in JSON at position 0",
+    "port_3001_updated_code": true,
+    "port_3001_api_error": "fetch failed"
+  }
+}

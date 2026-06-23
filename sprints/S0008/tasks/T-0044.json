@@ -1,0 +1,12 @@
+{
+  "id": "T-0044",
+  "title": "Document local launch in runbook — add dedicated section to docs/engineering/runbook.md",
+  "description": "Add a dedicated section to docs/engineering/runbook.md documenting the local agent-driven Categorizer launch. Must include: prerequisites (Docker + Compose, .env populated), launch command, health URL (http://localhost:3001/), poll cadence (2s/60s), stop command, direct port binding note (no Traefik), cross-references to user guide US-0006 and architecture US-0006. No production content modified.",
+  "acceptance_criteria_refs": ["AC-3"],
+  "decision_refs": ["DEC-0018"],
+  "dependencies": ["T-0040", "T-0041"],
+  "estimated_complexity": "low",
+  "status": "done",
+  "files": ["docs/engineering/runbook.md"],
+  "notes": "Document ephemeral / agent-driven nature. Note: production deployment unaffected (categorizer.omniflow.cc via parent stack). Note: Cursor browser MCP reaches localhost:3001 without restriction (R-0023 Q6)."
+}

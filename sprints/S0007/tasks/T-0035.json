@@ -1,0 +1,12 @@
+{
+  "id": "T-0035",
+  "title": "Remove auto-jump code (lines 1551, 1573); replace stale copy (line 1617)",
+  "description": "Remove auto-jump code that switches panels after starting bulk operations: line 1551 (window.__showPanel('panel-batch')) and line 1573 (window.__showPanel('panel-batch')). Replace stale copy at line 1617 ('Check the individual jobs section below.') with 'See job monitor below.' The operator should stay on the unified panel after starting a bulk run or webhook test.",
+  "acceptance_criteria_refs": ["AC-5"],
+  "decision_refs": [],
+  "dependencies": [],
+  "estimated_complexity": "low",
+  "status": "completed",
+  "files": ["public/index.html"],
+  "notes": "Auto-jump no longer needed since run actions and job monitor are in the same panel. Toast notification may replace auto-jump for progress visibility."
+}

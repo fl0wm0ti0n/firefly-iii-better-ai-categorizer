@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "detected_mode": "docker-host-local",
+  "operator_seeded": true,
+  "last_updated": "2026-06-22T22:26:00+02:00",
+  "compose_file": "docker-compose.local.yml",
+  "service": "firefly-ai-categorizer",
+  "target_id": "firefly-ai-categorizer-local",
+  "start_command": "docker compose -f docker-compose.local.yml up -d",
+  "stop_command": "docker compose -f docker-compose.local.yml down",
+  "health_url": "http://localhost:3001/",
+  "poll_seconds": 60,
+  "poll_interval_seconds": 2,
+  "env_file": ".env",
+  "required_env_vars": ["FIREFLY_URL", "FIREFLY_PERSONAL_TOKEN", "OPENAI_API_KEY"],
+  "browser_probe_url": "http://localhost:3001/",
+  "connect": {
+    "endpoint": "http://localhost:3001",
+    "health_path": "/",
+    "hostEnv": "DEV_HOST",
+    "portEnv": "DEV_PORT",
+    "protocolEnv": "DEV_PROTOCOL"
+  },
+  "rebuild_recipe": {
+    "default_tier": "B",
+    "restart_on_source_change": false
+  },
+  "env_refs": ["DEV_HOST", "DEV_PORT", "DEV_PROTOCOL"],
+  "evidence_refs": ["docs/engineering/research.md#r-0023"]
+}

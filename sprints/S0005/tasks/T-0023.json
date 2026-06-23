@@ -1,0 +1,17 @@
+{
+  "id": "T-0023",
+  "title": "Full bash tests/run-tests.sh green",
+  "task": "Run full test suite: bash tests/run-tests.sh. Verify exit 0 with all precedence tests (4/4) + new openAiService tests (oai-1–oai-5) passing. Fix any regressions.",
+  "files": ["tests/run-tests.sh"],
+  "acceptance": [
+    "bash tests/run-tests.sh exits 0",
+    "tests/resolveCategory.test.js 4/4 cases pass (no regression from SDK migration)",
+    "tests/openAiService.test.js 5 cases pass (oai-1–oai-5)",
+    "No OPENAI_API_KEY required in test environment",
+    "AC-3 regression gate satisfied"
+  ],
+  "acceptance_mapping": ["AC-3", "AC-5"],
+  "depends_on": ["T-0021", "T-0022"],
+  "status": "pending",
+  "required": true
+}

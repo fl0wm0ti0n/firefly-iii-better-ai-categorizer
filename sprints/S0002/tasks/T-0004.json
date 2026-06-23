@@ -1,0 +1,15 @@
+{
+  "id": "T-0004",
+  "sprint": "S0002",
+  "work_item": "BUG-0001",
+  "title": "Manual verification checklist",
+  "task": "Execute architecture # BUG-0001 manual checklist (healthy Firefly, bad URL, invalid PAT, empty categories, webhook/bulk regression). Record results in sprint summary and uat.json.",
+  "files": [],
+  "acceptance": [
+    "All five manual checks from architecture executed",
+    "Results documented in sprints/S0002/summary.md",
+    "Env misconfiguration noted if deployment blocks verification"
+  ],
+  "status": "done",
+  "required": true
+}

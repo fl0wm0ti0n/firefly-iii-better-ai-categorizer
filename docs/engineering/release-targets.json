@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "selectionPolicy": "explicit_or_default",
+  "runtimeConnectivityDoc": "docs/engineering/runtime-connectivity.md",
+  "targets": [
+    {
+      "id": "npm-public",
+      "type": "npm",
+      "enabled": false,
+      "order": 10,
+      "command": "npm publish",
+      "workingDirectory": ".",
+      "runtime": {
+        "mode": "local",
+        "protocol": "https",
+        "domainEnv": "PUBLIC_DOMAIN",
+        "port": 443
+      }
+    },
+    {
+      "id": "choco",
+      "type": "choco",
+      "enabled": false,
+      "order": 20,
+      "command": "choco push packaging/chocolatey/its-magic.*.nupkg --source %CHOCO_SOURCE%",
+      "tokenEnv": "CHOCO_API_KEY",
+      "runtime": {
+        "mode": "local"
+      }
+    },
+    {
+      "id": "brew-tap",
+      "type": "brew",
+      "enabled": false,
+      "order": 30,
+      "command": "git push origin HEAD",
+      "tokenEnv": "GITHUB_TOKEN",
+      "runtime": {
+        "mode": "local"
+      }
+    },
+    {
+      "id": "dockerhub",
+      "type": "docker",
+      "enabled": false,
+      "order": 40,
+      "command": "docker push %DOCKER_IMAGE%",
+      "tokenEnv": "DOCKER_TOKEN",
+      "runtime": {
+        "mode": "remote",
+        "hostEnv": "DOCKER_RUNTIME_HOST",
+        "port": 443,
+        "protocol": "https"
+      }
+    },
+    {
+      "id": "aws-deploy",
+      "type": "cloud",
+      "enabled": false,
+      "order": 50,
+      "command": "aws deploy create-deployment --application-name %APP_NAME% --deployment-group-name %DEPLOY_GROUP% --s3-location bucket=%S3_BUCKET%,bundleType=zip,key=%BUNDLE_KEY%",
+      "credentialEnv": "AWS_PROFILE",
+      "runtime": {
+        "mode": "remote",
+        "domainEnv": "APP_DOMAIN",
+        "ipEnv": "APP_IP",
+        "port": 443,
+        "protocol": "https",
+        "traefik": {
+          "enabled": false,
+          "router": "app",
+          "entrypoint": "websecure",
+          "tls": true
+        }
+      }
+    },
+    {
+      "id": "custom-release-hook",
+      "type": "custom",
+      "enabled": false,
+      "order": 60,
+      "command": "powershell -ExecutionPolicy Bypass -File scripts/publish-custom.ps1",
+      "runtime": {
+        "mode": "remote",
+        "domainEnv": "CUSTOM_DOMAIN",
+        "ipEnv": "CUSTOM_IP",
+        "port": 443,
+        "protocol": "https"
+      }
+    },
+    {
+      "id": "ssh-server",
+      "type": "ssh",
+      "enabled": false,
+      "order": 70,
+      "hostEnv": "SSH_HOST",
+      "port": 22,
+      "userEnv": "SSH_USER",
+      "authEnv": "SSH_PRIVATE_KEY",
+      "remoteCommand": "cd /opt/its-magic && ./deploy.sh",
+      "runtime": {
+        "mode": "remote",
+        "domainEnv": "RUNTIME_DOMAIN",
+        "ipEnv": "RUNTIME_IP",
+        "port": 443,
+        "protocol": "https",
+        "traefik": {
+          "enabled": true,
+          "router": "its-magic",
+          "entrypoint": "websecure",
+          "tls": true
+        }
+      },
+      "dockerOverSsh": {
+        "enabled": false,
+        "dockerHostEnv": "DOCKER_HOST",
+        "dockerContextEnv": "DOCKER_CONTEXT",
+        "composeFile": "docker-compose.yml",
+        "service": "app"
+      }
+    }
+  ]
+}

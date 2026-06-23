@@ -1,0 +1,16 @@
+{
+  "id": "T-0003",
+  "sprint": "S0002",
+  "work_item": "BUG-0001",
+  "title": "UI dropdown error surfacing (optional polish)",
+  "task": "In loadCategoriesForKeywordMappings and loadAccountsAndCategoriesForAccountMappings, surface j.error / catJson.error in dropdown option text when !success; truncate ~120 chars; avoid console parse errors on page load.",
+  "files": ["public/index.html"],
+  "acceptance": [
+    "mappingTargetCategory shows backend error on failure",
+    "acmTargetCategory shows backend error on failure",
+    "Healthy Firefly still populates dropdowns",
+    "No Unexpected token console error on misconfigured Firefly"
+  ],
+  "status": "done",
+  "required": false
+}

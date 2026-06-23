@@ -1,0 +1,34 @@
+{
+  "intake_run_id": "intake-20260614-us0004",
+  "story_id": "US-0004",
+  "timestamp": "2026-06-14T19:00:00Z",
+  "orchestrator_run_id": "auto-20260614T161000Z-us0003",
+  "verdict": "validated",
+  "scope_validation": {
+    "single_vertical_slice": true,
+    "decomposition_decision": "unchanged — no split",
+    "rationale": "History analysis, AI comparison, and review UI are one operator workflow. Split backend vs UI deferred."
+  },
+  "dependencies": {
+    "US-0001": "DONE (S0003 released)",
+    "status": "unblocked"
+  },
+  "acceptance_criteria_count": 8,
+  "acceptance_criteria_summary": [
+    "AC-1: History aggregation per account, dominant category share (≥80% threshold)",
+    "AC-2: History suggestion with confidence = dominant share",
+    "AC-3: AI classification still runs with confidence",
+    "AC-4: Disagreement → pending review queue (no Firefly write until Accept)",
+    "AC-5: UI panel with transaction summary, history/AI categories + confidence, Accept/Reject",
+    "AC-6: Accept applies category + optional tag; Reject dismisses",
+    "AC-7: Hard account mappings (DEC-0001 step 1) and auto-cat rules take precedence",
+    "AC-8: docs/user-guides/US-0004.md documents review workflow (USER_GUIDE_MODE=1)"
+  ],
+  "risks": [
+    "Firefly API load when computing per-account history on every webhook",
+    "Review queue backlog if operator does not clear panel",
+    "UI complexity in monolithic public/index.html"
+  ],
+  "prior_research": "R-0004 (Account-level category history heuristics) — current",
+  "next_phase": "discovery"
+}

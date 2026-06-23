@@ -1,0 +1,17 @@
+{
+  "id": "T-0013",
+  "sprint": "S0004",
+  "work_item": "US-0002",
+  "title": "CODEBASE_ANALYSIS surgical refresh",
+  "task": "Apply five targeted edits to docs/CODEBASE_ANALYSIS.md per R-0011: gpt-4o-mini, 5-step DEC-0001 pipeline, mapping service bullets, GET /api/version 1.1.0, Quality/test harness subsection.",
+  "files": ["docs/CODEBASE_ANALYSIS.md"],
+  "acceptance": [
+    "OpenAiService section references gpt-4o-mini default and OPENAI_MODEL env",
+    "Multi-Stage Categorization lists 5-step order matching README § Categorization Process Flow",
+    "Backend Components documents four mapping services",
+    "App.js API endpoints include GET /api/version (apiVersion 1.1.0)",
+    "Quality / test harness subsection cross-links runbook TEST_COMMAND"
+  ],
+  "status": "pending",
+  "required": true
+}

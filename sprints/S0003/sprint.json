@@ -1,0 +1,22 @@
+{
+  "id": "S0003",
+  "goal": "Bootstrap automated test harness for #resolveCategory precedence regression: injectable-deps test seam (DEC-0006), node:test fixtures and ≥4 precedence cases, Linux shell runner, runbook/npm/CI wiring.",
+  "scope": [
+    "US-0001",
+    "src/App.js#createForTest",
+    "src/App.js#resolveCategoryForTest",
+    "tests/",
+    "docs/engineering/runbook.md",
+    "package.json",
+    ".github/workflows/ci.yml"
+  ],
+  "risks": [
+    "T1: Test-only API surface on production App — keep *ForTest naming minimal",
+    "T2: Node 18 glob pitfall — use node --test tests/ only (R-0008)",
+    "T3: Async service constructor races if real instances used — prefer stubs",
+    "T4: runbook/package.json drift — update together in T-0010",
+    "T6: Option B pipeline extraction scope creep — DEC-0006 locks Option A"
+  ],
+  "work_item_kind": "story",
+  "orchestrator_run_id": "auto-20260613T124124Z-us0001"
+}

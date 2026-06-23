@@ -1,0 +1,34 @@
+T-0053 AC-4 Pending Reviews panel render verification
+Panel text extracted via CDP (review-list innerText):
+
+(no description)
+Invalid Date • Account ID: N/A • Transaction ID: tx-2
+History Suggestion
+None
+Confidence: 0.0%
+AI Suggestion
+None
+Confidence: 0.0%
+Recommendation
+[object Object]
+❌ Reject
+✅ Accept
+(no description)
+Invalid Date • Account ID: N/A • Transaction ID: tx-123
+History Suggestion
+None
+Confidence: 0.0%
+AI Suggestion
+None
+Confidence: 0.0%
+Recommendation
+[object Object]
+❌ Reject
+✅ Accept
+
+Observations:
+- Transaction summary lines present (description, date/account/transaction ids).
+- History Suggestion / AI Suggestion sections present (seed data lacks historyCategory/aiCategory values, so displays "None" with 0% confidence).
+- Recommendation section present.
+- Accept and Reject actions present for each item.
+Minor pre-existing rendering issue: Recommendation displays [object Object] when preferredCategory is an object; out of BUG-0002 scope.

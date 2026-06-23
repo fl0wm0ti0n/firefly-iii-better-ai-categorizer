@@ -1,0 +1,15 @@
+{
+  "id": "T-0018",
+  "title": "Pin openai@^4 in package.json",
+  "task": "Update package.json dependencies: openai ^3.2.1 → ^4. Run npm install to update package-lock.json. Verify ESM import works.",
+  "files": ["package.json", "package-lock.json"],
+  "acceptance": [
+    "package.json dependencies.openai is ^4 (not ^3)",
+    "npm install succeeds without peer dependency conflicts",
+    "node -e \"import('openai').then(m => console.log(typeof m.OpenAI))\" prints 'function'"
+  ],
+  "acceptance_mapping": ["prerequisite", "DEC-0010", "R-0015"],
+  "depends_on": [],
+  "status": "pending",
+  "required": true
+}

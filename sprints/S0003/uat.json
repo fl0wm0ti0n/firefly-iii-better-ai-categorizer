@@ -1,0 +1,98 @@
+{
+  "sprint": "S0003",
+  "work_item": "US-0001",
+  "phase": "verify-work",
+  "verified_at": "2026-06-13T12:51:44Z",
+  "verdict": "pass",
+  "steps": [
+    {
+      "id": "uat-1",
+      "ac_ref": "AC-1",
+      "description": "Operator runs `bash tests/run-tests.sh` — executable Linux runner exits 0",
+      "result": "pass",
+      "note": "Verify-work re-run: exit 0, 4/4 TAP pass (~428ms); `-rwxr-xr-x tests/run-tests.sh`"
+    },
+    {
+      "id": "uat-2",
+      "ac_ref": "AC-2",
+      "description": "`#resolveCategory` precedence covered by ≥4 test cases (account → auto-cat → AI mock)",
+      "result": "pass",
+      "note": "case-1-account-wins, case-2-auto-cat-wins (classify callCount=0), case-3-ai-wins (callCount=1), case-4-account-beats-ai (callCount=0)"
+    },
+    {
+      "id": "uat-3",
+      "ac_ref": "AC-3",
+      "description": "Runbook `TEST_COMMAND` points to working runner; OS-aware sh/ps documented",
+      "result": "pass",
+      "note": "TEST_COMMAND: bash tests/run-tests.sh; Windows run-tests.ps1 + notes in runbook §Notes"
+    },
+    {
+      "id": "uat-4",
+      "ac_ref": "AC-4",
+      "description": "Operator runs `npm test` — delegates to canonical runner",
+      "result": "pass",
+      "note": "package.json test script invokes bash tests/run-tests.sh; verify-work re-run exit 0, 4/4 pass (~458ms)"
+    },
+    {
+      "id": "uat-5",
+      "ac_ref": "AC-5",
+      "description": "CI `checks` job runs `TEST_COMMAND` when set and reports pass/fail",
+      "result": "pass",
+      "note": "ci.yml runbook parser extracts TEST_COMMAND; conditional Test step runs when non-empty; local proxy PASS"
+    }
+  ],
+  "passed": 5,
+  "failed": 0,
+  "deferred": 0,
+  "operator_actions_required": [],
+  "probe_results": [
+    {
+      "probe_id": "us0001-verify-work-ac1-test-runner",
+      "probe_kind": "test",
+      "step_id": "uat-1",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS",
+      "command": "bash tests/run-tests.sh",
+      "exit_code": 0,
+      "output_ref": "/tmp/uat-run-tests-sh.out",
+      "stack_profile": "node"
+    },
+    {
+      "probe_id": "us0001-verify-work-ac4-npm-test",
+      "probe_kind": "test",
+      "step_id": "uat-4",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS",
+      "command": "npm test",
+      "exit_code": 0,
+      "output_ref": "/tmp/uat-npm-test.out",
+      "stack_profile": "node"
+    },
+    {
+      "probe_id": "us0001-verify-work-ac3-runbook",
+      "probe_kind": "cli_smoke",
+      "step_id": "uat-3",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS",
+      "command": "bash tests/run-tests.sh",
+      "note": "Runbook TEST_COMMAND resolves to working runner; dual sh/ps documented"
+    },
+    {
+      "probe_id": "us0001-verify-work-ac5-ci",
+      "probe_kind": "manual_operator",
+      "step_id": "uat-5",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS",
+      "note": "ci.yml checks job: runbook parser + conditional Test step when TEST_COMMAND set"
+    },
+    {
+      "probe_id": "us0001-verify-work-ac2-precedence",
+      "probe_kind": "test",
+      "step_id": "uat-2",
+      "passed": true,
+      "reason_code": "UAT_PROBE_PASS",
+      "command": "bash tests/run-tests.sh",
+      "note": "4 precedence cases pass with mock call-count assertions"
+    }
+  ]
+}

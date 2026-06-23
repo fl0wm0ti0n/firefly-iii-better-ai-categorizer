@@ -1,0 +1,15 @@
+{
+  "id": "T-0016",
+  "sprint": "S0004",
+  "work_item": "US-0002",
+  "title": "Vision terminology sync (AC-4)",
+  "task": "Terminology pass on docs/product/vision.md: Account → Category Mappings as pipeline step 1; optional cross-ref to README § Categorization Process Flow.",
+  "files": ["docs/product/vision.md"],
+  "acceptance": [
+    "Vision pipeline descriptions use Account → Category Mappings terminology for step 1",
+    "Step order matches README § Categorization Process Flow (5 steps per DEC-0001)",
+    "Optional one-line cross-ref to README pipeline section"
+  ],
+  "status": "pending",
+  "required": true
+}

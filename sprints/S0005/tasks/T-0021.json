@@ -1,0 +1,16 @@
+{
+  "id": "T-0021",
+  "title": "matchAccount + extractTransactionsFromText v4 call path",
+  "task": "Update matchAccount() and extractTransactionsFromText() to use v4 chat.completions.create API (drop .data accessor). No schema — legacy prompt+parse preserved per DEC-0010.",
+  "files": ["src/OpenAiService.js"],
+  "acceptance": [
+    "matchAccount() uses this.#openAi.chat.completions.create(...) without .data",
+    "extractTransactionsFromText() uses this.#openAi.chat.completions.create(...) without .data",
+    "Response parsing logic unchanged (legacy prompt+parse preserved)",
+    "No Structured Outputs schema added to sibling methods (DEC-0010 scope_out)"
+  ],
+  "acceptance_mapping": ["DEC-0010"],
+  "depends_on": ["T-0019"],
+  "status": "pending",
+  "required": true
+}

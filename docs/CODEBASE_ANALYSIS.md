@@ -22,7 +22,8 @@ The system automates manual categorization of financial transactions through:
 - **Socket.io** for real-time UI updates
 - **Queue management** for asynchronous processing
 - **Webhook endpoint** (`/webhook`) for Firefly III integration
-- **API endpoints** for manual processing:
+- **API endpoints** for manual processing and diagnostics:
+  - `GET /api/version` - API version and capabilities (`apiVersion: 1.1.0`)
   - `/api/process-uncategorized` - Processes only uncategorized transactions
   - `/api/process-all` - Processes all transactions (overwrites categories)
 
@@ -54,7 +55,7 @@ async getCategories() {
 ```
 
 #### 3. OpenAiService.js - AI Integration
-- **OpenAI API calls** with GPT-3.5-turbo-instruct
+- **OpenAI API calls** with default model **gpt-4o-mini** (override via `OPENAI_MODEL` env)
 - **Prompt generation** for categorization
 - **Response processing** and validation
 
@@ -76,7 +77,16 @@ Just output the name of the category. Does not have to be a complete sentence.`;
   - `updateBatchJobProgress()` - Updates progress
   - `finishBatchJob()` - Marks batch job as completed
 
-#### 5. util.js - Utility Functions
+#### 5. Mapping and auto-categorization services
+
+Pipeline rule layers (see [README § Categorization Process Flow](../its_magic/README.md#categorization-process-flow)):
+
+- **AccountCategoryMappingService** — hard 1:1 account→category rules (highest priority; stops pipeline on match)
+- **AutoCategorizationService** — foreign/travel heuristics (currency, flags, keywords, country)
+- **WordMappingService** — pre-AI text substitution on description/payee
+- **CategoryMappingService** — keyword→category hints for OpenAI (does not assign directly)
+
+#### 6. util.js - Utility Functions
 - **Environment variable management**
 - **Configuration** with fallback values
 
@@ -211,10 +221,14 @@ services:
 ## Enhanced Features
 
 ### Multi-Stage Categorization Process
-1. **Category Mappings** (highest priority) - User-defined rules
-2. **Auto-categorization** - Foreign/travel detection
-3. **Word Mappings** - Text preprocessing
-4. **AI Categorization** - OpenAI fallback
+
+Five-step order per DEC-0001 (canonical diagram: [README § Categorization Process Flow](../its_magic/README.md#categorization-process-flow)):
+
+1. **Account → Category Mappings** — hard 1:1 rules (highest priority; assign and stop)
+2. **Auto-Categorization** — foreign/travel detection (assign and stop on match)
+3. **Word Mappings** — text replacement on description/payee (enhance; continue)
+4. **Keyword → Category Mappings** — AI hints from keyword rules (enhance; continue)
+5. **AI Categorization** — OpenAI fallback (assign or fail)
 
 ### Real-time Monitoring
 - Socket.io for live updates
@@ -235,6 +249,14 @@ services:
 - Batch job control (pause/resume/cancel)
 - Skip deposits option
 - Category mapping management
+
+### Quality / test harness
+
+Automated pipeline precedence tests run via `TEST_COMMAND` in
+[`docs/engineering/runbook.md`](engineering/runbook.md) (`bash tests/run-tests.sh`).
+The harness uses Node 18 `node:test` with mocked services — see
+`tests/resolveCategory.test.js` for the DEC-0001 precedence matrix. Developer
+workflow and quality gates: [`docs/developer/README.md`](developer/README.md).
 
 ## Performance Optimizations
 

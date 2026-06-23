@@ -1,0 +1,12 @@
+{
+  "id": "T-0032",
+  "title": "Create unified panel-categorization DOM structure with scope selector, run action buttons, and job monitor containers",
+  "description": "Create a single unified panel-categorization that replaces panel-manual, panel-batch, and panel-individual. The panel contains: (1) Scope selector (segmented control: Withdrawals / Deposits / Both), (2) Run actions section with Process Uncategorized button, Process All button, and Test Webhook button placeholder, (3) Progress display (shared), (4) Job monitor with two sub-containers: batch-mount for batch jobs and mount for individual jobs. Preserve existing DOM IDs for Socket.io routing.",
+  "acceptance_criteria_refs": ["AC-1", "AC-2", "AC-4"],
+  "decision_refs": ["DEC-0015"],
+  "dependencies": [],
+  "estimated_complexity": "medium",
+  "status": "completed",
+  "files": ["public/index.html"],
+  "notes": "Keep mount and batch-mount IDs unchanged. Socket.io handlers already route to correct containers — no handler changes needed. This is the structural foundation for T-0033, T-0037, T-0038."
+}

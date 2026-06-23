@@ -57,3 +57,8 @@ export function dataFile(fileName) {
     return path.join(getDataDir(), fileName);
 }
 
+export function resetDataDir() {
+    resolvedDir = '';
+    initPromise = null;
+}
+

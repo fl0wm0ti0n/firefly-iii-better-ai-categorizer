@@ -1,0 +1,22 @@
+{
+  "id": "T-0027",
+  "title": "App.js #resolveCategory integration — history + AI comparison + queue",
+  "task": "Insert history dominance check in #resolveCategory() after word/keyword hints and before AI classification. Fetch cached account history via this.#firefly.getCachedAccountHistory(accountId). Run HistoryAnalysisService.analyzeAccountHistory(). If dominance threshold met, build historySuggestion. After AI classify, call #compareHistoryAndAi() to create review queue entry. Handle queuedForReview flag in #processTransaction() — skip setCategory + addTag when queued.",
+  "files": ["src/App.js"],
+  "acceptance": [
+    "History fetch occurs after word/keyword hints and before AI classification in #resolveCategory",
+    "History fetch failure logs warning and continues without history suggestion (non-blocking)",
+    "historySuggestion built when dominance >= threshold: { category, confidence, basis }",
+    "#compareHistoryAndAi() creates review entry with transactionSummary, historySuggestion, aiSuggestion, recommendation",
+    "Recommendation logic: higher confidence wins; tie-break prefers history (empirical)",
+    "Recommendation reasons: history_and_ai_agree, history_and_ai_disagree, history_only, ai_only",
+    "Returns { category: null, queuedForReview: true, reviewId } when queued",
+    "#processTransaction() checks queuedForReview flag and skips setCategory + addTag",
+    "Hard rules (account mapping step 1, auto-cat step 2) still short-circuit before history (AC-7)",
+    "Duplicate transactionId check prevents duplicate queue entries"
+  ],
+  "acceptance_mapping": ["AC-4", "AC-7", "DEC-0001"],
+  "depends_on": ["T-0024", "T-0025", "T-0026", "T-0028"],
+  "status": "pending",
+  "required": true
+}

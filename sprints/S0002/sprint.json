@@ -1,0 +1,17 @@
+{
+  "id": "S0002",
+  "goal": "Fix BUG-0001: harden FireflyService.getCategories() against HTML/non-JSON Firefly responses; surface actionable errors via GET /api/categories and optional UI dropdown copy.",
+  "scope": [
+    "BUG-0001",
+    "src/FireflyService.js#getCategories",
+    "src/App.js#getCategories",
+    "public/index.html category dropdown loaders"
+  ],
+  "risks": [
+    "B1: Sibling FireflyService methods remain unguarded until post-US-0001 follow-up",
+    "B4: No automated tests — manual verification only",
+    "B3: getCategories() called from webhook/batch paths — guard must not regress healthy Firefly"
+  ],
+  "work_item_kind": "bug",
+  "orchestrator_run_id": "auto-20260613T122818Z-bug0001"
+}

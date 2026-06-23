@@ -1,0 +1,6 @@
+{
+  "note": "Local instance launched via bash scripts/dev-launch.sh on port 3001",
+  "health_url": "http://localhost:3001/",
+  "get_api_reviews_url": "http://localhost:3001/api/reviews",
+  "response": {"success":true,"reviews":[{"id":"review-2","transactionId":"tx-2","status":"pending","recommendation":{"preferredCategory":"Restaurants"}},{"id":"review-1","transactionId":"tx-123","status":"pending","recommendation":{"preferredCategory":"Groceries","historyConfidence":0.9,"aiCategory":"Restaurants","aiConfidence":0.6}}]}
+}

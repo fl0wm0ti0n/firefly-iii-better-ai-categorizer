@@ -1,0 +1,16 @@
+{
+  "id": "T-0008",
+  "sprint": "S0003",
+  "work_item": "US-0001",
+  "title": "Linux shell runner",
+  "task": "Create executable tests/run-tests.sh: set -euo pipefail, cd repo root, exec node --test tests/ (directory path, no glob). Optional tests/run-tests.ps1 for Windows parity.",
+  "files": ["tests/run-tests.sh", "tests/run-tests.ps1"],
+  "acceptance": [
+    "run-tests.sh is executable (chmod +x)",
+    "bash tests/run-tests.sh exits 0 on Linux with precedence tests green",
+    "Uses node --test tests/ directory invocation per R-0008",
+    "Optional run-tests.ps1 invokes same node --test tests/ on Windows"
+  ],
+  "status": "done",
+  "required": true
+}

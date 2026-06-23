@@ -1,0 +1,39 @@
+---
+description: "Strict coding standards and language best practices"
+globs: ["**/*"]
+---
+
+- Follow the official best practices of each language/framework used in the
+  changed files. Do not use deprecated APIs unless explicitly required.
+- Keep behavior deterministic and explicit: avoid hidden side effects and
+  implicit global state.
+- Prefer readability over cleverness. Use clear naming and small functions.
+- Match existing project conventions for formatting, structure, and patterns.
+- Keep interfaces stable and backward compatible unless the task requires a
+  breaking change (then document the break and migration steps).
+- Validate input boundaries and handle errors intentionally (no silent catches).
+- Never swallow exceptions without logging/context and a clear recovery path.
+- Avoid duplicated logic; extract shared behavior when repetition appears.
+- Minimize complexity: avoid unnecessary abstraction, deep nesting, and large
+  functions/classes.
+- Use strict typing and contracts where available (TypeScript/Python typing/etc).
+- No dead code, commented-out code blocks, or unused variables/imports.
+- Add or update tests for behavior changes. Tests must verify outcomes, not only
+  implementation details.
+- If tests/lint/typecheck fail for changed areas, fix before marking work done.
+- Security by default: validate untrusted input, avoid injection-prone patterns,
+  and do not introduce secrets into code or artifacts.
+- Remote config security (DEC-0016): never commit secret literals (tokens,
+  passwords, private keys) in `.cursor/remote.json`; use environment-variable
+  references only (for example `tokenEnv`, `passwordEnv`, `privateKeyPathEnv`).
+- `.env` exclusion (DEC-0071 / US-0085): do not open, attach, read, search
+  inside, or index `.env` or `.env.*` files. Use environment variable names
+  in prose only. Operators source `.env` outside agent context.
+- Automation remote routing (US-0086): when `AUTO_REMOTE_AUTOMATION_PROFILE=off`,
+  keep local behavior and never silently reroute `TEST_COMMAND` to remote.
+  Explicit NL routing is limited to `start container <target_id>` and unknown or
+  disabled targets must fail closed with documented reason codes.
+- Performance by default: avoid obvious N+1 loops, repeated expensive work, and
+  unnecessary I/O in hot paths.
+- Documentation by default: update relevant docs when behavior, setup, or usage
+  changes.

@@ -1,0 +1,64 @@
+{
+  "phase_id": "plan-verify",
+  "role": "qa",
+  "fresh_context_marker": "plan-verify-20260614-us0003",
+  "timestamp": "2026-06-14T18:21:00Z",
+  "sprint": "S0005",
+  "work_item": "US-0003",
+  "orchestrator_run_id": "auto-20260614T161000Z-us0003",
+  "verdict": "PASS",
+  "decision_gate": false,
+  "ac_verification": [
+    {
+      "ac_id": "AC-1",
+      "description": "OpenAiService.classify() uses Structured Outputs with category enum derived from Firefly category list",
+      "covered_by": ["T-0020"],
+      "evidence": "T-0020 adds #buildCategorySchema(categories) building runtime enum [...categories.filter(Boolean), 'UNKNOWN'] and classify() sends response_format: { type: 'json_schema', json_schema: { name: 'transaction_category', strict: true, schema: ... } }",
+      "verdict": "PASS"
+    },
+    {
+      "ac_id": "AC-2",
+      "description": "Invalid/hallucinated category names cannot be returned (schema enforcement)",
+      "covered_by": ["T-0020", "T-0022"],
+      "evidence": "T-0020 enforces enum via json_schema strict:true + additionalProperties:false; removes post-hoc indexOf. T-0022 oai-1 asserts runtime enum on captured request; oai-3 tests UNKNOWN→null mapping.",
+      "verdict": "PASS"
+    },
+    {
+      "ac_id": "AC-3",
+      "description": "Existing webhook, bulk, and test-webhook paths pass US-0001 regression tests without behavior regression on happy path",
+      "covered_by": ["T-0023"],
+      "evidence": "T-0023 runs full bash tests/run-tests.sh; resolveCategory.test.js 4/4 cases use App.createForTest stubs (SDK migration invisible); gate: exit 0 with all tests green.",
+      "verdict": "PASS"
+    },
+    {
+      "ac_id": "AC-4",
+      "description": "OPENAI_MODEL env still selects model; default remains gpt-4o-mini",
+      "covered_by": ["T-0019", "T-0020"],
+      "evidence": "T-0019 constructor migration only changes client init (v3→v4 OpenAI); this.#model field and setModel() allowlist preserved. T-0020 classify() uses this.#model in API call. Architecture spec confirms no model handling changes.",
+      "note": "No explicit unit test for model selection; acceptable since constructor migration does not touch model field logic.",
+      "verdict": "PASS"
+    },
+    {
+      "ac_id": "AC-5",
+      "description": "Rate-limit backoff (#retryWithBackoff) still applies on 429 responses",
+      "covered_by": ["T-0019", "T-0022", "T-0023"],
+      "evidence": "T-0019 sets maxRetries:0 (disables SDK built-in retry); maps OpenAI.APIError.status→OpenAiException.code for 429. T-0022 oai-5 asserts mock APIError(429) throws with .code===429. T-0023 regression gate confirms #retryWithBackoff still catches 429.",
+      "verdict": "PASS"
+    }
+  ],
+  "task_coverage": {
+    "T-0018": { "title": "Pin openai@^4 in package.json", "ac_mapping": ["prerequisite"], "status": "covered" },
+    "T-0019": { "title": "Constructor + createForTest + v4 error mapping", "ac_mapping": ["DEC-0009", "AC-4", "AC-5"], "status": "covered" },
+    "T-0020": { "title": "#buildCategorySchema + classify() Structured Outputs", "ac_mapping": ["AC-1", "AC-2"], "status": "covered" },
+    "T-0021": { "title": "matchAccount + extractTransactionsFromText v4 call path", "ac_mapping": ["DEC-0010"], "status": "covered" },
+    "T-0022": { "title": "tests/openAiService.test.js (oai-1–oai-5)", "ac_mapping": ["AC-2", "AC-5", "unit coverage"], "status": "covered" },
+    "T-0023": { "title": "Full bash tests/run-tests.sh green", "ac_mapping": ["AC-3"], "status": "covered" }
+  },
+  "gaps": [],
+  "notes": [
+    "AC-4 has no explicit unit test for model selection; architecture spec confirms constructor migration preserves this.#model and setModel() allowlist.",
+    "T-0021 (sibling v4 call path) has no direct AC mapping but is required for shared client consistency (DEC-0010).",
+    "All 6 tasks required; dependency chain T-0018→T-0019→{T-0020,T-0021}→T-0022→T-0023 is sound."
+  ],
+  "next_phase": "execute"
+}

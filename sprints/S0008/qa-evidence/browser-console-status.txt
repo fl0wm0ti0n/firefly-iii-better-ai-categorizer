@@ -1,0 +1,12 @@
+Browser MCP console status check
+Timestamp: 2026-06-22T22:45:10+02:00
+Method: Runtime.evaluate (returnByValue=true)
+Expression: ((w) => { const errs = w.__consoleErrors || []; const warns = w.__consoleWarnings || []; return JSON.stringify({errorCount: errs.length, errors: errs.slice(0,10), warningCount: warns.length, warnings: warns.slice(0,10), hasUnexpectedToken: errs.some(e => String(e).includes('Unexpected token')) || warns.some(w => String(w).includes('Unexpected token'))}); })(window)
+
+Result:
+{
+  "type": "string",
+  "value": "{\"errorCount\":0,\"errors\":[],\"warningCount\":0,\"warnings\":[],\"hasUnexpectedToken\":false}"
+}
+
+Evidence: 0 console errors, 0 warnings, no "Unexpected token '<'" observed. SyntaxError risk ruled out.

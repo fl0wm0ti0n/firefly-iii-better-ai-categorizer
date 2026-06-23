@@ -1,0 +1,65 @@
+{
+  "selected_pack": "small-intake-pack",
+  "intake_run_id": "intake-20260612-us0004-account-history",
+  "writer_id": "po-intake-agent",
+  "asked_topics": [
+    "outcome_success_criteria",
+    "impacted_components",
+    "constraints_compatibility_risks",
+    "required_tests_acceptance_checks",
+    "done_definition"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": "(none)",
+  "topic_coverage": [
+    {
+      "topic_key": "outcome_success_criteria",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Beim Auto-Kategorisieren soll gepr\u00fcft werden, welche Kategorien Ausgaben-Accounts historisch haben; bei \u226580% Dominanz eine Kategorie vorschlagen, mit AI-Ergebnis vergleichen (Sicherheitswert), und dem Nutzer eine Review-Liste zeigen wo er jeden Vorschlag explizit akzeptieren muss.",
+      "intake_run_id": "intake-20260612-us0004-account-history",
+      "turn_index": 0,
+      "ref": "ie:intake-20260612-us0004-account-history:0:ce15dc4eb6431c71"
+    },
+    {
+      "topic_key": "impacted_components",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Betrifft FireflyService (Transaktions-Historie pro Account), #resolveCategory-Pipeline in App.js, neuer History-Service, persistente Review-Queue in data/, Admin-UI Panel in public/index.html, REST+Socket.io f\u00fcr Pending-Reviews.",
+      "intake_run_id": "intake-20260612-us0004-account-history",
+      "turn_index": 1,
+      "ref": "ie:intake-20260612-us0004-account-history:1:0b5fd5a264a59806"
+    },
+    {
+      "topic_key": "constraints_compatibility_risks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Kein stilles Auto-Assign: Nutzer muss akzeptieren. Hard Account-Mappings (DEC-0001 Schritt 1) bleiben Vorrang. 80%-Schwelle konfigurierbar. Extra Firefly-API-Calls f\u00fcr Historie; Webhook darf nicht blockieren \u2014 Review-Queue asynchron.",
+      "intake_run_id": "intake-20260612-us0004-account-history",
+      "turn_index": 2,
+      "ref": "ie:intake-20260612-us0004-account-history:2:3de13138bf5d82b1"
+    },
+    {
+      "topic_key": "required_tests_acceptance_checks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Tests f\u00fcr Dominanz-Berechnung (80%-Grenze, zu wenig Historie), AI-vs-Historie-Vergleich mit Confidence, Pipeline-Vorrang unver\u00e4ndert, Review-Accept wendet Kategorie in Firefly an, Reject verwirft Vorschlag.",
+      "intake_run_id": "intake-20260612-us0004-account-history",
+      "turn_index": 3,
+      "ref": "ie:intake-20260612-us0004-account-history:3:bc5aa82aa9e163b5"
+    },
+    {
+      "topic_key": "done_definition",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Fertig wenn Webhook/Bulk einen Vorschlag erzeugen kann, UI alle offenen Vorschl\u00e4ge mit Historie-Kategorie, AI-Kategorie und Confidence zeigt, und Accept/Reject End-to-End funktioniert inkl. user guide US-0004.",
+      "intake_run_id": "intake-20260612-us0004-account-history",
+      "turn_index": 4,
+      "ref": "ie:intake-20260612-us0004-account-history:4:4bf710662c3fa1c9"
+    }
+  ],
+  "candidate_story_ids": [
+    "US-0004"
+  ],
+  "decomposition": {
+    "decision": "single",
+    "story_count": 1,
+    "rationale": "Vertical slice: history analysis + AI comparison + review UI is one operator workflow.",
+    "alternative_considered": "Split backend (US-0004) vs UI (US-0005) \u2014 rejected for MVP to deliver end-to-end value."
+  }
+}

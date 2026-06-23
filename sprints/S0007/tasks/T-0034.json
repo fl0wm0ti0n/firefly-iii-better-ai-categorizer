@@ -1,0 +1,12 @@
+{
+  "id": "T-0034",
+  "title": "Update setupSidePanel() to replace 3 sidebar entries with single Categorization entry; remove Test Webhook from Maintenance group",
+  "description": "Update setupSidePanel() in public/index.html to replace the three separate sidebar entries (Bulk Categorization, Batch Jobs, Individual Jobs) with a single 'Categorization' entry pointing to panel-categorization. Remove the Test Webhook entry from the Maintenance group. Preserve panel-reviews (US-0004) as a separate sidebar entry. Maintain the Categorizer / Special tools / Maintenance group structure and collapsible-section interaction model.",
+  "acceptance_criteria_refs": ["AC-1", "AC-7"],
+  "decision_refs": ["DEC-0015"],
+  "dependencies": [],
+  "estimated_complexity": "low",
+  "status": "completed",
+  "files": ["public/index.html"],
+  "notes": "Sidebar Categorizer group: 10 entries → 8 entries. Remove: panel-manual, panel-batch, panel-individual, panel-webhook (from Maintenance). Add: panel-categorization."
+}

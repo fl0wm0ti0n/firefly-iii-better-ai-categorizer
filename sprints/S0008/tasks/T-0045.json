@@ -1,0 +1,12 @@
+{
+  "id": "T-0045",
+  "title": "Verify browser UAT probe against local instance — runbook / scripts integration test workflow",
+  "description": "Document and validate the browser UAT probe workflow: agent launches local Categorizer, opens browser MCP to http://localhost:3001/, collects console errors and GET /api/reviews response. Document expected outcomes: JSON success or structured error (no JSON SyntaxError on HTML per AC-5). Reference BUG-0002 for HTML 404 risk context. Add as runbook section or integration test documentation.",
+  "acceptance_criteria_refs": ["AC-3", "AC-4", "AC-5"],
+  "decision_refs": [],
+  "dependencies": ["T-0043"],
+  "estimated_complexity": "medium",
+  "status": "done",
+  "files": ["docs/engineering/runbook.md"],
+  "notes": "Agent probe workflow: (a) start_command, (b) poll health_url until HTTP 200 / 60s cap, (c) browser_navigate to browser_probe_url, (d) collect console errors via CDP/Runtime.evaluate, (e) fetch /api/reviews body, (f) stop_command. Per AC-5: must not throw JSON SyntaxError on HTML response."
+}

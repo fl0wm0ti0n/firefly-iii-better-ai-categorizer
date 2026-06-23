@@ -3,6 +3,8 @@ import {getConfigVariable} from "./util.js";
 export default class FireflyService {
     #BASE_URL;
     #PERSONAL_TOKEN;
+    #accountHistoryCache = new Map();
+    #CACHE_TTL_MS = 3600000;
 
     constructor() {
         this.#BASE_URL = getConfigVariable("FIREFLY_URL")
@@ -22,6 +24,7 @@ export default class FireflyService {
         const response = await fetch(`${this.#BASE_URL}/api/v1/categories`, {
             headers: {
                 Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                Accept: 'application/json',
             }
         });
 
@@ -29,7 +32,24 @@ export default class FireflyService {
             throw new FireflyException(response.status, response, await response.text())
         }
 
-        const data = await response.json();
+        const ctype = (response.headers.get('content-type') || '').toLowerCase();
+        let data;
+        if (ctype.includes('json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            const trimmed = text.trim();
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                try {
+                    data = JSON.parse(trimmed);
+                } catch (_) {
+                    // fallthrough to error
+                }
+            }
+            if (!data) {
+                throw new FireflyException(200, response, `Non-JSON response from Firefly (check FIREFLY_URL/token): ${text.substring(0, 500)}`);
+            }
+        }
 
         const categories = new Map();
         data.data.forEach(category => {
@@ -70,6 +90,39 @@ export default class FireflyService {
 
         // unique & sorted
         return Array.from(new Set(tags)).sort((a, b) => a.localeCompare(b));
+    }
+
+    async getTransactionsByAccountId(accountId, { limit = 500, type = 'withdrawal' } = {}) {
+        const results = [];
+        let page = 1;
+        const perPage = Math.min(Math.max(parseInt(limit) || 500, 1), 500);
+        while (true) {
+            const url = `${this.#BASE_URL}/api/v1/accounts/${accountId}/transactions?page=${page}&limit=${perPage}&type=${type}`;
+            const response = await fetch(url, {
+                headers: {
+                    Authorization: `Bearer ${this.#PERSONAL_TOKEN}`,
+                    Accept: 'application/json',
+                }
+            });
+            if (!response.ok) {
+                throw new FireflyException(response.status, response, await response.text());
+            }
+            const data = await response.json();
+            results.push(...data.data);
+            if (data.data.length < perPage) break;
+            page++;
+        }
+        return results;
+    }
+
+    async getCachedAccountHistory(accountId) {
+        const cached = this.#accountHistoryCache.get(accountId);
+        if (cached && Date.now() - cached.timestamp < this.#CACHE_TTL_MS) {
+            return cached.data;
+        }
+        const data = await this.getTransactionsByAccountId(accountId);
+        this.#accountHistoryCache.set(accountId, { data, timestamp: Date.now() });
+        return data;
     }
 
     async getTransactionsByCategoryName(categoryName, { limit = 200 } = {}) {

@@ -1,0 +1,111 @@
+---
+description: "Core workflow and context pack rules"
+globs: ["**/*"]
+---
+
+- Intake backlog/acceptance writes require **US-0078** evidence validation
+  (`scripts/intake_evidence_validate.py` / **DEC-0060**) before persistence; see
+  `.cursor/commands/intake.md`.
+- For first/new/broad intake, persistence also requires **US-0081** complete-plan
+  coverage contract validation (**DEC-0064**):
+  `plan_area_inventory` + `plan_area_coverage` + `coverage_complete=true`; fail
+  closed under `INTAKE_PERSISTENCE_BLOCKED` with deterministic plan-coverage
+  subcodes.
+- Defect intake uses **`INTAKE_WORK_ITEM_KIND=bug`** and/or **`/intake bug`**; validate bugs with
+  `scripts/bug_issue_validate.py` and run `scripts/intake_bug_routing_guard.py` before allocating
+  **`US-xxxx`** for defect-shaped prose (**US-0079** / **DEC-0061**).
+- Use the phase flow: intake -> discovery -> research -> architecture ->
+  [security-review: design, if SECURITY_REVIEW=1] -> sprint plan -> plan verify
+  -> execute -> [security-review: code, if SECURITY_REVIEW=1] -> QA ->
+  verify work -> release -> refresh context.
+- Enforce agent isolation: each phase must run in a fresh subagent context.
+  Never execute two delivery phases in the same agent conversation.
+- `AUTO_FLOW_MODE` controls whether phases run automatically or stop at
+  decision gates (`auto_until_decision` recommended).
+- `PHASE_MODE=interactive` means ask questions; `PHASE_MODE=auto` minimizes
+  prompts unless decisions are required.
+- `AUTO_IMPLEMENTATION_LOOP=1` enables an automatic fix loop:
+  execute -> QA -> execute (and verify-work) until quality gates are green or
+  `AUTO_LOOP_MAX_CYCLES` is reached.
+- `AUTO_PAUSE_REQUEST=1` requests a graceful stop at the next safe boundary
+  defined by `AUTO_PAUSE_POLICY` (`after_task` or `after_phase`).
+- `SECURITY_REVIEW=1` enables optional security review insertion points:
+  post-architecture (design mode) and post-execute (code mode). When
+  `SECURITY_REVIEW=0` (default), these optional steps are skipped entirely and
+  base workflow behavior is unchanged.
+- Persist decisions and state in files; do not keep critical info only in chat.
+- Handoffs are the only cross-phase memory. When a phase writes its outputs and
+  handoff, stop that agent and start the next phase in a new subagent.
+- Pause/resume is first-class. Update `handoffs/resume_brief.md` on pause.
+- `/auto` continuation contract (DEC-0017):
+  - Support explicit `start-from=<phase>` using canonical phase IDs only:
+    `intake`, `discovery`, `research`, `architecture`, `sprint-plan`,
+    `plan-verify`, `execute`, `qa`, `verify-work`, `release`,
+    `refresh-context`.
+  - Deterministic precedence must be:
+    1) explicit `start-from`
+    2) `handoffs/resume_brief.md`
+    3) conservative `docs/engineering/state.md` fallback
+    4) fail-fast on unresolved/conflicting/ambiguous signals.
+  - Conflict/staleness policy:
+    - explicit valid override wins;
+    - if no override and `resume_brief` conflicts with inferred state, fail fast;
+    - if `resume_brief` exists but is stale or unparseable, fail fast;
+    - use state fallback only when resume brief is absent.
+  - Fail-fast contract format:
+    `[AUTO_RESUME_ERROR] <code>: <summary>. Source=<source>. Fix: <action>.`
+    Required codes:
+    `INVALID_START_FROM`, `RESUME_BRIEF_MISSING`, `RESUME_BRIEF_STALE`,
+    `RESUME_BRIEF_UNPARSEABLE`, `RESUME_STATE_CONFLICT`,
+    `STATE_PHASE_AMBIGUOUS`, `STATE_PHASE_UNRECOVERABLE`.
+  - Preserve existing stop/gate controls in continuation mode:
+    decision gate, missing critical input, pause request, loop max cycles.
+  - Write deterministic breadcrumbs (`resolution_source`, chosen phase,
+    `stop_reason`, `stop_phase`, `timestamp`) to `docs/engineering/state.md`
+    and `handoffs/resume_brief.md` (when stopped before completion).
+- Context pack must stay compact: summarize, do not dump raw logs.
+- Remote execution contract (DEC-0016):
+  - If `REMOTE_EXECUTION=0` (default), skip remote config validation and keep
+    workflow overhead at zero.
+  - If `REMOTE_EXECUTION=1`, validate `.cursor/remote.json` before any remote
+    build/test activity and fail fast on blocking issues.
+  - Required root fields: `version`, `defaultTarget`, `targets`.
+  - Required target fields: `id`, `type`, `enabled`, `host`, `port`,
+    `workspaceRoot`.
+  - Allowed `type` values: `docker`, `ssh`, `vm`.
+  - `defaultTarget` must reference an existing enabled target id.
+  - No committed secrets in config; sensitive values must be env-var references.
+  - If valid, agents may use configured remote/docker servers for builds/tests.
+- Release queue and per-sprint notes contract (DEC-0020):
+  - `/verify-work` declares sprint readiness in state context (`ready` intent).
+  - `/release` owns target-sprint-only queue transitions and sprint-scoped note
+    writing:
+    `planned|ready -> unreleased -> released`.
+  - Canonical artifacts are `handoffs/release_queue.md` and
+    `handoffs/releases/Sxxxx-release-notes.md`.
+  - `handoffs/release_notes.md` remains legacy-compatible pointer/summary only.
+  - On unresolved sprint identity or queue/notes mismatch, fail closed with
+    deterministic reason codes and remediation guidance; no destructive
+    reconciliation.
+- Release gate no-bypass (US-0039 / DEC-0019):
+  - Default behavior is strict no-bypass for release gates.
+  - Overrides require explicit decision evidence with rationale and risk
+    acceptance.
+- Release operator hints contract (US-0067 / DEC-0049):
+  - `/release` output must include deterministic sections:
+    `Run -> Connect -> Verify -> Credentials -> Known Issues`.
+  - Required fields include start command, runtime mode/context ref, endpoint +
+    port + health endpoint, verification steps, credentials source refs
+    (env-ref-only), and known issues.
+  - Missing/ambiguous fields or inline secrets fail closed with
+    `RELEASE_OPERATOR_HINTS_MISSING`,
+    `RELEASE_OPERATOR_HINTS_AMBIGUOUS`, or
+    `RELEASE_OPERATOR_HINTS_SECRET_EXPOSURE`.
+- Cross-phase artifact ownership guard (US-0061 / DEC-0043):
+  - All delivery phases must enforce
+    `docs/engineering/artifact-ownership-policy.md` before mutating artifacts.
+  - Non-authorized phases must not delete or rewrite other-phase owned sections.
+  - On prohibited mutation, fail closed with `PHASE_OWNERSHIP_VIOLATION`.
+  - If an override-authorized mutation path is allowed but evidence is missing,
+    fail closed with `PHASE_OVERRIDE_EVIDENCE_MISSING`.
+

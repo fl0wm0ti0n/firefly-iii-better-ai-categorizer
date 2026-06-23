@@ -1,0 +1,12 @@
+{
+  "id": "T-0037",
+  "title": "Update btn-process-uncategorized and btn-process-all handlers to read scope value and send scope field in POST body",
+  "description": "Update the click handlers for btn-process-uncategorized and btn-process-all to: (1) Read the selected scope value from document.querySelector('input[name=\"categorization-scope\"]:checked').value, (2) Include the scope field in the POST body JSON for /api/process-uncategorized and /api/process-all endpoints. The scope field is additive and optional — existing callers without scope are unaffected.",
+  "acceptance_criteria_refs": ["AC-3", "AC-6"],
+  "decision_refs": ["DEC-0016"],
+  "dependencies": ["T-0032"],
+  "estimated_complexity": "low",
+  "status": "completed",
+  "files": ["public/index.html"],
+  "notes": "Scope values: 'withdrawals', 'deposits', 'both'. Backend receives optional scope field. Absent scope → existing behavior (skipDeposits config governs)."
+}

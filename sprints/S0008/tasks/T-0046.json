@@ -1,0 +1,12 @@
+{
+  "id": "T-0046",
+  "title": "User guide — docs/user-guides/US-0006.md (USER_GUIDE_MODE=1)",
+  "description": "Create docs/user-guides/US-0006.md documenting the local agent-driven UAT flow. Schema: Purpose, Prerequisites, Usage steps, Example, Limitations, Troubleshooting. Document dev-environment.json fields, agent workflow (launch → health poll → browser probe → evidence), compose details, cross-references to architecture US-0006 and decisions DEC-0018/DEC-0019.",
+  "acceptance_criteria_refs": ["AC-6"],
+  "decision_refs": [],
+  "dependencies": ["T-0040", "T-0041", "T-0043"],
+  "estimated_complexity": "low",
+  "status": "done",
+  "files": ["docs/user-guides/US-0006.md"],
+  "notes": "USER_GUIDE_MODE=1 is enabled. Guide covers ephemeral local launch (no persistence beyond ./data), port 3001 must be free, production unaffected. Troubleshooting: port conflict, .env missing, image build failure, health timeout."
+}

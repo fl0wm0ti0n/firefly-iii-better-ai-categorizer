@@ -1,0 +1,85 @@
+{
+  "phase": "plan-verify",
+  "work_item": "BUG-0002",
+  "sprint_id": "S0009",
+  "timestamp": "2026-06-24T00:07:00+02:00",
+  "role": "qa",
+  "verdict": "pass_with_findings",
+  "next_scheduled_phase": "execute",
+  "ac_task_coverage": [
+    {
+      "ac": "BUG-0002 AC-1",
+      "tasks": ["T-0050", "T-0051"],
+      "rationale": "T-0050 redeploys the production container so the stale-image 404 is eliminated; T-0051 adds response.ok and content-type guards so any residual non-JSON response cannot cause a SyntaxError in loadPendingReviews."
+    },
+    {
+      "ac": "BUG-0002 AC-2",
+      "tasks": ["T-0050", "T-0051"],
+      "rationale": "T-0050 verifies GET /api/reviews returns HTTP 200 JSON when healthy; T-0051 ensures the client path also accepts a structured {success:false,error:...} response (not HTML) without a parse exception."
+    },
+    {
+      "ac": "BUG-0002 AC-3",
+      "tasks": ["T-0051", "T-0053"],
+      "rationale": "T-0051 implements defensive JSON parsing and surfaces structured errors via showToast; T-0053 records the verification that no SyntaxError is thrown."
+    },
+    {
+      "ac": "BUG-0002 AC-4",
+      "tasks": ["T-0053"],
+      "rationale": "T-0053 verifies the Pending Reviews panel renders each item with transaction summary, history category + confidence, AI category + confidence, recommended choice, and Accept/Reject actions."
+    }
+  ],
+  "task_dependencies": {
+    "T-0050": [],
+    "T-0051": [],
+    "T-0052": ["T-0051"],
+    "T-0053": ["T-0050", "T-0051", "T-0052"]
+  },
+  "dependency_analysis": {
+    "T-0050 vs T-0051": "Declared as parallel Phase 1 tasks. Logical because public/ is live-mounted; the UI change takes effect without an image rebuild.",
+    "T-0052 vs T-0051": "T-0052 depends on T-0051 to ensure regression tests run after the UI change. It does not declare T-0050 as a dependency by design, but execution order places it in Phase 2 after both Phase 1 tasks are complete.",
+    "T-0053 vs T-0050/T-0051/T-0052": "T-0053 correctly depends on all prior tasks so acceptance verification can only run after redeploy, UI hardening, and regression tests."
+  },
+  "gaps": [
+    {
+      "id": "PV-G0001",
+      "severity": "minor",
+      "description": "AC-4 verification task T-0053 has declared dependencies on T-0050, T-0051, and T-0052, but verifying panel rendering also requires real review data to be present in production Firefly. The sprint plan does not include a dedicated data-seeding task.",
+      "mitigation": "Verification plan allows simulating a pending review or using evidence from the most recent UAT run if the production review queue is empty."
+    },
+    {
+      "id": "PV-G0002",
+      "severity": "minor",
+      "description": "T-0052 dependency list only references T-0051. This is functionally correct because the regression suite can run on any healthy deployment, but it could be misinterpreted as allowing T-0052 to run before T-0050.",
+      "mitigation": "sprints/S0009/summary.md already places T-0052 in Phase 2 after both T-0050 and T-0051. No execution blocker."
+    }
+  ],
+  "test_plan": {
+    "AC-1": [
+      "Run T-0050 docker exec categorizer probe to /api/reviews; assert HTTP 200 JSON and no HTML 404.",
+      "Apply T-0051 UI hardening.",
+      "Reload authenticated admin UI and confirm browser console shows no GET /api/reviews 404 (Not Found) and no SyntaxError from loadPendingReviews."
+    ],
+    "AC-2": [
+      "Probe GET /api/reviews with curl or browser network tool.",
+      "Assert HTTP 200 JSON {success:true,reviews:[...]} on a healthy deployment.",
+      "If the endpoint fails for any reason, assert the body is a structured {success:false,error:'...'} object and not HTML."
+    ],
+    "AC-3": [
+      "If the endpoint returns a structured {success:false,error:...}, confirm loadPendingReviews logs the error to console.error.",
+      "Confirm the UI displays showToast('Failed to load pending reviews', 'error') without throwing a JSON parse SyntaxError."
+    ],
+    "AC-4": [
+      "With real review data present, load the Pending Reviews panel.",
+      "For each item, confirm transaction summary, history category + confidence, AI category + confidence, recommended choice, and visible Accept/Reject actions."
+    ]
+  },
+  "evidence_ref": [
+    "docs/product/acceptance.md (BUG-0002 ACs)",
+    "sprints/S0009/summary.md",
+    "sprints/S0009/tasks.md",
+    "sprints/S0009/tasks/T-0050.json",
+    "sprints/S0009/tasks/T-0051.json",
+    "sprints/S0009/tasks/T-0052.json",
+    "sprints/S0009/tasks/T-0053.json"
+  ]
+}

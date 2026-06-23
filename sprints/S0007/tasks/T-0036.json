@@ -1,0 +1,12 @@
+{
+  "id": "T-0036",
+  "title": "Add CSS for segmented scope control (radio pills styled as buttons)",
+  "description": "Add CSS styles for the segmented scope control (radio group styled as pill buttons). Three options: Withdrawals, Deposits, Both. Active state should be visually distinct. Include responsive styles. The scope selector uses <input type='radio'> with name='categorization-scope' and values 'withdrawals', 'deposits', 'both'.",
+  "acceptance_criteria_refs": ["AC-3"],
+  "decision_refs": ["DEC-0016"],
+  "dependencies": [],
+  "estimated_complexity": "low",
+  "status": "completed",
+  "files": ["public/index.html"],
+  "notes": "Segmented control pattern: radio inputs hidden, labels styled as connected buttons. Active pill has filled background. Default selection: withdrawals."
+}

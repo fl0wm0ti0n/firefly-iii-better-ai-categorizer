@@ -679,3 +679,27 @@ curl -s http://localhost:3001/api/version   # expect apiVersion 1.1.0
 The list is deduplicated (one row per Firefly transaction). Counts can decrease after a **container restart** (in-memory webhook jobs lost), **Cleanup**, or successful **bulk/account** categorization that removes resolved entries from `failed-transactions.json`.
 
 ### Local Installation Issues
+
+## Examples
+
+Add short, copy-paste friendly examples for common tasks.
+
+## Limitations
+
+Call out known limits, unsupported environments, or sharp edges.
+
+## Purpose
+
+Describe what this repository is for in plain language. Replace this placeholder with your product outcome.
+
+## Quickstart
+
+Link to your fastest path to success. For its-magic, see [Setup](#setup) above.
+
+## Related documentation
+
+Link runbooks, architecture notes, and deeper guides. Operator commands live in `docs/engineering/runbook.md`.
+
+## Contributing
+
+Contributor-focused workflow and guardrails live in [`docs/developer/README.md`](docs/developer/README.md).

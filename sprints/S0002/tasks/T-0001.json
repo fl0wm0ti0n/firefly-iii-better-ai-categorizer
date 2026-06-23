@@ -1,0 +1,16 @@
+{
+  "id": "T-0001",
+  "sprint": "S0002",
+  "work_item": "BUG-0001",
+  "title": "FireflyService.getCategories() guard",
+  "task": "Add Accept: application/json and content-type validation to getCategories() using pattern C from createTransactions (DEC-0005). Throw FireflyException with FIREFLY_URL/PAT guidance on non-JSON bodies.",
+  "files": ["src/FireflyService.js"],
+  "acceptance": [
+    "Accept: application/json sent on GET /api/v1/categories",
+    "Content-type checked before response.json()",
+    "Non-JSON body throws FireflyException with FIREFLY_URL and PAT in message",
+    "No shared #fetchJson helper introduced"
+  ],
+  "status": "done",
+  "required": true
+}

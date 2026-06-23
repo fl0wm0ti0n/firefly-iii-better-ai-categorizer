@@ -1,0 +1,12 @@
+{
+  "id": "T-0052",
+  "title": "Regression tests — existing test harness still passes after UI change",
+  "description": "Run the existing automated test harness (tests/run-tests.sh) after applying the loadPendingReviews defensive UI change. Capture exit code and output; confirm all existing tests pass.",
+  "acceptance_criteria_refs": ["BUG-0002 AC-1"],
+  "decision_refs": ["DEC-0020"],
+  "dependencies": ["T-0051"],
+  "estimated_complexity": "low",
+  "status": "done",
+  "files": ["tests/run-tests.sh"],
+  "notes": "Expected outcome at time of sprint planning: 18/18 tests pass and exit code 0. Any failure must be triaged before AC verification."
+}

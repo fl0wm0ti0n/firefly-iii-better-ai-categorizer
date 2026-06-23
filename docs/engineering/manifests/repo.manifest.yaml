@@ -1,0 +1,11 @@
+schema_version: 1
+repo_id: example-producer
+owner: team-example
+version: 1.0.1
+components:
+  - docs/engineering/manifests/components/api-gateway.manifest.yaml
+exports:
+  - contract_id: public-api
+    version: 1.0.1
+    contract_ref: contracts/public-api.yaml
+imports: []

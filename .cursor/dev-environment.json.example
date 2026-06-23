@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "detected_mode": "docker-host-local",
+  "operator_seeded": true,
+  "last_updated": "2026-06-14T00:00:00Z",
+  "compose_file": "docker-compose.yml",
+  "service": "app",
+  "target_id": "",
+  "connect": {
+    "endpoint": "",
+    "health_path": "/health",
+    "hostEnv": "DEV_HOST",
+    "portEnv": "DEV_PORT",
+    "protocolEnv": "DEV_PROTOCOL"
+  },
+  "rebuild_recipe": {
+    "default_tier": "B",
+    "restart_on_source_change": false
+  },
+  "env_refs": ["DEV_HOST", "DEV_PORT", "DEV_PROTOCOL"],
+  "evidence_refs": [""]
+}

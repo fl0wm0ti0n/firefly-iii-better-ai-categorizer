@@ -1,0 +1,20 @@
+{
+  "id": "T-0022",
+  "title": "tests/openAiService.test.js (oai-1–oai-5)",
+  "task": "Create tests/openAiService.test.js with injectable mock client per DEC-0009. Cover: oai-1-schema-enum, oai-2-valid-category, oai-3-unknown-null, oai-4-refusal, oai-5-429-exception.",
+  "files": ["tests/openAiService.test.js"],
+  "acceptance": [
+    "oai-1-schema-enum: captured response_format.json_schema.schema.properties.category.enum === [...categories, 'UNKNOWN']; strict: true",
+    "oai-2-valid-category: returns { category: 'Groceries', response: 'Groceries', prompt }",
+    "oai-3-unknown-null: enum UNKNOWN returns { category: null, response: 'UNKNOWN', prompt }",
+    "oai-4-refusal: message.refusal returns { category: null, response: refusal, prompt }",
+    "oai-5-429-exception: mock reject with APIError(429) throws with .code === 429",
+    "Uses OpenAiService.createForTest({ client: { chat: { completions: { create: mock } } } })",
+    "No OPENAI_API_KEY required (pure mock client)",
+    "Picked up by node --test tests/ (no runner change)"
+  ],
+  "acceptance_mapping": ["unit coverage", "R-0017", "DEC-0009"],
+  "depends_on": ["T-0020"],
+  "status": "pending",
+  "required": true
+}

@@ -1,0 +1,104 @@
+{
+  "sprint": "S0004",
+  "work_item": "US-0002",
+  "tasks": [
+    {
+      "id": "T-0012",
+      "title": "Vendor minimal scripts/installer.py stub",
+      "task": "Create scripts/installer.py exposing merge_scratchpad_layers(repo_root) per DEC-0055 so validate_readme_feature_coverage.py can import installer without kit parent checkout.",
+      "files": ["scripts/installer.py"],
+      "acceptance": [
+        "merge_scratchpad_layers(repo_root) returns (merged_dict, paths) tuple",
+        "Reads .cursor/scratchpad.md and optional .cursor/scratchpad.local.md overlay",
+        "No runtime/API changes; minimal stub compatible with existing validator scripts",
+        "python -c \"import installer\" succeeds with PYTHONPATH=scripts"
+      ],
+      "acceptance_mapping": ["AC-2 prerequisite", "DEC-0007"],
+      "depends_on": [],
+      "status": "done",
+      "required": true
+    },
+    {
+      "id": "T-0013",
+      "title": "CODEBASE_ANALYSIS surgical refresh",
+      "task": "Apply five targeted edits to docs/CODEBASE_ANALYSIS.md per R-0011: gpt-4o-mini, 5-step DEC-0001 pipeline with Account → Category Mappings terminology, mapping service bullets, GET /api/version 1.1.0, Quality/test harness subsection.",
+      "files": ["docs/CODEBASE_ANALYSIS.md"],
+      "acceptance": [
+        "OpenAiService section references gpt-4o-mini default and OPENAI_MODEL env",
+        "Multi-Stage Categorization lists 5-step order matching README § Categorization Process Flow",
+        "Backend Components documents AccountCategoryMappingService, CategoryMappingService, WordMappingService, AutoCategorizationService",
+        "App.js API endpoints include GET /api/version (apiVersion 1.1.0)",
+        "Quality / test harness subsection cross-links runbook TEST_COMMAND and tests/run-tests.sh",
+        "Cross-links README pipeline diagram rather than duplicating ASCII art"
+      ],
+      "acceptance_mapping": ["AC-1", "R-0011"],
+      "depends_on": ["T-0012"],
+      "status": "done",
+      "required": true
+    },
+    {
+      "id": "T-0014",
+      "title": "Operator documentation map (US-0002.md)",
+      "task": "Author docs/user-guides/US-0002.md as Diátaxis reference/navigation map per R-0012 with required schema sections and core link table from vision § Documentation UX.",
+      "files": ["docs/user-guides/US-0002.md"],
+      "acceptance": [
+        "Purpose, Prerequisites, Usage steps, Example, Limitations, Troubleshooting H2 sections present",
+        "Usage steps describe lookup workflow (not pipeline tutorial steps)",
+        "Core link table covers setup, pipeline, bulk, auto-cat, mappings, UI, Docker, duplicates, vision, CODEBASE_ANALYSIS, runbook",
+        "Does not duplicate README Key Features or pipeline ASCII diagram",
+        "Links validated (no broken relative paths)"
+      ],
+      "acceptance_mapping": ["AC-3", "R-0012"],
+      "depends_on": ["T-0013"],
+      "status": "done",
+      "required": true
+    },
+    {
+      "id": "T-0015",
+      "title": "README/dev coverage lines (post-DONE predicate)",
+      "task": "Add R-0013 coverage lines: its_magic/README.md ## Other useful capabilities H2 with US-0002 doc map bullet; docs/developer/README.md § Quality gates traceability line.",
+      "files": ["its_magic/README.md", "docs/developer/README.md"],
+      "acceptance": [
+        "its_magic/README.md has ## Other useful capabilities with **US-0002** and docs/user-guides/US-0002.md reference",
+        "docs/developer/README.md § Quality gates includes - **US-0002** — operator documentation map; see docs/user-guides/US-0002.md",
+        "Coverage lines added before US-0002 DONE flip (release gate predicate)"
+      ],
+      "acceptance_mapping": ["AC-2 post-DONE", "R-0013"],
+      "depends_on": ["T-0014"],
+      "status": "done",
+      "required": true
+    },
+    {
+      "id": "T-0016",
+      "title": "Vision terminology sync (AC-4)",
+      "task": "Terminology pass on docs/product/vision.md: Account → Category Mappings as pipeline step 1; optional one-line cross-ref to README § Categorization Process Flow in § Documentation alignment.",
+      "files": ["docs/product/vision.md"],
+      "acceptance": [
+        "Vision pipeline descriptions use Account → Category Mappings terminology for step 1",
+        "Step order matches README § Categorization Process Flow (5 steps per DEC-0001)",
+        "Optional: one-line cross-ref to README pipeline section in Documentation alignment",
+        "Verify runbook TEST_COMMAND already matches vision § Test harness (no edit expected)"
+      ],
+      "acceptance_mapping": ["AC-4", "DEC-0008"],
+      "depends_on": ["T-0014"],
+      "status": "done",
+      "required": true
+    },
+    {
+      "id": "T-0017",
+      "title": "Validator --report green + runbook flag",
+      "task": "Update runbook canonical validator command with --no-template-parity; run python scripts/validate_readme_feature_coverage.py --no-template-parity --report and confirm exit 0 with coverage_missing: [].",
+      "files": ["docs/engineering/runbook.md"],
+      "acceptance": [
+        "Runbook documents --no-template-parity for validate_readme_feature_coverage.py (brownfield note)",
+        "python scripts/validate_readme_feature_coverage.py --no-template-parity --report exits 0",
+        "Report shows coverage_missing: [] after T-0015 coverage lines",
+        "Optional: python scripts/validate_readme_feature_coverage.py --self-test passes"
+      ],
+      "acceptance_mapping": ["AC-2", "DEC-0007"],
+      "depends_on": ["T-0012", "T-0015"],
+      "status": "done",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "sprint": "S0002",
+  "work_item": "BUG-0001",
+  "orchestrator_run_id": "auto-20260613T122818Z-bug0001",
+  "verified_at": "2026-06-13T12:33:17Z",
+  "verdict": "pass",
+  "role": "qa",
+  "coverage": [
+    {
+      "acceptance_id": "BUG-0001-AC-1",
+      "criterion": "Page load — no Unexpected token < in JSON console error from loadCategoriesForKeywordMappings",
+      "tasks": ["T-0001", "T-0002", "T-0003", "T-0004"],
+      "covered": true,
+      "notes": "T-0001/T-0002 eliminate HTML blind-parse at service and API layers; T-0003 optional UI guard avoids console.error on expected misconfiguration; T-0004 manual smoke (checklist item 2)."
+    },
+    {
+      "acceptance_id": "BUG-0001-AC-2",
+      "criterion": "GET /api/categories returns { success: true, categories: [...] } or structured { success: false, error: actionable message }",
+      "tasks": ["T-0001", "T-0002", "T-0004"],
+      "covered": true,
+      "notes": "T-0002 primary owner; T-0001 supplies FireflyException messages; T-0004 verifies healthy, bad URL, invalid PAT, and empty categories paths."
+    },
+    {
+      "acceptance_id": "BUG-0001-AC-3",
+      "criterion": "FireflyService.getCategories() sends Accept: application/json and validates content-type before parsing JSON",
+      "tasks": ["T-0001", "T-0004"],
+      "covered": true,
+      "notes": "T-0001 explicit requirements 1–5 per DEC-0005 pattern C; T-0004 indirect verification via bad-URL and invalid-PAT scenarios."
+    },
+    {
+      "acceptance_id": "BUG-0001-AC-4",
+      "criterion": "Keyword-mapping and account-mapping category select elements populate when Firefly returns categories",
+      "tasks": ["T-0001", "T-0002", "T-0003", "T-0004"],
+      "covered": true,
+      "notes": "T-0001/T-0002 restore successful category fetch; T-0003 preserves populate-on-success behavior; T-0004 manual smoke (checklist item 1)."
+    }
+  ],
+  "gaps": [],
+  "decision_gate": false,
+  "optional_tasks": [
+    {
+      "task_id": "T-0003",
+      "required_for_acceptance": false,
+      "rationale": "AC-1 and AC-4 satisfied by T-0001/T-0002 alone; T-0003 is optional UI polish per architecture # BUG-0001 and sprint scope."
+    }
+  ],
+  "evidence_refs": [
+    "docs/product/acceptance.md",
+    "docs/product/backlog.md",
+    "docs/engineering/architecture.md",
+    "sprints/S0002/tasks.md",
+    "sprints/S0002/tasks/T-0001.json",
+    "sprints/S0002/tasks/T-0002.json",
+    "sprints/S0002/tasks/T-0003.json",
+    "sprints/S0002/tasks/T-0004.json"
+  ]
+}

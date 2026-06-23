@@ -1,0 +1,27 @@
+---
+description: "Handoffs and artifact persistence"
+globs: ["**/*"]
+---
+
+- Every role writes handoffs to files; nothing important stays in chat only.
+- Every handoff boundary requires a fresh agent context for the receiving role.
+- Do not continue across roles in one conversation; write the handoff, stop,
+  then start the next role in a new subagent/chat.
+- Update sprint `summary.md` and `progress.md` after task completion.
+- Use `handoffs/*.md` for role-to-role transfers.
+- Keep `docs/engineering/state.md` current and concise.
+- Release handoff touchpoints (US-0040):
+  - `/verify-work` handoff should identify release-ready target sprint context.
+  - `/release` handoff should reference canonical sprint notes path:
+    `handoffs/releases/Sxxxx-release-notes.md`.
+  - `/release` handoff should reference queue state in
+    `handoffs/release_queue.md`, including any fail-safe reason codes.
+  - If `/release` is blocked post-QA, write/update
+    `sprints/Sxxxx/release-findings.md` and hand off remediation via
+    `handoffs/release_to_dev.md`.
+  - `handoffs/release_notes.md` is maintained as backward-compatible
+    latest-pointer summary.
+- User-guide traceability (US-0032): When `USER_GUIDE_MODE=1`, handoffs and
+  release context should reference the canonical user guide for the target
+  story: `docs/user-guides/US-xxxx.md` (story ID maps 1:1 to guide artifact).
+

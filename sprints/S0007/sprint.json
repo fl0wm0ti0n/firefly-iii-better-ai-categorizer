@@ -1,0 +1,24 @@
+{
+  "id": "S0007",
+  "goal": "Admin UI consolidation — merge three separate categorization panels (Bulk Categorization, Batch Jobs, Individual Jobs) into a single unified Categorization panel; move Test Webhook from Maintenance into unified panel; add segmented scope control (Withdrawals / Deposits / Both).",
+  "scope": [
+    "US-0005",
+    "public/index.html",
+    "src/App.js"
+  ],
+  "risks": [
+    "U1: Monolithic HTML refactor (~5.9k LOC, no UI tests) — manual regression checklist",
+    "U2: Batch control regression (pause/resume/cancel) — preserve render functions unchanged",
+    "U3: Socket.io routing break if DOM IDs change — keep mount and batch-mount IDs exact",
+    "U4: Scope field ignored by existing API callers — scope is additive/optional",
+    "U5: test-type removal breaks bookmarked UI state — document in user guide",
+    "U6: Auto-jump removal confuses users expecting panel switch — toast notification replaces auto-jump"
+  ],
+  "work_item_kind": "story",
+  "orchestrator_run_id": "auto-20260614T161000Z-us0003",
+  "decisions": ["DEC-0015", "DEC-0016", "DEC-0017"],
+  "tasks": ["T-0032", "T-0033", "T-0034", "T-0035", "T-0036", "T-0037", "T-0038", "T-0039"],
+  "task_count": 8,
+  "sprint_cap": 12,
+  "split_required": false
+}

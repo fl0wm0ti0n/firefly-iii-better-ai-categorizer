@@ -1,0 +1,29 @@
+{
+  "id": "S0006",
+  "goal": "Account history dominance suggestions with AI comparison and review queue — extends #resolveCategory with history fetch, dominance calculation, confidence-bearing AI classification, and human-in-the-loop review panel.",
+  "scope": [
+    "US-0004",
+    "src/FireflyService.js",
+    "src/HistoryAnalysisService.js",
+    "src/PendingReviewService.js",
+    "src/OpenAiService.js",
+    "src/App.js",
+    "public/index.html",
+    "data/pending-category-reviews.json",
+    "tests/historyAnalysisService.test.js",
+    "tests/pendingReviewService.test.js",
+    "tests/resolveCategory.test.js"
+  ],
+  "risks": [
+    "H1: Cache cold-start latency after restart — first webhook pays 1–10 API calls; acceptable for personal finance volume",
+    "H2: Review queue grows unbounded if operator ignores — sidebar badge + oldest-age warning",
+    "H3: Model confidence is heuristic (not calibrated) — display-only, not decision-critical",
+    "H4: Tie-breaking non-determinism in dominance — document first-encountered behavior",
+    "H5: Large queue (1000+ items) slows JSON parse — paginate UI; future archive",
+    "H6: Review accepted after transaction deleted in Firefly — surface 404 in UI",
+    "H7: Test stub updates for confidence field — update all 4 regression stubs + new unit tests",
+    "H8: UI complexity in monolithic public/index.html — isolate review panel as self-contained section"
+  ],
+  "work_item_kind": "story",
+  "orchestrator_run_id": "auto-20260614T161000Z-us0003"
+}

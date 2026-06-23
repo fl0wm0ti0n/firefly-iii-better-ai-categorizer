@@ -1,0 +1,22 @@
+{
+  "id": "T-0030",
+  "title": "UI review panel — sidebar entry, transaction summary, accept/reject buttons",
+  "task": "Add review queue panel to public/index.html: sidebar entry under Categorizer group with badge count, panel layout with summary (pending count + oldest age), dynamic review item rendering (transaction summary, history badge with confidence, AI badge with confidence, recommendation), Accept and Reject buttons with fetch to REST API. Load review queue on panel open.",
+  "files": ["public/index.html"],
+  "acceptance": [
+    "Sidebar entry 'Pending Reviews' with icon and badge (#review-queue-badge) under Categorizer group",
+    "Badge shows pending count; hidden when 0",
+    "Panel shows pending count and oldest item age",
+    "Review item displays: description, account name, amount + currency, date",
+    "History badge shows category + confidence percentage with color coding (green ≥80%, amber ≥50%, red <50%)",
+    "AI badge shows category + confidence percentage with same color coding",
+    "Recommendation shows preferred category and source (history or ai)",
+    "Accept button calls POST /api/reviews/:id/accept and reloads queue",
+    "Reject button calls POST /api/reviews/:id/reject and reloads queue",
+    "Error handling: alert on fetch failure or API error response"
+  ],
+  "acceptance_mapping": ["AC-5", "AC-6"],
+  "depends_on": ["T-0029"],
+  "status": "pending",
+  "required": true
+}

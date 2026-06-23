@@ -1,0 +1,66 @@
+{
+  "selected_pack": "small-intake-pack",
+  "intake_run_id": "intake-20260622-bug0002-reviews-404",
+  "writer_id": "po-subagent",
+  "work_item_kind": "bug",
+  "asked_topics": [
+    "outcome_success_criteria",
+    "impacted_components",
+    "constraints_compatibility_risks",
+    "required_tests_acceptance_checks",
+    "done_definition"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": "(none)",
+  "topic_coverage": [
+    {
+      "topic_key": "outcome_success_criteria",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "On page load the Pending Reviews panel should list pending items or show zero pending; instead the browser console shows GET /api/reviews 404 (Not Found) followed by SyntaxError: Unexpected token \"<\", \"<!DOCTYPE ...\" is not valid JSON.",
+      "intake_run_id": "intake-20260622-bug0002-reviews-404",
+      "turn_index": 0,
+      "ref": "ie:intake-20260622-bug0002-reviews-404:0:a22469303a966710"
+    },
+    {
+      "topic_key": "impacted_components",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "public/index.html loadPendingReviews (line 3461) fetches /api/reviews; src/App.js registers GET /api/reviews at lines 198-199 and implements #onGetReviews at line 1467; Express static middleware is mounted on / at line 128 inside ENABLE_UI block.",
+      "intake_run_id": "intake-20260622-bug0002-reviews-404",
+      "turn_index": 1,
+      "ref": "ie:intake-20260622-bug0002-reviews-404:1:b491a9183da19c8b"
+    },
+    {
+      "topic_key": "constraints_compatibility_risks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Route exists in source but runtime returns HTML 404; possible causes include stale deployed image, reverse proxy misrouting, static middleware ordering, or the API route being shadowed. Must not affect other /api/* endpoints or UI panels.",
+      "intake_run_id": "intake-20260622-bug0002-reviews-404",
+      "turn_index": 2,
+      "ref": "ie:intake-20260622-bug0002-reviews-404:2:4cd23b0e08b0114c"
+    },
+    {
+      "topic_key": "required_tests_acceptance_checks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "curl GET https://categorizer.omniflow.cc/api/reviews must return HTTP 200 JSON {success:true,reviews:[...]} or a structured {success:false,error:\"...\"}; loadPendingReviews must not throw SyntaxError on a structured error; browser console must not show 404 on page load when endpoint is healthy.",
+      "intake_run_id": "intake-20260622-bug0002-reviews-404",
+      "turn_index": 3,
+      "ref": "ie:intake-20260622-bug0002-reviews-404:3:7d91b2e937c2bd52"
+    },
+    {
+      "topic_key": "done_definition",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "BUG-0002 acceptance rows pass; the Pending Reviews panel loads on page load without console errors on a healthy deployment.",
+      "intake_run_id": "intake-20260622-bug0002-reviews-404",
+      "turn_index": 4,
+      "ref": "ie:intake-20260622-bug0002-reviews-404:4:15faa0b57ef563ea"
+    }
+  ],
+  "bug_id": "BUG-0002",
+  "bug_summary": "GET /api/reviews returns HTTP 404 HTML on admin UI page load, causing loadPendingReviews JSON parse error",
+  "operator_report": {
+    "url": "https://categorizer.omniflow.cc",
+    "console_error": "(index):3463 GET https://categorizer.omniflow.cc/api/reviews 404 (Not Found)",
+    "function": "loadPendingReviews",
+    "secondary_error": "(index):3472 Error loading reviews: SyntaxError: Unexpected token '<', \"<!DOCTYPE ...\" is not valid JSON",
+    "trigger": "page load / right at the start"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "sprint": "S0001",
+  "steps": [
+    {
+      "id": "UAT-1",
+      "description": "",
+      "result": "pending",
+      "notes": ""
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 0
+  }
+}

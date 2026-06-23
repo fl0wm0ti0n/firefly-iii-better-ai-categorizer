@@ -1,0 +1,22 @@
+{
+  "id": "T-0028",
+  "title": "Review queue persistence — data/pending-category-reviews.json",
+  "task": "Create src/PendingReviewService.js with JSON file persistence at data/pending-category-reviews.json. Implement CRUD: loadReviews(), saveReviews(), addReview(review), acceptReview(id, chosenCategory), rejectReview(id), getPendingReviews(), getAllReviews(). Duplicate check on addReview (same transactionId + status=pending). Async serialization per DEC-0013.",
+  "files": ["src/PendingReviewService.js"],
+  "acceptance": [
+    "loadReviews() reads data/pending-category-reviews.json on constructor",
+    "loadReviews() handles ENOENT gracefully (empty array)",
+    "saveReviews() writes JSON with 2-space indent",
+    "addReview() checks for duplicate (same transactionId + status=pending) — returns existing",
+    "addReview() prepends new review (unshift) and saves",
+    "acceptReview(id, chosenCategory) sets status='accepted', resolvedAt, resolvedBy='operator', resolvedChoice",
+    "rejectReview(id) sets status='rejected', resolvedAt, resolvedBy='operator', resolvedChoice=null",
+    "getPendingReviews() returns only status='pending' items",
+    "getAllReviews() returns all items (copy)",
+    "Uses storage.js dataFile() + ensureDataDir() pattern (DEC-0004)"
+  ],
+  "acceptance_mapping": ["DEC-0013", "DEC-0004", "AC-4", "R-0021"],
+  "depends_on": [],
+  "status": "pending",
+  "required": true
+}

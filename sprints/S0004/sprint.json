@@ -1,0 +1,24 @@
+{
+  "id": "S0004",
+  "goal": "Product and user documentation alignment — surgical CODEBASE_ANALYSIS refresh, operator documentation map, validator brownfield path (DEC-0007), README coverage lines (R-0013), vision terminology sync. Docs-only; no runtime/API changes.",
+  "scope": [
+    "US-0002",
+    "scripts/installer.py",
+    "docs/CODEBASE_ANALYSIS.md",
+    "docs/user-guides/US-0002.md",
+    "its_magic/README.md",
+    "docs/developer/README.md",
+    "docs/product/vision.md",
+    "docs/engineering/runbook.md"
+  ],
+  "risks": [
+    "D1: Installer stub drift vs kit contract — implement merge_scratchpad_layers only (DEC-0055)",
+    "D2: Premature US-0002 DONE flip — R-0013 coverage lines before backlog DONE",
+    "D3: CODEBASE_ANALYSIS re-drift on US-0003/0004 — test-harness subsection cross-links runbook",
+    "D4: User guide link rot — validate links at execute",
+    "D5: Wrong README affinity H2 — add Other useful capabilities per R-0013 manifest",
+    "D6: Template parity confusion — always pass --no-template-parity (DEC-0007)"
+  ],
+  "work_item_kind": "story",
+  "orchestrator_run_id": "auto-20260613T125508Z-us0002"
+}

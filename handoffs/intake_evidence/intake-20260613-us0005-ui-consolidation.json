@@ -1,0 +1,65 @@
+{
+  "selected_pack": "small-intake-pack",
+  "intake_run_id": "intake-20260613-us0005-ui",
+  "writer_id": "po-subagent",
+  "asked_topics": [
+    "outcome_success_criteria",
+    "impacted_components",
+    "constraints_compatibility_risks",
+    "required_tests_acceptance_checks",
+    "done_definition"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": "(none)",
+  "topic_coverage": [
+    {
+      "topic_key": "outcome_success_criteria",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Unify chaotic admin UI: consolidate expense (withdrawal) and income (deposit) categorization actions into one coherent flow; merge Bulk Categorization, Batch Jobs, and Individual Jobs into a single Run & Monitor workspace so operators start jobs and see progress without switching sidebar panels.",
+      "intake_run_id": "intake-20260613-us0005-ui",
+      "turn_index": 0,
+      "ref": "ie:intake-20260613-us0005-ui:0:7c0adfe2c2107298"
+    },
+    {
+      "topic_key": "impacted_components",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Admin UI in public/index.html (side-panel nav setupSidePanel, panel-manual, panel-batch, panel-individual, Test Webhook panel); minimal App.js API route labels only if needed for unified job types; preserve Socket.io job/batch-job events and existing REST endpoints.",
+      "intake_run_id": "intake-20260613-us0005-ui",
+      "turn_index": 1,
+      "ref": "ie:intake-20260613-us0005-ui:1:67e59c0a1a452a85"
+    },
+    {
+      "topic_key": "constraints_compatibility_risks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Brownfield monolithic index.html (~5.7k lines); must preserve side-panel nav groups (Categorizer / Special tools / Maintenance) from vision; no breaking changes to /api/process-uncategorized, /api/process-all, /api/test-webhook, or batch-job pause/resume/cancel; US-0004 review panel must remain reachable.",
+      "intake_run_id": "intake-20260613-us0005-ui",
+      "turn_index": 2,
+      "ref": "ie:intake-20260613-us0005-ui:2:6b148fe79daae210"
+    },
+    {
+      "topic_key": "required_tests_acceptance_checks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Manual UX checklist: starting bulk uncategorized/all opens integrated progress view; webhook test result visible in same job monitor; withdrawal/deposit scope selectable in one control (respect skip-deposits setting); sidebar no longer lists separate Batch Jobs and Individual Jobs entries; regression: Socket.io batch progress and individual job updates still render.",
+      "intake_run_id": "intake-20260613-us0005-ui",
+      "turn_index": 3,
+      "ref": "ie:intake-20260613-us0005-ui:3:90688a2db91a1ba5"
+    },
+    {
+      "topic_key": "done_definition",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Done when operator can start any categorization run (bulk or test webhook) from one panel, monitor batch and individual jobs together with clear status, and expense/income scope is expressed once — plus docs/user-guides/US-0005.md when USER_GUIDE_MODE=1.",
+      "intake_run_id": "intake-20260613-us0005-ui",
+      "turn_index": 4,
+      "ref": "ie:intake-20260613-us0005-ui:4:88ca32f7c9548e3f"
+    }
+  ],
+  "candidate_story_ids": [
+    "US-0005"
+  ],
+  "decomposition": {
+    "decision": "single",
+    "story_count": 1,
+    "rationale": "Bounded UI/UX vertical slice: navigation IA + unified run/monitor panel is one operator-facing deliverable.",
+    "alternative_considered": "Split sidebar IA vs job-monitor merge — rejected; partial fix would leave execution flow confusing."
+  }
+}

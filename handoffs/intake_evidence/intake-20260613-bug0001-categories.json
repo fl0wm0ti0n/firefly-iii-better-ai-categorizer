@@ -1,0 +1,58 @@
+{
+  "selected_pack": "small-intake-pack",
+  "intake_run_id": "intake-20260613-bug0001-categories",
+  "writer_id": "po-intake",
+  "work_item_kind": "bug",
+  "asked_topics": [
+    "outcome_success_criteria",
+    "impacted_components",
+    "constraints_compatibility_risks",
+    "required_tests_acceptance_checks",
+    "done_definition"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": "(none)",
+  "topic_coverage": [
+    {
+      "topic_key": "outcome_success_criteria",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "On page load I see: Error loading categories for keyword mappings: Error: Unexpected token < in JSON at position 0 at loadCategoriesForKeywordMappings (index:3073). Expected: category dropdown for keyword mappings loads without console error.",
+      "intake_run_id": "intake-20260613-bug0001-categories",
+      "turn_index": 0,
+      "ref": "ie:intake-20260613-bug0001-categories:0:d86cae7011dcfa7a"
+    },
+    {
+      "topic_key": "impacted_components",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "FireflyService.getCategories() (GET /api/v1/categories to Firefly), App.js #getCategories (/api/categories proxy), public/index.html loadCategoriesForKeywordMappings (line ~3054) and loadAccountsAndCategoriesForAccountMappings (line ~3163).",
+      "intake_run_id": "intake-20260613-bug0001-categories",
+      "turn_index": 1,
+      "ref": "ie:intake-20260613-bug0001-categories:1:6368931be0e0f561"
+    },
+    {
+      "topic_key": "constraints_compatibility_risks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Must not break other Firefly API calls; FIREFLY_URL/PAT env contract unchanged; brownfield Docker deployment (firefly_app hostname). R-0001 notes Firefly expects Accept: application/json \u2014 currently missing on getCategories().",
+      "intake_run_id": "intake-20260613-bug0001-categories",
+      "turn_index": 2,
+      "ref": "ie:intake-20260613-bug0001-categories:2:4bef1e44e43d47bd"
+    },
+    {
+      "topic_key": "required_tests_acceptance_checks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Manual: load admin UI \u2014 no Unexpected token error in console; category dropdown populated when Firefly reachable. curl GET /api/categories returns success:true with categories array, or structured error (not raw JSON parse message) when Firefly unreachable.",
+      "intake_run_id": "intake-20260613-bug0001-categories",
+      "turn_index": 3,
+      "ref": "ie:intake-20260613-bug0001-categories:3:072619edcc8d0125"
+    },
+    {
+      "topic_key": "done_definition",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "BUG-0001 acceptance rows pass; keyword-mapping and account-mapping category selects load on page load without cryptic JSON parse errors.",
+      "intake_run_id": "intake-20260613-bug0001-categories",
+      "turn_index": 4,
+      "ref": "ie:intake-20260613-bug0001-categories:4:ce0dd2de53f5a065"
+    }
+  ],
+  "bug_id": "BUG-0001"
+}

@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-06-22T22:44:31+02:00",
+  "method": "curl",
+  "endpoint": "/api/reviews",
+  "http_status": 200,
+  "response": {
+    "success": true,
+    "reviews": [
+      {
+        "id": "review-2",
+        "transactionId": "tx-2",
+        "status": "pending",
+        "recommendation": {
+          "preferredCategory": "Restaurants"
+        }
+      },
+      {
+        "id": "review-1",
+        "transactionId": "tx-123",
+        "status": "pending",
+        "recommendation": {
+          "preferredCategory": "Groceries",
+          "historyConfidence": 0.9,
+          "aiCategory": "Restaurants",
+          "aiConfidence": 0.6
+        }
+      }
+    ]
+  }
+}

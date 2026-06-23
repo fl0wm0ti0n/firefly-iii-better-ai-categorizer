@@ -1,0 +1,22 @@
+{
+  "id": "T-0025",
+  "title": "Dominance calculator module with 80% threshold + 10 min tx",
+  "task": "Create src/HistoryAnalysisService.js with analyzeAccountHistory(transactions) method. Filter transactions with category_id set. Return { dominantCategory, dominance, confidence, categorizedCount, categoryCounts } when dominance >= threshold (default 0.80) and categorizedCount >= minTransactionCount (default 10). Return { insufficientData: true } or { belowThreshold: true } otherwise. Support optional data/dominance-config.json for configurable threshold.",
+  "files": ["src/HistoryAnalysisService.js"],
+  "acceptance": [
+    "analyzeAccountHistory() filters transactions with non-null category_id",
+    "Returns { dominantCategory: null, insufficientData: true } when categorized < 10 (default)",
+    "Returns { dominantCategory, belowThreshold: true } when dominance < 0.80 (default)",
+    "Returns { dominantCategory, dominance, confidence: dominance, categorizedCount, categoryCounts } when threshold met",
+    "confidence = dominance (dominant share) per AC-2",
+    "Default threshold 0.80 (80%) per DEC-0012",
+    "Default minTransactionCount 10 per DEC-0012",
+    "Optional data/dominance-config.json overrides defaults",
+    "getThreshold() returns current dominance threshold",
+    "Tie-breaking: first encountered category wins (document behavior)"
+  ],
+  "acceptance_mapping": ["DEC-0012", "AC-1", "AC-2", "R-0020"],
+  "depends_on": [],
+  "status": "pending",
+  "required": true
+}

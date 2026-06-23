@@ -1,0 +1,23 @@
+{
+  "id": "T-0031",
+  "title": "Tests — dominance algorithm, queue persistence, API endpoints, UI smoke test",
+  "task": "Create tests/historyAnalysisService.test.js (hist-1–hist-5), tests/pendingReviewService.test.js (queue-1–queue-4). Update tests/resolveCategory.test.js stubs to include confidence field in classify() return. Run full bash tests/run-tests.sh green.",
+  "files": ["tests/historyAnalysisService.test.js", "tests/pendingReviewService.test.js", "tests/resolveCategory.test.js"],
+  "acceptance": [
+    "hist-1-no-transactions: empty array → { dominantCategory: null, insufficientData: true }",
+    "hist-2-below-min-count: 5 categorized tx → { dominantCategory: null, insufficientData: true }",
+    "hist-3-below-threshold: 100 tx, 65% dominance → { dominantCategory: 'X', belowThreshold: true }",
+    "hist-4-above-threshold: 100 tx, 85% dominance → { dominantCategory: 'X', dominance: 0.85, confidence: 0.85 }",
+    "hist-5-perfect-dominance: 50 tx, 100% → { dominantCategory: 'X', dominance: 1.0 }",
+    "queue-1-add-review: addReview() → review in getPendingReviews()",
+    "queue-2-accept-review: acceptReview(id) → status='accepted', resolvedAt set",
+    "queue-3-reject-review: rejectReview(id) → status='rejected', resolvedChoice null",
+    "queue-4-duplicate-check: addReview() same transactionId → returns existing",
+    "resolveCategory.test.js 4/4 cases still pass with confidence field in stubs",
+    "bash tests/run-tests.sh exits 0 with all tests passing"
+  ],
+  "acceptance_mapping": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"],
+  "depends_on": ["T-0025", "T-0028", "T-0027"],
+  "status": "pending",
+  "required": true
+}

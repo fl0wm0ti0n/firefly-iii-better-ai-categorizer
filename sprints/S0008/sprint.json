@@ -1,0 +1,26 @@
+{
+  "id": "S0008",
+  "goal": "Enable agent-driven local Categorizer launch for Cursor browser UAT probes (US-0006). Create standalone docker-compose.local.yml, populate .cursor/dev-environment.json, create .env.example, dev-launch script, runbook documentation, browser UAT probe integration, and user guide.",
+  "scope": [
+    "US-0006",
+    "docker-compose.local.yml",
+    ".cursor/dev-environment.json",
+    ".env.example",
+    "scripts/dev-launch.sh"
+  ],
+  "risks": [
+    "L1: Port 3001 already in use (Low/Medium — document in user guide troubleshooting)",
+    "L2: .env missing when agent runs start_command (Medium/High — dev-environment.json declares required_env_vars; agent pre-checks)",
+    "L3: Container doesn't start — image build failure (Low/Medium — document --build flag)",
+    "L4: Health GET / returns non-200 during startup (Medium/Medium — start_period 20s grace; agent polls 60s cap)",
+    "L5: Agent and operator both run local compose — port conflict (Low/Low — restart: no + explicit lifecycle)",
+    "L6: BUG-0002 runtime — /api/reviews may return HTML 404 on stale deployment; agent must not JSON SyntaxError"
+  ],
+  "work_item_kind": "story",
+  "orchestrator_run_id": "auto-20260622T204100Z-us0006",
+  "decisions": ["DEC-0018", "DEC-0019"],
+  "tasks": ["T-0040", "T-0041", "T-0042", "T-0043", "T-0044", "T-0045", "T-0046", "T-0047"],
+  "task_count": 8,
+  "sprint_cap": 12,
+  "split_required": false
+}

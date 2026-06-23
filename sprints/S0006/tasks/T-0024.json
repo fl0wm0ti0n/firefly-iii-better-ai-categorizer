@@ -1,0 +1,19 @@
+{
+  "id": "T-0024",
+  "title": "FireflyService.getAccountHistory() with pagination + 1-hour cache",
+  "task": "Add getTransactionsByAccountId(accountId, { limit, type }) with paginated fetch on /api/v1/accounts/{id}/transactions?type=withdrawal. Add getCachedAccountHistory(accountId) wrapper with in-memory Map<accountId, {data, timestamp}> and 1-hour TTL (3600000 ms). Add private #accountHistoryCache field.",
+  "files": ["src/FireflyService.js"],
+  "acceptance": [
+    "getTransactionsByAccountId() paginates through all pages using page + limit params",
+    "Response headers include Accept: application/json and Bearer auth",
+    "Non-ok responses throw FireflyException with status + body",
+    "getCachedAccountHistory() returns cached data when timestamp < 1 hour old",
+    "getCachedAccountHistory() fetches fresh data when cache expired or missing",
+    "#accountHistoryCache is Map<accountId, {data, timestamp}>",
+    "Cache TTL is 3600000 ms (1 hour) per DEC-0011"
+  ],
+  "acceptance_mapping": ["DEC-0011", "AC-1", "R-0018"],
+  "depends_on": [],
+  "status": "pending",
+  "required": true
+}

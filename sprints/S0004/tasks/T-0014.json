@@ -1,0 +1,16 @@
+{
+  "id": "T-0014",
+  "sprint": "S0004",
+  "work_item": "US-0002",
+  "title": "Operator documentation map (US-0002.md)",
+  "task": "Author docs/user-guides/US-0002.md as Diátaxis reference/navigation map per R-0012 with required schema sections and core link table.",
+  "files": ["docs/user-guides/US-0002.md"],
+  "acceptance": [
+    "Purpose, Prerequisites, Usage steps, Example, Limitations, Troubleshooting H2 sections present",
+    "Usage steps describe lookup workflow not pipeline tutorial",
+    "Core link table covers all operator needs from architecture",
+    "Does not duplicate README Key Features or pipeline ASCII diagram"
+  ],
+  "status": "pending",
+  "required": true
+}
