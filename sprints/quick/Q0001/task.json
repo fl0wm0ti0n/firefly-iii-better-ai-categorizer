@@ -1,11 +1,52 @@
 {
-  "task": "Rename and reorder sidebar entries so the main feature is Auto-Categorization",
-  "acceptance": [
-    "Categorization panel is renamed to Auto-Categorization",
-    "Foreign/Travel Detection panel no longer claims the Auto-Categorization name",
-    "General Settings section merged into Auto-Categorization panel and removed from sidebar",
-    "Categorizer group sidebar order is Auto-Categorization, Keyword → Category Mappings, Account → Category Mappings, Word Mappings & Failed, Transaction Management, Pending Reviews, Foreign/Travel Detection",
-    "Tests pass"
+  "id": "Q0001",
+  "title": "Fix Transaction Scope selector visual feedback and remove redundant 'Skip Deposits' setting",
+  "created": "2026-06-26T17:05:00+02:00",
+  "status": "completed",
+  "scope": "ui-bug-fix",
+  "related": ["US-0005", "DEC-0016"],
+  "tasks": [
+    {
+      "id": "T-0054",
+      "description": "Add JS change listener on scope radio inputs to toggle .selected class on parent .scope-pill label",
+      "done": true
+    },
+    {
+      "id": "T-0055",
+      "description": "Remove 'Skip Deposits from categorization' checkbox HTML (public/index.html)",
+      "done": true
+    },
+    {
+      "id": "T-0056",
+      "description": "Remove autoSkipDeposits const declaration and all save/load wiring in public/index.html",
+      "done": true
+    },
+    {
+      "id": "T-0057",
+      "description": "Remove btn-save-general-settings button (only saved skipDeposits)",
+      "done": true
+    },
+    {
+      "id": "T-0058",
+      "description": "Update scope selector <small> text to remove 'Honors Skip Deposits' reference",
+      "done": true
+    },
+    {
+      "id": "T-0059",
+      "description": "Remove skipDeposits checks from #processUncategorizedTransactions and #processAllTransactions (scope handles filtering)",
+      "done": true
+    },
+    {
+      "id": "T-0060",
+      "description": "Remove skipDeposits early-exit from #onWebhook handler",
+      "done": true
+    },
+    {
+      "id": "T-0061",
+      "description": "Change AutoCategorizationService default skipDeposits to false and mark autoCategorize() skip logic as legacy",
+      "done": true
+    }
   ],
-  "status": "closed"
+  "acceptance_met": true,
+  "notes": "Scope selector now fully replaces the old Skip Deposits toggle. When scope is 'Withdrawals', deposits are filtered. When scope is 'Both', all transactions are processed with no automatic skip."
 }

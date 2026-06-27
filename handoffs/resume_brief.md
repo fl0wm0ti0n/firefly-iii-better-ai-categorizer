@@ -2,13 +2,13 @@
 
 ## Current status
 
-**US-0006 DONE** (2026-06-22T22:49:00+02:00, Sprint **S0008** released). Agent-driven local Categorizer launch complete — all 6 ACs verified, 18/18 regression tests pass, UAT 15/15 complete (browser MCP fully executed).
+**US-0007 Intake Complete** (2026-06-27T14:19:00+02:00). Keyword mapping direct-assign mode story accepted. Backlog + AC + PO->TL handoff + state boundary written. Pipeline placement decision confirmed: direct-assign replaces existing AI-hint slot (option c).
 
 ## Segment status
 
-- **Status:** DONE
-- **Sprint:** S0008
-- **Stories completed this run:** 1 (US-0006)
+- **Status:** Intake complete, awaiting sprint-planning
+- **Sprint:** (not yet planned)
+- **Stories completed this run:** 0 (US-0007 intake phase only)
 
 ## Completed stories
 
@@ -19,39 +19,43 @@
 - **US-0002** DONE (2026-06-14T16:00:00Z, Sprint **S0004**)
 - **US-0001** DONE (2026-06-13, Sprint **S0003**)
 
+## Open stories
+
+- **US-0007** OPEN (2026-06-27T14:19:00+02:00). Intake complete. Awaiting sprint-planning. Trigger: INTERSPAR transaction remained uncategorized despite keyword match — keyword mappings should support direct category assignment (bypass AI) when `directAssign: true`.
+
 ## Open bugs
 
 - **BUG-0002** OPEN (2026-06-22T20:33:00+02:00). Intake complete. `GET /api/reviews` returns HTTP 404 HTML at runtime.
-- **BUG-0001** OPEN (pending operator PAT AC-4 UAT).
+- **BUG-0001** DONE (2026-06-26). Operator PAT AC-4 UAT confirmed.
 
 ## Quick items
 
-- **Q0001** DONE (2026-06-22). Sidebar panel rename/reorder.
+- **Q0001** DONE (2026-06-26). Transaction Scope selector fix + Skip Deposits removal.
 
 ## Drain-advance status
 
 - **AUTO_BACKLOG_DRAIN=1**
 - **AUTO_BACKLOG_MAX_STORIES=10**
-- **Backlog status:** All 6 stories DONE; **BUG-0001** and **BUG-0002** OPEN
-- **Next eligible work item:** BUG-0002 (highest priority OPEN item with intake complete)
+- **Backlog status:** US-0001..US-0006 DONE; **US-0007** OPEN (intake complete)
+- **Next eligible work item:** US-0007 (highest priority OPEN story with intake complete)
 
 ## Next actions
 
-1. Proceed to **`/discovery`** for **BUG-0002** to diagnose the runtime/deployment cause (`GET /api/reviews` registered and implemented in source, but returns HTML 404 at runtime).
-2. Operate parallel close-out: redeploy `categorizer` + PAT AC-4 close-out → set BUG-0001 DONE when possible.
+1. Proceed to **`/architecture`** for **US-0007** (skip discovery since scope is narrow and pipeline placement is already decided).
+2. Optionally run **`/sprint-plan-us0007`** to decompose into atomic tasks.
 
 ## Intended resume phase
 
-`drain-advance-evaluation` → `discovery` for **BUG-0002**
+`sprint-planning` for **US-0007** (discovery may be skipped — pipeline placement and scope are already bounded)
 
 ## Resolved start phase
 
-`refresh-context` (US-0006 terminal)
+`intake` (US-0007 intake complete)
 
 ## Resolution source
 
-`state.md` (US-0006 released S0008; all state archived to `docs/engineering/state-archive/state-pack-20260622-us0006.md`)
+`state.md` (US-0007 intake boundary 2026-06-27T14:19:00+02:00; backlog + AC + PO->TL written)
 
 ## stop condition
 
-**US-0006 release complete.** Awaiting drain-advance evaluation for BUG-0002.
+**US-0007 intake complete.** Awaiting `/architecture` or `/sprint-plan-us0007` to continue.

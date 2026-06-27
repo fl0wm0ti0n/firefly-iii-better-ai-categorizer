@@ -5,7 +5,7 @@ export default class AutoCategorizationService {
     #CONFIG_FILE = dataFile('auto-categorization-config.json');
     #config = {
         enabled: true,
-        skipDeposits: true,
+        skipDeposits: false,
         nativeCurrency: 'EUR',
         homeCountry: 'Austria',
         foreignCategory: 'Travel & Foreign',
@@ -88,7 +88,7 @@ export default class AutoCategorizationService {
             return null;
         }
 
-        // Skip deposits if option is enabled
+        // Skip deposits if option is enabled (legacy; scope selector now drives this for batch paths)
         if (this.#config.skipDeposits && firstTx.type === 'deposit') {
             return null;
         }

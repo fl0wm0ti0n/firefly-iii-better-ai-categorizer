@@ -158,12 +158,31 @@
 - intake_evidence: `handoffs/intake_evidence/intake-20260622-us0006-local-browser-uat.json`
 - decomposition (2026-06-22): Single bounded enabler story. No split — the work is a vertical slice across dev-env config, compose/traefik, browser probe, and docs. Alternative (separate compose vs browser probe stories) rejected because the value is the end-to-end agent self-test.
 
+## US-0007 — Keyword mapping direct-assign mode
+
+- Status: OPEN
+- Priority: 7
+- user_visible: true
+- summary: Add a per-keyword-mapping `directAssign` boolean (default `false`) so operators can opt specific keyword rules into hard category assignment — bypassing the OpenAI round-trip, mirroring how Account → Category mappings behave today.
+- scope_in: Extend `CategoryMappingService` with a new `categorizeTransaction()` method that returns `{ category, reason, autoRule, mappingName, matchedKeyword }` when an enabled direct-assign mapping loosely matches; add `directAssign` field persistence + admin CRUD defaults; pipeline `#resolveCategory()` in `src/App.js` uses the direct-assign result in place of the existing AI-hint path when `directAssign: true`; admin UI toggle "Direct assign" per keyword mapping in `public/index.html`; regression tests updated.
+- scope_out: Reworking the loose-match algorithm itself; changing account-mapping behavior; modifying auto-categorization (foreign/travel); multi-keyword priority rules beyond first-match-wins (keep current semantics); changing the AI-hint path behavior when `directAssign: false`.
+- depends_on: none
+- blocks: none
+- risks: Pipeline precedence — direct-assign keyword mapping now sits in the AI-hint slot (same position per intake decision); if a direct-assign rule matches an unexpected transaction, the category is assigned without AI confirmation; mitigated by per-mapping opt-in and per-mapping enable/disable toggle already present. Backward compatibility — `directAssign` defaults to `false`/undefined, so all existing mappings stay in AI-hint mode.
+- intake_evidence: inline (intake 2026-06-27). Operator-confirmed requirements in chat; AskQuestion confirmation of AC-1..AC-7 and pipeline placement option (c).
+- selected_pack: small-intake-pack.
+- intake_evidence_coverage: `outcome_success_criteria` (INTERSPAR 2361 K4 transaction categorized as "Groceries" when mapping directAssign=true), `impacted_components` (CategoryMappingService, App.js #resolveCategory, public/index.html keyword-mapping UI, admin CRUD endpoints), `constraints_compatibility_risks` (backward compat via default false), `required_tests_acceptance_checks` (existing suite + new precedence test for direct-assign), `done_definition` (directAssign supported, pipeline uses it, UI toggle present, runbook updated, tests green).
+- decomposition (2026-06-27): Single vertical-slice story. No split — the feature value is the end-to-end "configure once, bypass AI" operator workflow. Splitting backend vs UI would deliver only half the value.
+- pipeline_placement: Option (c) — direct-assign check replaces the existing AI-hint step in `#resolveCategory()` (line 1212–1222 of `src/App.js`). Auto-categorization still runs first; account mapping still runs first of first. When `directAssign: true` matches, return immediately with the target category; when `directAssign: false` or no match, existing AI-hint + OpenAI path proceeds unchanged.
+- trigger_case: Operator reported INTERSPAR 2361 K4 withdrawal (44,61 EUR, 05.06.2026) failed to categorize despite "interspar" being listed in the "Supermarkets & Groceries" → "Groceries" keyword mapping. The keyword match fired the AI hint but OpenAI did not assign the category. Confirmed the gap is structural (AI-dep), not a matching bug.
+
 ## Bug issues (canonical)
 
 ### BUG-0001 — Keyword mappings category load fails with JSON parse error
 
-- Status: OPEN
-- release_note: Fix released S0002 (2026-06-13); status stays OPEN until operator AC-4 (PAT dropdown UAT) + redeploy on port 3000 confirmed — see `handoffs/releases/S0002-release-notes.md`
+- Status: DONE
+- completion_date: 2026-06-26T16:46:00+02:00
+- release_note: Fix released S0002 (2026-06-13). Status OPEN until 2026-06-26 — operator AC-4 (PAT dropdown UAT) + redeploy with fresh token confirmed on port 3000.
 - environment: Admin UI (`ENABLE_UI=true`), browser console on page load; backend `GET /api/categories` → Firefly `GET /api/v1/categories` via `FireflyService.getCategories()`
 - steps_to_reproduce: 1) Open admin UI (e.g. categorizer on port 3000). 2) Open browser devtools console. 3) Reload page. 4) Observe `loadCategoriesForKeywordMappings` error during initial data load (~line 1622 in `public/index.html`).
 - expected: Keyword-mapping category dropdown loads Firefly categories silently; no console error on page load.
@@ -173,7 +192,10 @@
 
 ### BUG-0002 — Pending Reviews endpoint returns HTTP 404 HTML → `loadPendingReviews` JSON parse error
 
-- Status: OPEN
+- Status: DONE
+- completion_date: 2026-06-24T23:45:00+02:00
+- sprint: S0009
+- release_note: Fix complete per DEC-0020 three-tier approach. Production redeployed (T-0050); defensive UI hardening in `public/index.html:3461-3485` (T-0051); regression tests 18/18 (T-0052); all ACs verified via browser MCP UAT (T-0053). Evidence: `sprints/S0009/uat-report.md`.
 - environment: Admin UI (`ENABLE_UI=true`), browser console on page load; backend endpoint `GET /api/reviews`; deployment `https://categorizer.omniflow.cc`
 - steps_to_reproduce: 1) Open admin UI at `https://categorizer.omniflow.cc`. 2) Open browser devtools console. 3) Reload page. 4) Observe Pending Reviews panel stays empty and console shows `GET /api/reviews 404 (Not Found)` and `SyntaxError: Unexpected token '<', "<!DOCTYPE ..." is not valid JSON` at `loadPendingReviews`.
 - expected: `GET /api/reviews` returns HTTP 200 JSON `{ success: true, reviews: [...] }` (or `{ success: false, error: "..." }` on failure); `loadPendingReviews` renders pending reviews without a JSON parse error.
@@ -186,8 +208,8 @@
 - [x] BUG-0001: Page load — no `Unexpected token < in JSON` console error from `loadCategoriesForKeywordMappings`.
 - [x] BUG-0001: `GET /api/categories` returns `{ success: true, categories: [...] }` when Firefly is reachable, or a structured `{ success: false, error: "<actionable message>" }` (not a raw JSON-parse exception string) when Firefly is unreachable or misconfigured.
 - [x] BUG-0001: `FireflyService.getCategories()` sends `Accept: application/json` (per R-0001) and validates response content-type before parsing JSON.
-- [ ] BUG-0001: Keyword-mapping and account-mapping category `<select>` elements populate when Firefly returns categories. *(deferred — operator PAT UAT post-release S0002)*
-- [ ] BUG-0002: Page load — no `GET /api/reviews 404 (Not Found)` and no `SyntaxError: Unexpected token '<'` console error from `loadPendingReviews` on a healthy deployment.
-- [ ] BUG-0002: `GET /api/reviews` returns HTTP 200 JSON `{ success: true, reviews: [...] }` when healthy, or a structured `{ success: false, error: "..." }` (not HTML) when the endpoint fails.
-- [ ] BUG-0002: If `GET /api/reviews` returns a structured `{ success: false, error: "..." }`, `loadPendingReviews` surfaces the error in the UI and does not throw a JSON parse `SyntaxError`.
-- [ ] BUG-0002: When the endpoint returns a review list, the Pending Reviews panel renders each item with transaction summary, history category + confidence, AI category + confidence, recommended choice, and Accept/Reject actions.
+- [x] BUG-0001: Keyword-mapping and account-mapping category `<select>` elements populate when Firefly returns categories. *(operator PAT UAT completed 2026-06-26)*
+- [x] BUG-0002: Page load — no `GET /api/reviews 404 (Not Found)` and no `SyntaxError: Unexpected token '<'` console error from `loadPendingReviews` on a healthy deployment.
+- [x] BUG-0002: `GET /api/reviews` returns HTTP 200 JSON `{ success: true, reviews: [...] }` when healthy, or a structured `{ success: false, error: "..." }` (not HTML) when the endpoint fails.
+- [x] BUG-0002: If `GET /api/reviews` returns a structured `{ success: false, error: "..." }`, `loadPendingReviews` surfaces the error in the UI and does not throw a JSON parse `SyntaxError`.
+- [x] BUG-0002: When the endpoint returns a review list, the Pending Reviews panel renders each item with transaction summary, history category + confidence, AI category + confidence, recommended choice, and Accept/Reject actions.

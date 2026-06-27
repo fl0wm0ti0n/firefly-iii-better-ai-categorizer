@@ -321,13 +321,6 @@ export default class App {
         const description = req.body.content.transactions[0].description
         const transactionType = req.body.content.transactions[0].type;
 
-        // Check if we should skip deposits
-        const autoConfig = this.#autoCategorizationService.getConfig();
-        if (autoConfig.skipDeposits && transactionType === 'deposit') {
-            console.info(`⏭️ Skipping deposit transaction: "${description}" (skipDeposits enabled)`);
-            return; // Exit early, don't process this transaction
-        }
-
         const tx0 = req.body.content.transactions[0];
         const job = this.#jobList.createJob({
             destinationName,
@@ -829,7 +822,6 @@ export default class App {
         let transactions = await this.#firefly.getAllUncategorizedTransactions();
         
         // Apply scope filter (US-0005 / DEC-0016)
-        const autoConfig = this.#autoCategorizationService.getConfig();
         if (scope === 'withdrawals') {
             // Force skip deposits
             const originalCount = transactions.length;
@@ -852,20 +844,8 @@ export default class App {
             if (filteredCount > 0) {
                 console.info(`⏭️ Skipped ${filteredCount} withdrawal transactions (scope: deposits)`);
             }
-        } else {
-            // scope === 'both' or null — honor config
-            if (autoConfig.skipDeposits) {
-                const originalCount = transactions.length;
-                transactions = transactions.filter(transaction => {
-                    const firstTx = transaction.attributes.transactions[0];
-                    return firstTx.type !== 'deposit';
-                });
-                const filteredCount = originalCount - transactions.length;
-                if (filteredCount > 0) {
-                    console.info(`⏭️ Skipped ${filteredCount} deposit transactions (skipDeposits enabled)`);
-                }
-            }
         }
+        // scope === 'both' or null: process all transactions — no automatic skip
         
         const categories = await this.#firefly.getCategories();
         const batchJob = this.#jobList.createBatchJob('uncategorized', transactions.length);
@@ -945,7 +925,6 @@ export default class App {
         let transactions = await this.#firefly.getAllTransactions();
         
         // Apply scope filter (US-0005 / DEC-0016)
-        const autoConfig = this.#autoCategorizationService.getConfig();
         if (scope === 'withdrawals') {
             // Force skip deposits
             const originalCount = transactions.length;
@@ -966,22 +945,10 @@ export default class App {
             });
             const filteredCount = originalCount - transactions.length;
             if (filteredCount > 0) {
-                console.info(`⏭️ Skipped ${filteredCount} withdrawal transactions (scope: deposits)`);
-            }
-        } else {
-            // scope === 'both' or null — honor config
-            if (autoConfig.skipDeposits) {
-                const originalCount = transactions.length;
-                transactions = transactions.filter(transaction => {
-                    const firstTx = transaction.attributes.transactions[0];
-                    return firstTx.type !== 'deposit';
-                });
-                const filteredCount = originalCount - transactions.length;
-                if (filteredCount > 0) {
-                    console.info(`⏭️ Skipped ${filteredCount} deposit transactions (skipDeposits enabled)`);
-                }
+                console.info(`️ Skipped ${filteredCount} withdrawal transactions (scope: deposits)`);
             }
         }
+        // scope === 'both' or null: process all transactions — no automatic skip
         
         const categories = await this.#firefly.getCategories();
         const batchJob = this.#jobList.createBatchJob('all', transactions.length);

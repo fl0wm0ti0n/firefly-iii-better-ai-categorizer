@@ -73,4 +73,61 @@ Blocks/reason:
 
 ## Next phase
 
-**`/discovery`** — map current Docker Compose, Traefik, and dev-environment surfaces; confirm the minimal local launch seam and draft the architecture plan.
+**`/discovery`** - map current Docker Compose, Traefik, and dev-environment surfaces; confirm the minimal local launch seam and draft the architecture plan.
+
+---
+
+# US-0007: Keyword mapping direct-assign (bypass AI)
+
+## Intake metadata
+
+- **Story ID**: US-0007
+- **Intake run**: intake-20260627-us0007-keyword-direct-assign
+- **Pack**: small-intake-pack
+- **Decomposition**: Single story - bounded vertical slice (data model + service + pipeline + UI + tests)
+- **User authority**: User confirmed "yes make it like said" - proceeding with proposed assumptions and ACs
+
+## Story summary
+
+Add an optional `directAssign` flag to keyword mappings that, when enabled, bypasses AI categorization and directly assigns the mapped category. Similar to `AccountCategoryMappingService` hard-assignment behavior but scoped to keyword mappings.
+
+## Requirements
+
+- `CategoryMappingService.getDirectAssignment()` returns `{assigned: true, category, mappingName, matchedKeyword}` when flag is enabled and keywords match; otherwise `null`
+- `#resolveCategory` checks direct-assign after account mapping (step 1) and auto-cat (step 2) but before OpenAI
+- Admin UI: per-mapping toggle "Direct assign (bypass AI)" (default: off)
+- Persistence: flag stored per mapping (JSON/DB), additive boolean with default `false`
+- Pipeline precedence: account mapping > auto-cat > [direct keyword assign OR AI hint] > OpenAI. Direct-assign check replaces the existing AI-hint slot in `#resolveCategory()` — same position, user chose option (c) at intake. When an enabled mapping matches, direct assign; otherwise fall through to AI hint path as before.
+
+## Assumptions committed (per intake-evidence bundle)
+
+1. **outcome_success_criteria**: Transaction "INTERSPAR 2361 K4 03.06." with keyword mapping "Supermarkets & Groceries" -> "Groceries" assigns category directly when direct-assign is enabled (no AI call).
+2. **impacted_components**: `CategoryMappingService.js`, `App.js #resolveCategory`, `public/index.html`, keyword mapping data model, REST endpoints.
+3. **constraints_compatibility_risks**: Account mapping (step 1) still highest precedence; backward-compatible (existing mappings without flag behave as before); backward-compatible schema migration (additive boolean `directAssign=false`); direct-assign must verify target category exists in Firefly (same as account mapping).
+4. **required_tests_acceptance_checks**: US-0001 regression tests updated: direct-assign match (AI not called), direct-assign miss (falls through to AI), mixed scenario (one mapping direct, another hint-only).
+5. **done_definition**: Admin UI toggle enables direct category assignment per keyword mapping; when enabled + keywords match -> assigned immediately (no AI); when disabled -> existing hint behavior unchanged.
+
+## Key acceptance criteria
+
+- **AC-1**: `CategoryMappingService.getDirectAssignment()` returns `{assigned: true, category, mappingName, matchedKeyword}` when flag is enabled and keywords match; `null` otherwise
+- **AC-2**: `#resolveCategory` checks direct-assign after account mapping and auto-cat but before OpenAI
+- **AC-3**: Admin UI provides per-mapping toggle "Direct assign (bypass AI)" (default: off)
+- **AC-4**: Persistence: flag stored per keyword mapping, survives restarts, backward-compatible
+- **AC-5**: US-0001 regression tests updated (direct-assign match, miss, mixed)
+- **AC-6**: Pipeline precedence preserved: account mapping > auto-cat > [direct keyword assign OR AI hint] > OpenAI. Direct-assign check replaces the existing AI-hint slot.
+
+## Scope out
+
+- Changes to account mapping logic (step 1)
+- Auto-categorization rules (step 2)
+- AI hint logic when direct-assign is disabled
+- Changes to review queue (US-0004)
+
+## Risks
+
+1. JSON schema backward compatibility: additive boolean with default `false` ensures existing mappings continue to work as before
+2. Target category validity: direct-assign must verify category exists in Firefly (same validation as account mapping)
+
+## Next phase
+
+**`/discovery`** - map affected services, data model, and pipeline integration points; confirm schema backward compatibility approach.

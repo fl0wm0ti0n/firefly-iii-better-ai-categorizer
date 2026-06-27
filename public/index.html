@@ -1004,16 +1004,6 @@
     <section class="controls" id="panel-categorization">
         <h2>Auto-Categorization</h2>
 
-        <div style="margin-bottom: 15px;">
-            <label for="auto-skip-deposits">
-                <input type="checkbox" id="auto-skip-deposits" style="margin-right: 8px;">
-                Skip Deposits from categorization
-            </label>
-            <p style="margin: 5px 0 0 0; font-size: 12px; color: #6c757d;">
-                <em>When enabled, deposit transactions (salary, refunds, etc.) will be skipped during all categorization processes.</em>
-            </p>
-            <button id="btn-save-general-settings" class="btn btn-success" style="margin-top: 12px;">💾 Save General Settings</button>
-        </div>
         <hr style="margin: 25px 0; border: none; border-top: 1px solid #dee2e6;">
 
         <!-- Scope selector (US-0005 / DEC-0016) -->
@@ -1033,7 +1023,6 @@
                     <span>Both</span>
                 </label>
             </div>
-            <small>Honors "Skip Deposits" setting when scope is "Both".</small>
         </div>
 
         <!-- Run actions -->
@@ -1566,7 +1555,6 @@
     const btnProcessUncategorized = document.getElementById('btn-process-uncategorized');
     const btnProcessAll = document.getElementById('btn-process-all');
     const btnTestWebhook = document.getElementById('btn-test-webhook');
-    const btnSaveGeneralSettings = document.getElementById('btn-save-general-settings');
     const testDescription = document.getElementById('test-description');
     const testDestination = document.getElementById('test-destination');
 
@@ -1582,7 +1570,6 @@
 
     // Auto-categorization elements
     const autoEnabled = document.getElementById('auto-enabled');
-    const autoSkipDeposits = document.getElementById('auto-skip-deposits');
     const autoNativeCurrency = document.getElementById('auto-native-currency');
     const autoHomeCountry = document.getElementById('auto-home-country');
     const autoForeignCategory = document.getElementById('auto-foreign-category');
@@ -1719,7 +1706,14 @@ See job monitor below.`);
     // Auto-categorization event listeners
     btnSaveAutoConfig.addEventListener('click', saveAutoCategorizationConfig);
     btnSaveForeignKeywords.addEventListener('click', saveForeignKeywords);
-    btnSaveGeneralSettings.addEventListener('click', saveGeneralSettings);
+
+    // Scope selector — toggle visual .selected class on the parent pill when radio changes
+    document.querySelectorAll('input[name="categorization-scope"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            document.querySelectorAll('.scope-pill').forEach(p => p.classList.remove('selected'));
+            radio.closest('.scope-pill').classList.add('selected');
+        });
+    });
     
     // Load auto-categorization config on page load
     loadAutoCategorizationConfig();
@@ -2990,32 +2984,6 @@ See job monitor below.`);
         }
     };
 
-    // General Settings functions
-    async function saveGeneralSettings() {
-        const config = {
-            skipDeposits: autoSkipDeposits.checked
-        };
-        
-        try {
-            const response = await fetch('/api/auto-categorization/config', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ config })
-            });
-            
-            const result = await response.json();
-            if (result.success) {
-                alert('General settings saved successfully!');
-            } else {
-                alert('Error: ' + result.error);
-            }
-        } catch (error) {
-            alert('Error: ' + error.message);
-        }
-    }
-
     // Auto-categorization functions
     async function loadAutoCategorizationConfig() {
         try {
@@ -3025,7 +2993,6 @@ See job monitor below.`);
             if (result.success) {
                 const config = result.config;
                 autoEnabled.checked = config.enabled;
-                autoSkipDeposits.checked = config.skipDeposits;
                 autoNativeCurrency.value = config.nativeCurrency;
                 autoHomeCountry.value = config.homeCountry;
                 autoForeignCategory.value = config.foreignCategory;
@@ -3041,7 +3008,6 @@ See job monitor below.`);
     async function saveAutoCategorizationConfig() {
         const config = {
             enabled: autoEnabled.checked,
-            skipDeposits: autoSkipDeposits.checked,
             nativeCurrency: autoNativeCurrency.value.trim().toUpperCase(),
             homeCountry: autoHomeCountry.value.trim(),
             foreignCategory: autoForeignCategory.value.trim()

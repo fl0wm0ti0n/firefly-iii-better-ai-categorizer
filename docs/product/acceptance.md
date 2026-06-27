@@ -54,12 +54,22 @@
 - [x] AC-5: Browser UAT probe collects console error evidence and the `GET /api/reviews` response body (success or structured error) without throwing a JSON `SyntaxError` on HTML responses.
 - [x] AC-6: `docs/user-guides/US-0006.md` documents the local agent-driven UAT flow (Purpose, Prerequisites, Usage steps, Example, Limitations, Troubleshooting) with `USER_GUIDE_MODE=1`.
 
+## US-0007 — Keyword mapping direct-assign mode
+
+- [ ] AC-1: Keyword mapping data model supports an optional `directAssign` boolean field; when absent, behavior is identical to today (AI-hint mode).
+- [ ] AC-2: When `directAssign: true` on an enabled mapping and a keyword loosely matches the transaction, the target category is assigned directly without calling OpenAI — the pipeline returns immediately with `autoRule: 'category_mapping_direct'`.
+- [ ] AC-3: When `directAssign: false` or undefined (default), existing AI-hint behavior is preserved — keyword match replaces description hint for OpenAI as before.
+- [ ] AC-4: Direct-assign check is placed at the existing AI-hint slot in `#resolveCategory()` (after account mapping and auto-categorization, where `#categoryMappingService.getAiHint()` is currently called). Account mapping and auto-categorization retain first-tier precedence.
+- [ ] AC-5: Admin UI provides a per-mapping "Direct assign" toggle for each keyword mapping in the Keyword → Category Mappings panel.
+- [ ] AC-6: All existing keyword mappings without the `directAssign` field continue to function as AI hints (backward compatible, no migration required).
+- [ ] AC-7: Regression tests pass (existing 18/18 suite plus new precedence test(s) covering direct-assign vs AI-hint paths).
+
 ## Bug acceptance (canonical)
 
 - [x] BUG-0001: Page load — no `Unexpected token < in JSON` console error from `loadCategoriesForKeywordMappings`.
 - [x] BUG-0001: `GET /api/categories` returns `{ success: true, categories: [...] }` when Firefly is reachable, or a structured `{ success: false, error: "<actionable message>" }` (not a raw JSON-parse exception string) when Firefly is unreachable or misconfigured.
 - [x] BUG-0001: `FireflyService.getCategories()` sends `Accept: application/json` (per R-0001) and validates response content-type before parsing JSON.
-- [ ] BUG-0001: Keyword-mapping and account-mapping category `<select>` elements populate when Firefly returns categories. *(deferred — operator PAT UAT post-release S0002)*
+- [x] BUG-0001: Keyword-mapping and account-mapping category `<select>` elements populate when Firefly returns categories. *(operator PAT UAT completed 2026-06-26 — fresh token confirmed category dropdowns populate from live Firefly)*
 
 ## BUG-0002 — Pending Reviews endpoint returns HTTP 404 HTML → `loadPendingReviews` JSON parse error
 

@@ -1,0 +1,78 @@
+{
+  "intake_run_id": "intake-20260627-us0007-keyword-direct-assign",
+  "writer_id": "po-subagent",
+  "work_item_kind": "story",
+  "story_id": "US-0007",
+  "story_summary": "Keyword mapping direct-assign: optional bypass AI and assign category directly",
+  "selected_pack": "small-intake-pack",
+  "pack_selection_rationale": "Narrow follow-up to existing keyword mapping feature (US-0004 review queue already covers AI comparison). Stack/runtime cues known (Node.js categorizer, CategoryMappingService, App.js).",
+  "asked_topics": [
+    "outcome_success_criteria",
+    "impacted_components",
+    "constraints_compatibility_risks",
+    "required_tests_acceptance_checks",
+    "done_definition"
+  ],
+  "missing_topics": [],
+  "assumptions_confirmed": true,
+  "assumption_confirmation_ref": "ie:intake-20260627-us0007-keyword-direct-assign:4:66d30cd05f030a7b",
+  "assumption_confirmation_intake_run_id": "intake-20260627-us0007-keyword-direct-assign",
+  "assumption_confirmation_turn_index": 4,
+  "assumption_confirmation_quoted": "Operator can toggle direct assign per keyword mapping in admin UI. When enabled and keywords match category assigned immediately AI not called. When disabled existing hint behavior unchanged. Delegation: tests_acceptance_checks delegated to discovery.",
+  "topic_coverage": [
+    {
+      "topic_key": "outcome_success_criteria",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "INTERSPAR 2361 K4 03.06. 21:06 transaction with keyword mapping Supermarkets & Groceries -> Groceries should assign directly when direct-assign enabled, no AI call needed",
+      "intake_run_id": "intake-20260627-us0007-keyword-direct-assign",
+      "turn_index": 0,
+      "ref": "ie:intake-20260627-us0007-keyword-direct-assign:0:248c454467e875c9"
+    },
+    {
+      "topic_key": "impacted_components",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "CategoryMappingService.js, App.js #resolveCategory, public/index.html, keyword mapping data model, REST endpoints",
+      "intake_run_id": "intake-20260627-us0007-keyword-direct-assign",
+      "turn_index": 1,
+      "ref": "ie:intake-20260627-us0007-keyword-direct-assign:1:9fdc47d4fd5f2b1d"
+    },
+    {
+      "topic_key": "constraints_compatibility_risks",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Account mapping still highest precedence (step 1 beats everything). Backward-compatible additive boolean directAssign default false, existing mappings without flag continue as AI-hint, schema change backward compatible, direct-assign target must exist in Firefly",
+      "intake_run_id": "intake-20260627-us0007-keyword-direct-assign",
+      "turn_index": 2,
+      "ref": "ie:intake-20260627-us0007-keyword-direct-assign:2:2d705f991f156ebf"
+    },
+    {
+      "topic_key": "required_tests_acceptance_checks",
+      "satisfied_by": "delegation_ref",
+      "delegation_scope": "Test design delegated to discovery/architecture",
+      "delegation_rationale": "PO defines what must be tested (direct-assign match AI not called, direct-assign miss falls through to AI, mixed scenario) but not implementation details",
+      "delegation_confidence": "high",
+      "quoted_user_text": "Test design delegated to discovery/architecture. PO defines: direct-assign match AI not called, direct-assign miss falls through to AI, mixed scenario",
+      "intake_run_id": "intake-20260627-us0007-keyword-direct-assign",
+      "turn_index": 3,
+      "ref": "ie:intake-20260627-us0007-keyword-direct-assign:3:1734f62e80bf4eb4"
+    },
+    {
+      "topic_key": "done_definition",
+      "satisfied_by": "answer_ref",
+      "quoted_user_text": "Operator can toggle direct assign per keyword mapping in admin UI. When enabled and keywords match category assigned immediately AI not called. When disabled existing hint behavior unchanged. Delegation: tests_acceptance_checks delegated to discovery.",
+      "intake_run_id": "intake-20260627-us0007-keyword-direct-assign",
+      "turn_index": 4,
+      "ref": "ie:intake-20260627-us0007-keyword-direct-assign:4:66d30cd05f030a7b"
+    }
+  ],
+  "decomposition": {
+    "decision": "single-story",
+    "rationale": "Bounded vertical slice: data model toggle + service logic + pipeline integration + UI toggle + tests",
+    "alternative_rejected": "Splitting service change vs UI toggle vs tests — would deliver incomplete value without end-to-end coverage",
+    "split_axis": "n/a"
+  },
+  "duplicate_check": {
+    "checked": true,
+    "overlapping_story": null,
+    "notes": "No existing story covers keyword mapping direct-assign. US-0004 covers review queue (AI vs history), not keyword hard-assign."
+  }
+}
