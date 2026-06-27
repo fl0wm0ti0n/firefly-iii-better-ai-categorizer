@@ -2,60 +2,80 @@
 
 ## Current status
 
-**US-0007 Intake Complete** (2026-06-27T14:19:00+02:00). Keyword mapping direct-assign mode story accepted. Backlog + AC + PO->TL handoff + state boundary written. Pipeline placement decision confirmed: direct-assign replaces existing AI-hint slot (option c).
+**US-0008 Intake Complete** (2026-06-27T19:19:00+02:00). Account → Category Mappings UI bulk-assign story accepted. Backlog + AC + PO→TL handoff + state boundary written.
 
-## Segment status
+## Story summary
 
-- **Status:** Intake complete, awaiting sprint-planning
-- **Sprint:** (not yet planned)
-- **Stories completed this run:** 0 (US-0007 intake phase only)
+US-0008: Bulk account-to-category mapping assignment UI. Replaces slow per-account dropdown workflow with search/filter + multi-select + bulk assign in single request.
 
-## Completed stories
+## Scope in
 
-- **US-0006** DONE (2026-06-22T22:49:00+02:00, Sprint **S0008**)
-- **US-0005** DONE (2026-06-15T23:55:00+02:00, Sprint **S0007**)
-- **US-0004** DONE (2026-06-14T20:23:00+02:00, Sprint **S0006**)
-- **US-0003** DONE (2026-06-14T18:45:00Z, Sprint **S0005**)
-- **US-0002** DONE (2026-06-14T16:00:00Z, Sprint **S0004**)
-- **US-0001** DONE (2026-06-13, Sprint **S0003**)
+- Frontend: search/filter input, per-row checkboxes, "Select all filtered" toggle, "Bulk assign" button
+- New backend endpoint: `POST /api/account-category-mappings/bulk` (accepts array, returns per-item results)
+- Already-mapped accounts shown (not hidden), highlighted with yellow + "MAPPED" badge
+- Idempotent upsert logic (overwrite if category differs, skip if match)
 
-## Open stories
+## Requirements and acceptance criteria
 
-- **US-0007** OPEN (2026-06-27T14:19:00+02:00). Intake complete. Awaiting sprint-planning. Trigger: INTERSPAR transaction remained uncategorized despite keyword match — keyword mappings should support direct category assignment (bypass AI) when `directAssign: true`.
+**Requirements:**
+- Search/filter live input (case-insensitive)
+- Checkbox multi-select per visible row
+- "Select all filtered" toggle
+- Target category dropdown + "Bulk assign" button
+- Per-item feedback (created/updated counts, failures with reasons)
+- Existing 18/18 regression suite remains green
+- New tests added for bulk endpoint
 
-## Open bugs
+**Acceptance Criteria (AC-1..AC-7):**
+- AC-1: Live search input
+- AC-2: Multiple selection via checkboxes
+- AC-3: "Select all filtered" toggle
+- AC-4: Target category dropdown + "Bulk assign" button
+- AC-5: Per-account feedback
+- AC-6: Existing 18/18 regression suite green
+- AC-7: New tests added for bulk endpoint
 
-- **BUG-0002** OPEN (2026-06-22T20:33:00+02:00). Intake complete. `GET /api/reviews` returns HTTP 404 HTML at runtime.
-- **BUG-0001** DONE (2026-06-26). Operator PAT AC-4 UAT confirmed.
+**Scope out:**
+- Pipeline logic changes (no changes to categorization pipeline)
+- Batch edit/delete operations (only add/update via bulk)
+- Keyword-mapping UI (separate story if needed)
 
-## Quick items
+## Decision
 
-- **Q0001** DONE (2026-06-26). Transaction Scope selector fix + Skip Deposits removal.
+- **Single story** (no split)
+- **New endpoint required**: `POST /api/account-category-mappings/bulk`
+- **Already-mapped accounts**: highlight instead of hide
+- **Tests**: add bulk endpoint tests + keep 18/18 regression green
+- **Done definition**: AC-1..AC-7 (7 total)
 
-## Drain-advance status
+## Backlog
 
-- **AUTO_BACKLOG_DRAIN=1**
-- **AUTO_BACKLOG_MAX_STORIES=10**
-- **Backlog status:** US-0001..US-0006 DONE; **US-0007** OPEN (intake complete)
-- **Next eligible work item:** US-0007 (highest priority OPEN story with intake complete)
+- Priority: 7
+- Story: US-0008
+- Depends on: none
+- Blocks: none
 
-## Next actions
+## Handoff location
 
-1. Proceed to **`/architecture`** for **US-0007** (skip discovery since scope is narrow and pipeline placement is already decided).
-2. Optionally run **`/sprint-plan-us0007`** to decompose into atomic tasks.
+`handoffs/po_to_tl.md` (appended to existing US-0007 handoff)
 
-## Intended resume phase
+## Next phase
 
-`sprint-planning` for **US-0007** (discovery may be skipped — pipeline placement and scope are already bounded)
+`/sprint-plan` — decompose US-0008 into implementation tasks.
 
-## Resolved start phase
+## State boundary checkpoint
 
-`intake` (US-0007 intake complete)
+- phase_id: intake
+- role: po
+- work_item: US-0008
+- sprint_id: (not yet planned) — next phase will be sprint-plan
+- fresh_context_marker: intake-us0008-bulk-account-mapping
+- timestamp: 2026-06-27T19:19:00+02:00
+- fresh_boundary: true
+- next_phase: sprint-plan
+- last_phase: intake
 
-## Resolution source
+## Resume
 
-`state.md` (US-0007 intake boundary 2026-06-27T14:19:00+02:00; backlog + AC + PO->TL written)
-
-## stop condition
-
-**US-0007 intake complete.** Awaiting `/architecture` or `/sprint-plan-us0007` to continue.
+When continuing, start from: `handoffs/po_to_tl.md` (section: `PO → Tech Lead handoff: US-0008`)
+Then proceed to: `/sprint-plan` for US-0008

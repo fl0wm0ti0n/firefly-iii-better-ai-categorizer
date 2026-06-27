@@ -176,6 +176,24 @@
 - pipeline_placement: Option (c) — direct-assign check replaces the existing AI-hint step in `#resolveCategory()` (line 1212–1222 of `src/App.js`). Auto-categorization still runs first; account mapping still runs first of first. When `directAssign: true` matches, return immediately with the target category; when `directAssign: false` or no match, existing AI-hint + OpenAI path proceeds unchanged.
 - trigger_case: Operator reported INTERSPAR 2361 K4 withdrawal (44,61 EUR, 05.06.2026) failed to categorize despite "interspar" being listed in the "Supermarkets & Groceries" → "Groceries" keyword mapping. The keyword match fired the AI hint but OpenAI did not assign the category. Confirmed the gap is structural (AI-dep), not a matching bug.
 
+## US-0008 — Account → Category Mappings UI: live search + multi-select bulk assign
+
+- Status: OPEN
+- Priority: 8
+- user_visible: true
+- summary: Rework the Account → Category Mappings panel to let operator filter the account list via live search (case-insensitive substring / wildcard), select multiple visible accounts via checkboxes, and assign a single Firefly category to all selected accounts in one action. Replaces the one-by-one dropdown workflow that was slow for many accounts.
+- scope_in:
+  - Frontend (`public/index.html`): replace the single-account `<select>` in the account-mapping form with a searchable list: live filter input that narrows visible items, per-row checkboxes, a "Select all filtered" action, a target-category dropdown, and a "Bulk assign" button. Already-mapped accounts must be shown (no longer hidden) and visually highlighted (yellow row + "MAPPED" badge). Single-account add/edit flow remains for editing an existing mapping.
+  - Backend: new `POST /api/account-category-mappings/bulk` endpoint that accepts `[{accountId, accountName, accountType, targetCategory}]` and creates mappings in one round-trip. Idempotent: skip already-existing mappings with matching `accountId` → `targetCategory`; return per-item result summary (`created`, `skipped`, `failed[]`).
+  - `App.js`: wire bulk route on top of existing `AccountCategoryMappingService` CRUD endpoints.
+  - Regression tests: cover bulk endpoint (happy path, duplicate-skip, unknown category, partial failure) via Node native `node:test` in addition to the existing 18/18 suite.
+- scope_out: Pipeline logic (no categorization behavior change); bulk-edit for already-existing mappings (keep that as individual edit for now); batch delete; keyword-mapping panel refactor (separate story if needed).
+- depends_on: none
+- blocks: none
+- intake_evidence: inline (2026-06-27). small-intake-pack confirmed via AskQuestion on 2026-06-27: `outcome_success_criteria`=bulk filter+multi-select+bulk-assign flow (no per-account dropdown), `impacted_components`=frontend panel + new bulk POST endpoint, `constraints_compatibility_risks`=already-mapped rows highlighted rather than hidden, `required_tests_acceptance_checks`=18/18 regression green + new bulk endpoint tests, `done_definition`=AC-1..AC-7 listed below.
+- risks: Large bulk writes may produce many `account-category-mappings.json` saves; coalesce into one save after loop. UI must stay usable on small screens (checkbox list needs vertical scroll container). Already-mapped visual indicator must be re-computed on every re-render (filter changes, mappings change).
+- decomposition (2026-06-27): Single vertical slice. No split — the operator value is the end-to-end speed-up, and splitting UI from the bulk endpoint would deliver half of each. Alternative rejected: split frontend-only (would force N×POST loop per account, poor UX on many accounts).
+
 ## Bug issues (canonical)
 
 ### BUG-0001 — Keyword mappings category load fails with JSON parse error

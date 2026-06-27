@@ -1,3 +1,77 @@
+# PO → Tech Lead handoff: US-0008
+
+## Intake metadata
+
+- **Story ID**: US-0008
+- **Intake run**: intake-20260627-us0008-account-mappings-bulk-assign
+- **Pack**: small-intake-pack
+- **Decomposition**: Single story — bounded vertical slice (frontend panel + bulk endpoint + tests)
+- **User authority**: AskQuestion confirmation on 2026-06-27 for all five small-intake-pack topics (outcome, scope, risks, tests, done_definition)
+
+## Story summary
+
+Rework the **Account → Category Mappings** admin panel so operators can search, multi-select, and bulk-assign a category to many accounts in one action — replacing the slow one-by-one dropdown workflow. Introduces a new `POST /api/account-category-mappings/bulk` endpoint. Changes **no pipeline behavior** — only the UI configuration UX that writes mapping rules.
+
+## Requirements
+
+- **Frontend**: replace the single-account `<select>` in the account-mapping form with:
+  - a live **search/filter input** (case-insensitive substring match over account name + type)
+  - per-row **checkboxes** for visible filtered accounts
+  - **"Select all filtered"** toggle (selects/deselects all visible rows)
+  - the existing **target-category dropdown**
+  - a **"Bulk assign"** button
+- **Visual mapping indicator**: already-mapped accounts remain visible (not hidden) and are highlighted with a yellow row background + "MAPPED" badge showing the current target category.
+- **Backend**: new `POST /api/account-category-mappings/bulk`
+  - accepts `[{accountId, accountName, accountType, targetCategory}]`
+  - idempotent: upserts per `accountId`, overwriting existing `targetCategory` if different
+  - returns per-item result summary: `{created: N, updated: N, failed: [{accountId, reason}]}`
+  - single coalesced JSON save after loop (no per-item file overwrite)
+- **Route wiring**: `App.js` registers `#onBulkAccountCategoryMapping` alongside existing CRUD routes (lines 192-196).
+- **Validation**: use existing `AccountCategoryMappingService.validateMapping()` per item; unknown category → per-item `failed` entry with `reason: 'target category not found in Firefly categories list'`.
+
+## Small-intake-pack topic coverage (AskQuestion 2026-06-27)
+
+| topic_key | status | user_decision |
+|---|---|---|
+| outcome_success_criteria | confirmed | bulk filter+multi-select+bulk-assign flow (no per-account dropdown) |
+| impacted_components | confirmed | frontend panel + new bulk POST endpoint; no pipeline changes |
+| constraints_compatibility_risks | confirmed | already-mapped rows **highlighted** rather than hidden (current dropdown behavior inverted by design) |
+| required_tests_acceptance_checks | confirmed | 18/18 regression green + new bulk endpoint tests (happy path, upsert, partial failure) |
+| done_definition | confirmed | AC-1..AC-7 in `docs/product/acceptance.md` |
+
+## Key acceptance criteria (canonical in `docs/product/acceptance.md` — US-0008 section)
+
+1. AC-1: Live search input filters displayed account list case-insensitively.
+2. AC-2: Each visible account row has a checkbox; multi-select across visible rows.
+3. AC-3: "Select all filtered" toggle selects/deselects all accounts currently matching filter.
+4. AC-4: Target-category dropdown + "Bulk assign" button POST to `/api/account-category-mappings/bulk` in one round-trip.
+5. AC-5: Already-mapped accounts shown (not hidden), yellow row + "MAPPED" badge, hover shows target; bulk assign upserts rather than fails.
+6. AC-6: UI shows per-account feedback (created/updated counts + per-item failures).
+7. AC-7: Regression suite 18/18 green; new bulk endpoint tests via `node:test`.
+
+## Scope out
+
+- Pipeline logic (no changes to `#resolveCategory`, `AccountCategoryMappingService.categorizeTransaction()` behavior).
+- Batch **delete** or batch **edit** of existing mapping categories (keep per-row edit/delete).
+- Keyword-mapping panel refactor (separate story if needed).
+
+## Risks
+
+1. **Persistence coalesce**: bulk endpoint must write `account-category-mappings.json` once after the loop, not per-item.
+2. **UI responsiveness**: account list can be large; use a scroll container with bounded initial render (e.g., first 200 rows) and virtualize only if needed.
+3. **Already-mapped indicator re-computation**: must recompute on every filter change, mapping change, add, and delete.
+4. **Backward compat**: existing single-account add/edit/delete endpoints and form flow must continue to work unchanged.
+
+## Architecture note
+
+`AccountCategoryMappingService` already persists mappings with `accountId` as the natural key (see `src/AccountCategoryMappingService.js` `categorizeTransaction()`). Bulk endpoint should extend with `bulkAssign(items)` method that iterates, upserts by `accountId`, and calls `saveMappings()` once after completion.
+
+## Next phase
+
+**`/architecture`** (skip discovery — UI-only scope with one trivial new endpoint, pipeline untouched). TL should review bulk endpoint idempotency semantics (upsert vs strict insert vs skip-duplicate) before sprint-planning.
+
+---
+
 # PO → Tech Lead handoff: US-0006
 
 ## Story

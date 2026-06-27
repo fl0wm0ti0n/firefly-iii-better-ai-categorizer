@@ -64,6 +64,16 @@
 - [ ] AC-6: All existing keyword mappings without the `directAssign` field continue to function as AI hints (backward compatible, no migration required).
 - [ ] AC-7: Regression tests pass (existing 18/18 suite plus new precedence test(s) covering direct-assign vs AI-hint paths).
 
+## US-0008 — Account → Category Mappings UI: live search + multi-select bulk assign
+
+- [ ] AC-1: Account → Category Mappings form exposes a live search input that filters the displayed account list by case-insensitive substring match; results update as the user types (no form submit required).
+- [ ] AC-2: Each visible account row in the filtered list has a checkbox; multi-select is supported across any number of visible rows.
+- [ ] AC-3: A "Select all filtered" action (checkbox or button) toggles all accounts that currently match the filter. Deselect clears the current selection.
+- [ ] AC-4: A target-category dropdown plus a "Bulk assign" button sends a single request to `POST /api/account-category-mappings/bulk` that creates account→category mappings for all selected accounts in one round-trip.
+- [ ] AC-5: Already-mapped accounts are displayed in the list (no longer hidden from the dropdown) and visually highlighted with a yellow row background and a "MAPPED" badge; hover or inline text shows the current target category. Clicking "Bulk assign" on an already-mapped account updates (upserts) the mapping rather than failing.
+- [ ] AC-6: After bulk assign, the UI shows per-account feedback (count of created/updated mappings, any per-item failures with reason).
+- [ ] AC-7: Existing regression suite (18/18) remains green. New coverage: bulk endpoint tests (happy path, duplicate-skip or upsert, unknown category, partial failure) via `node:test`.
+
 ## Bug acceptance (canonical)
 
 - [x] BUG-0001: Page load — no `Unexpected token < in JSON` console error from `loadCategoriesForKeywordMappings`.

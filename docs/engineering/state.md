@@ -1,3 +1,28 @@
+## Phase boundary: intake US-0008 — Account → Category Mappings bulk assign UI (2026-06-27T19:20:00+02:00)
+
+- `phase_id`: intake
+- `role`: po
+- `work_item`: US-0008
+- `sprint_id`: (not yet planned — next phase will be discovery)
+- `fresh_context_marker`: intake-us0008-account-mappings-bulk
+- `timestamp`: 2026-06-27T19:20:00+02:00
+- `verdict`: pass
+- `next_scheduled_phase`: discovery
+- `summary`: Intake completed for US-0008 — Account → Category Mappings bulk assign UI. Operator pain point: the one-by-one per-account `<select>`-based mapping flow is too slow when the operator needs to assign the same Firefly category to many accounts. Solution: replace the account dropdown with a live search/filter list, per-row checkboxes, a "Select all filtered" toggle, a target-category dropdown, and a "Bulk assign" button backed by a new `POST /api/account-category-mappings/bulk` endpoint. Already-mapped accounts remain visible (not hidden) and are highlighted with yellow row + "MAPPED" badge. No pipeline behavior changes — admin UI CRUD-only endpoint. Single vertical-slice story, no split.
+- `acceptance_met`: true
+- `intake_evidence`:
+  - `selected_pack`: small-intake-pack
+  - `topic_coverage`: outcome_success_criteria (bulk filter + multi-select + bulk-assign flow, no per-account dropdown), impacted_components (frontend panel in `public/index.html` + new bulk POST endpoint in `App.js` + new `bulkAssign()` method on `AccountCategoryMappingService`), constraints_compatibility_risks (already-mapped rows **highlighted** rather than hidden; idempotent upsert per accountId; 18/18 regression green), required_tests_acceptance_checks (18/18 regression suite + new bulk endpoint tests via `node:test` covering happy path, duplicate-skip/upsert, unknown category, partial failure), done_definition (AC-1..AC-7 listed in `docs/product/acceptance.md` US-0008 section).
+  - `user_decisions`: single story (no split), new endpoint required (not N×POST loop), highlight-instead-of-hide, 18/18 green + new tests, done = AC-1..AC-7.
+- `files_modified`:
+  - docs/engineering/state.md (this boundary prepended)
+  - docs/product/backlog.md (US-0008 story appended above Bug issues section)
+  - docs/product/acceptance.md (US-0008 AC-1..AC-7 added)
+  - handoffs/po_to_tl.md (US-0008 handoff prepended above existing sections)
+  - handoffs/resume_brief.md (US-0008 current status; next phase discovery)
+
+---
+
 ## Phase boundary: intake US-0007 — Keyword mapping direct-assign mode (2026-06-27T14:19:00+02:00)
 
 - `phase_id`: intake
@@ -14,7 +39,6 @@
   - `selected_pack`: small-intake-pack
   - `topic_coverage`: outcome_success_criteria (INTERSPAR case resolves directly when directAssign=true), impacted_components (CategoryMappingService.js, App.js #resolveCategory, public/index.html, admin CRUD endpoints), constraints_compatibility_risks (backward compat via default false), required_tests_acceptation_checks (existing regression suite + new precedence test), done_definition (directAssign supported, pipeline uses it, UI toggle present, tests green).
   - `pipeline_placement_decision`: option (c) — replaces existing AI-hint slot. User explicitly chose.
-- `files_created`: (none at this phase — sprint artifacts created in next phase)
 - `files_modified`:
   - docs/engineering/state.md (this boundary prepended)
   - docs/product/backlog.md (US-0007 story appended above Bug issues section)
@@ -24,8 +48,6 @@
 ---
 
 ## Phase boundary: quick Q0001 — Transaction Scope selector fix + Skip Deposits removal (2026-06-26T17:05:00+02:00)
-
-- `phase_id`: quick
 - `role`: dev
 - `work_item`: Q0001
 - `sprint_id`: quick/Q0001
