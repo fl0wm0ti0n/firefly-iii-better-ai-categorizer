@@ -1,0 +1,12 @@
+{
+  "id": "T-0007",
+  "sprint_id": "S0011",
+  "story": "US-0008",
+  "title": "Run tests — verify 26/26 pass (21 existing + 5 new)",
+  "type": "regression",
+  "status": "done",
+  "description": "Run bash tests/run-tests.sh, verify all 21 existing + 5 new bulkAssign tests pass",
+  "dependencies": ["T-0001", "T-0002", "T-0003", "T-0004", "T-0005", "T-0006"],
+  "files_modified": [],
+  "completed_at": "2026-06-28T18:20:35.948+02:00"
+}

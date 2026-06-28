@@ -36,5 +36,18 @@ export function makePassthroughWordMapping() {
 }
 
 export function makeNoHintCategoryMapping() {
-    return { getAiHint: () => null };
+    return {
+        getAiHint: () => null,
+        getDirectAssignment: () => ({ assigned: false }),
+    };
+}
+
+export function makeCategoryMappingStub({
+    directAssignment = { assigned: false },
+    aiHint = null,
+} = {}) {
+    return {
+        getAiHint: () => aiHint,
+        getDirectAssignment: () => directAssignment,
+    };
 }

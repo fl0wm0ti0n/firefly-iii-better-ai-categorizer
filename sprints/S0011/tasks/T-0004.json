@@ -1,0 +1,12 @@
+{
+  "id": "T-0004",
+  "sprint_id": "S0011",
+  "story": "US-0008",
+  "title": "Add Bulk assign button — collect selected accounts + target category, POST, show feedback",
+  "type": "implementation",
+  "status": "done",
+  "description": "Bulk assign button with POST to /api/account-category-mappings/bulk and result feedback UI",
+  "dependencies": ["T-0002", "T-0003", "T-0005"],
+  "files_modified": ["public/index.html"],
+  "completed_at": "2026-06-28T18:20:35.948+02:00"
+}

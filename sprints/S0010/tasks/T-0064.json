@@ -1,0 +1,21 @@
+{
+  "id": "T-0064",
+  "title": "Add directAssign field whitelist to CategoryMappingService addMapping/updateMapping",
+  "description": "Add whitelist #MAPPING_FIELDS = new Set(['name', 'targetCategory', 'keywords', 'enabled', 'directAssign']) and implement #stripFields(raw) helper that returns a new object containing only whitelisted keys. Update addMapping() and updateMapping() to call #stripFields(raw) before processing. In addMapping, set directAssign: Boolean(clean.directAssign ?? false). In updateMapping, if 'directAssign' in clean, coerce to Boolean before merging. This prevents arbitrary field injection via spread-merge from req.body.",
+  "acceptance_criteria_refs": ["US-0007 AC-1"],
+  "decision_refs": ["DEC-0021"],
+  "dependencies": [],
+  "estimated_complexity": "low",
+  "status": "planned",
+  "files": ["src/CategoryMappingService.js"],
+  "notes": "Whitelist mitigates discovery risk R2 (spread-merge field injection). Behavior change is safe: the only extra fields previously persisted were created/updated (server-managed, sent via form). No client sends non-whitelisted fields in production. Existing mappings without directAssign field retain undefined (backward-compat per DEC-0021).",
+  "verification_steps": [
+    "#MAPPING_FIELDS Set defined with exactly ['name', 'targetCategory', 'keywords', 'enabled', 'directAssign'].",
+    "#stripFields(raw) returns object containing only keys that exist in both raw and the whitelist.",
+    "addMapping() accepts directAssign from input, stores as Boolean (default false).",
+    "updateMapping() accepts directAssign updates, coerces to Boolean when present in updates.",
+    "Spread-merge no longer persists arbitrary fields — only whitelisted keys survive.",
+    "Existing mappings without directAssign field retain undefined (backward-compat).",
+    "All 18/18 existing tests pass (no behavior change to AI-hint path)."
+  ]
+}

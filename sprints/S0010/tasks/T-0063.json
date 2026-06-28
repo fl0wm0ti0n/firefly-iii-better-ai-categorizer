@@ -1,0 +1,19 @@
+{
+  "id": "T-0063",
+  "title": "Insert direct-assign check into App.js #resolveCategory() pipeline",
+  "description": "Insert direct-assign check at line 1214 in src/App.js #resolveCategory(), before the existing getAiHint() call. Call categoryMappingService.getDirectAssignment(transaction). When assigned=true AND target category exists in categories map, return {category, prompt, response, autoRule: 'category_mapping_direct'} immediately. When assigned=true but category missing, log warning and fall through to existing AI-hint path. Existing code unchanged if assigned=false.",
+  "acceptance_criteria_refs": ["US-0007 AC-2", "US-0007 AC-4"],
+  "decision_refs": ["DEC-0022"],
+  "dependencies": ["T-0062"],
+  "estimated_complexity": "low",
+  "status": "planned",
+  "files": ["src/App.js"],
+  "notes": "Per DEC-0022, insert at line 1214 (AI-hint slot). Fall-through rule mirrors account-mapping miss semantics (line 1197-1200). Do NOT call getAiHint() after a direct-assign match — direct-assign is authoritative. Log messages: success '🎯 Direct-assign: ...', fall-through '⚠️ Direct-assign matched but category not found in Firefly — falling through to AI hint'. History analysis (US-0004) and review queue unreachable on direct-assign return (same as account-mapping behavior).",
+  "verification_steps": [
+    "Confirm insertion is before line 1214 (const aiHint = this.#categoryMappingService.getAiHint(transaction);).",
+    "When direct assignment matches AND category exists: returns {category, prompt, response, autoRule: 'category_mapping_direct'} — no OpenAI call.",
+    "When direct assignment matches BUT category missing: console.warn, fall through to existing getAiHint() path unchanged.",
+    "When direct assignment does not match (assigned:false): code path identical to pre-change behavior.",
+    "Existing case-1..4 test cases still pass (they use stubs where getDirectAssignment returns {assigned:false})."
+  ]
+}

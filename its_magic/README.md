@@ -703,7 +703,3 @@ Link runbooks, architecture notes, and deeper guides. Operator commands live in 
 ## Contributing
 
 Contributor-focused workflow and guardrails live in [`docs/developer/README.md`](docs/developer/README.md).
-
-## Other useful capabilities
-
-- **US-0002** — operator documentation map; see [`docs/user-guides/US-0002.md`](docs/user-guides/US-0002.md).

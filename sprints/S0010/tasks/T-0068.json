@@ -1,0 +1,21 @@
+{
+  "id": "T-0068",
+  "title": "Run full regression suite and verify all 21/21 tests pass",
+  "description": "Run the full test suite via `bash tests/run-tests.sh` and verify all 21 tests pass (18 existing + 3 new from T-0067). Expected exit code 0. Expected output includes no new warnings or error messages. Verify all test files pass: resolveCategory.test.js, openAiService.test.js, pendingReviewService.test.js, historyAnalysisService.test.js.",
+  "acceptance_criteria_refs": ["US-0007 AC-7"],
+  "decision_refs": [],
+  "dependencies": ["T-0067"],
+  "estimated_complexity": "low",
+  "status": "planned",
+  "files": [],
+  "notes": "Final verification gate. If any test fails, stop and document. Do not proceed to QA phase until all 21 tests pass. This task is a quality gate, not a development task. If tests fail, mark task blocked and report failure details in execution summary.",
+  "verification_steps": [
+    "Run `bash tests/run-tests.sh`.",
+    "Exit code is 0.",
+    "Output shows 21/21 tests passing (or equivalent pass rate).",
+    "No new warnings or error messages introduced.",
+    "All case-1..4 existing tests still pass.",
+    "All case-5..7 new tests pass.",
+    "No regressions in other test files (openAiService.test.js, pendingReviewService.test.js, historyAnalysisService.test.js)."
+  ]
+}

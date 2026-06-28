@@ -1,0 +1,20 @@
+{
+  "id": "T-0066",
+  "title": "Refactor test stubs: extend makeNoHintCategoryMapping(); add makeCategoryMappingStub()",
+  "description": "Refactor tests/fixtures/stubs.js to support direct-assign testing: (1) extend existing makeNoHintCategoryMapping() to also expose getDirectAssignment: () => ({assigned: false}) — backward-compat for case-1..4; (2) add new helper makeCategoryMappingStub({directAssignment = {assigned:false}, aiHint = null}) that returns an object with both getAiHint() and getDirectAssignment() methods, configurable via parameters.",
+  "acceptance_criteria_refs": ["US-0007 AC-7"],
+  "decision_refs": [],
+  "dependencies": ["T-0062"],
+  "estimated_complexity": "low",
+  "status": "planned",
+  "files": ["tests/fixtures/stubs.js"],
+  "notes": "Stub refactor is backward-compat — makeNoHintCategoryMapping() signature unchanged, only return object extended. Default directAssignment param is {assigned:false}, default aiHint param is null. Pattern mirrors existing stubs (makeAccountMappingStub, makeAutoCatStub).",
+  "verification_steps": [
+    "makeNoHintCategoryMapping() exposes both getAiHint() and getDirectAssignment() methods.",
+    "makeCategoryMappingStub({directAssignment, aiHint}) returns stub with both methods.",
+    "Default directAssignment param is {assigned: false}.",
+    "Default aiHint param is null.",
+    "Existing case-1..4 tests still pass without modification.",
+    "New helper supports all parameter combinations needed by case-5..7."
+  ]
+}

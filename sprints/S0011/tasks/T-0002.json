@@ -1,0 +1,12 @@
+{
+  "id": "T-0002",
+  "sprint_id": "S0011",
+  "story": "US-0008",
+  "title": "Wire POST /api/account-category-mappings/bulk route in App.js",
+  "type": "implementation",
+  "status": "done",
+  "description": "API route handler delegating to AccountCategoryMappingService.bulkAssign()",
+  "dependencies": ["T-0001"],
+  "files_modified": ["src/App.js"],
+  "completed_at": "2026-06-28T18:20:35.948+02:00"
+}

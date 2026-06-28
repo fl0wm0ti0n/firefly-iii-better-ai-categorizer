@@ -1,0 +1,52 @@
+{
+  "id": "S0010",
+  "work_item": "US-0007",
+  "title": "Keyword mapping direct-assign mode",
+  "goal": "Enable per-keyword-mapping direct category assignment (bypass AI) via additive `directAssign` boolean flag with UI toggle, pipeline integration, and full test coverage.",
+  "status": "planned",
+  "created_at": "2026-06-28T14:30:00+02:00",
+  "created_by": "tech-lead",
+  "sprint_number": 10,
+  "orchestrator_run_id": "auto-20260628T120000Z-us0007-us0008",
+  "story_priority": 7,
+  "drain_queue_position": 1,
+  "next_story": "US-0008",
+  "decisions": [
+    "DEC-0021",
+    "DEC-0022"
+  ],
+  "task_count": 7,
+  "sprint_cap": 12,
+  "under_cap": true,
+  "split_required": false,
+  "total_estimated_complexity": "medium",
+  "risk_summary": {
+    "R6": "Target category validity — mitigated by fall-through rule in T-0063",
+    "R7": "UI render race — confirmed safe (no dependency on categories list)",
+    "R8": "Whitelist breaks existing clients — mitigated by audit showing no clients send extra fields"
+  },
+  "success_criteria": "All 7 tasks completed, all 21 tests pass (18 existing + 3 new), direct-assign mappings work end-to-end from UI configuration to pipeline behavior with correct precedence and backward compatibility.",
+  "critical_path": "T-0062 → T-0063 → T-0066 → T-0068",
+  "implementation_phases": [
+    {
+      "phase": 1,
+      "tasks": ["T-0062"],
+      "description": "Service method + schema field (no dependencies)"
+    },
+    {
+      "phase": 2,
+      "tasks": ["T-0063", "T-0064", "T-0065", "T-0067"],
+      "description": "Parallel: pipeline insert, UI, stubs, persistence test"
+    },
+    {
+      "phase": 3,
+      "tasks": ["T-0066"],
+      "description": "Test cases (depends on T-0063, T-0065)"
+    },
+    {
+      "phase": 4,
+      "tasks": ["T-0068"],
+      "description": "Regression gate (final verification)"
+    }
+  ]
+}

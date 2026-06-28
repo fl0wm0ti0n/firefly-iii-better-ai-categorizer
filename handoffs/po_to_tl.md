@@ -205,3 +205,28 @@ Add an optional `directAssign` flag to keyword mappings that, when enabled, bypa
 ## Next phase
 
 **`/discovery`** - map affected services, data model, and pipeline integration points; confirm schema backward compatibility approach.
+
+## TL Architecture Notes (2026-06-28T14:25:00+02:00)
+
+Architecture phase completed. Key decisions and implementation patterns:
+
+**DEC-0021: Additive schema (approved)**
+- `directAssign?: boolean` field added to mapping schema; missing/undefined treated as `false`
+- No migration required (JSON.parse tolerates unknown fields)
+- Backward compatible: existing mappings continue working as AI-hint mode
+
+**DEC-0022: Pipeline placement (approved)**
+- Direct-assign check inserted at line 1214 in `src/App.js` (replaces AI-hint call)
+- Precedence: account mapping (line 1187) → auto-cat (line 1202) → **direct-assign** → AI-hint fall-through
+- Fall-through rule: when target category missing from Firefly, log warning and proceed to AI-hint path (line 1218)
+- Returns `{category, autoRule: 'category_mapping_direct', ...}` on match
+
+**Implementation patterns:**
+1. **Service method**: `CategoryMappingService.getDirectAssignment(transaction)` returns `{assigned: true, category, mappingName, matchedKeyword}` or `{assigned: false}` (not null)
+2. **Whitelist enforcement**: `addMapping`/`updateMapping` use `#MAPPING_FIELDS` whitelist (`['name', 'targetCategory', 'keywords', 'enabled', 'directAssign']`) to prevent arbitrary field injection
+3. **UI**: per-row toggle in mapping table, "DIRECT" badge when enabled; `editCategoryMapping` extended to 5 args (add `directAssign: boolean`)
+4. **Tests**: 3 new cases (`case-5..7`) covering direct-match, fall-through-on-miss, mixed-mode; stub refactor exposes both `getDirectAssignment()` and `getAiHint()`
+
+**Sprint sizing:** 7 tasks (well under threshold of 12), no split required. Recommend single sprint S0010.
+
+**Full architecture document:** `docs/engineering/architecture-us0007.md`

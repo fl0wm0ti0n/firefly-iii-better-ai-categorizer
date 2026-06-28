@@ -1,0 +1,12 @@
+{
+  "id": "T-0003",
+  "sprint_id": "S0011",
+  "story": "US-0008",
+  "title": "Add live search/filter UI to account-mapping panel in index.html",
+  "type": "implementation",
+  "status": "done",
+  "description": "Search input, show-mapped checkbox, multi-select account picker list",
+  "dependencies": [],
+  "files_modified": ["public/index.html"],
+  "completed_at": "2026-06-28T18:20:35.948+02:00"
+}

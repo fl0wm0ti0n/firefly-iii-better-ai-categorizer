@@ -1,0 +1,186 @@
+{
+  "phase_id": "plan-verify",
+  "role": "qa",
+  "fresh_context_marker": "plan-verify-us0007-keyword-direct-assign",
+  "orchestrator_run_id": "auto-20260628T120000Z-us0007-us0008",
+  "timestamp": "2026-06-28T14:31:00+02:00",
+  "sprint_id": "S0010",
+  "work_item": "US-0007",
+  "verdict": "fail",
+  "reason": "Critical structural inconsistencies between tasks.md and individual task JSON files. AC-2 and AC-4 have no corresponding task JSON. Critical-path task T-0063 (pipeline insertion) is missing as a JSON artifact; T-0063.json is mis-titled as a whitelist task (a duplicate of T-0062's scope) instead of the pipeline insertion described in tasks.md. T-0067.json is mis-titled as a regression gate (duplicate of T-0068 scope) instead of the persistence test described in tasks.md. A self-referencing dependency on T-0067.json was found. Execution must not proceed until these are reconciled.",
+  "acceptance_coverage": {
+    "AC-1": {
+      "status": "covered",
+      "tasks_tasks_md": ["T-0062 (schema field)", "T-0067 tasks.md says persistence test"],
+      "tasks_json": ["T-0062 (whitelist+service)", "T-0063 JSON (whitelist duplicate)"],
+      "gaps": ["No persistence round-trip test JSON exists — tasks.md describes T-0067 as persistence test, but T-0067.json is a regression gate"]
+    },
+    "AC-2": {
+      "status": "missing",
+      "tasks_tasks_md": ["T-0063 tasks.md says pipeline insert"],
+      "tasks_json": [],
+      "gaps": ["T-0063.json is NOT the pipeline insertion task — it describes field whitelist (src/CategoryMappingService.js), not pipeline insert (src/App.js). No JSON task covers #resolveCategory() modification.", "CRITICAL — AC-2 cannot be satisfied without pipeline insertion"]
+    },
+    "AC-3": {
+      "status": "partial",
+      "tasks_tasks_md": ["T-0063 tasks.md pipeline fall-through"],
+      "tasks_json": ["T-0062 JSON mentions AC-3 in acceptance criteria refs but only for service layer — does not address pipeline fall-through"],
+      "gaps": ["Fall-through to AI-hint on assigned=true but unknown category requires pipeline insertion task (missing)"]
+    },
+    "AC-4": {
+      "status": "missing",
+      "tasks_tasks_md": ["T-0063 tasks.md pipeline insertion at AI-hint slot"],
+      "tasks_json": [],
+      "gaps": ["No JSON task inserts direct-assign check at AI-hint slot in #resolveCategory(). AC-4 has no implementation vehicle.", "CRITICAL"]
+    },
+    "AC-5": {
+      "status": "covered",
+      "tasks_tasks_md": ["T-0064 (UI toggle)"],
+      "tasks_json": ["T-0064 JSON (UI toggle)"],
+      "gaps": []
+    },
+    "AC-6": {
+      "status": "partial",
+      "tasks_tasks_md": ["implied by T-0062 additive schema"],
+      "tasks_json": ["T-0062 (default false)"],
+      "gaps": ["No explicit task ensures backward-compat test; relied on via regression gate T-0068 / T-0067 duplicate"]
+    },
+    "AC-7": {
+      "status": "covered",
+      "tasks_tasks_md": ["T-0066 (3 new cases)", "T-0067 tasks.md persistence test", "T-0068 regression gate"],
+      "tasks_json": ["T-0066 (3 new cases)", "T-0067 JSON (regression gate — duplicate of T-0068 per title)"],
+      "gaps": ["T-0067 and T-0068 overlap as regression gate in JSON. tasks.md describes T-0067 as persistence test — JSON contradicts. Test count expectation (21/21) does not account for persistence test."]
+    }
+  },
+  "acceptance_coverage_summary": {
+    "covered": ["AC-1", "AC-5"],
+    "partial": ["AC-3", "AC-6", "AC-7"],
+    "missing": ["AC-2", "AC-4"]
+  },
+  "task_dependency_analysis": {
+    "declared_in_tasks_md": {
+      "T-0062": [],
+      "T-0063": ["T-0062"],
+      "T-0064": ["T-0062"],
+      "T-0065": ["T-0062"],
+      "T-0066": ["T-0063", "T-0065"],
+      "T-0067": ["T-0062"],
+      "T-0068": ["T-0067"]
+    },
+    "declared_in_json": {
+      "T-0062": [],
+      "T-0063": [],
+      "T-0064": ["T-0062"],
+      "T-0065": ["T-0062"],
+      "T-0066": ["T-0063", "T-0065"],
+      "T-0067": ["T-0067"],
+      "T-0068": ["T-0067"]
+    },
+    "issues": [
+      "T-0063 JSON declares no dependencies (but tasks.md says T-0062). However since T-0063 JSON describes whitelist (not pipeline), the empty deps is internally consistent — but inconsistent with tasks.md which places pipeline insertion after service method",
+      "T-0066 JSON depends on T-0063 — this only makes sense if T-0063 is the pipeline insertion task (per tasks.md). Since T-0063 JSON is actually the whitelist task, T-0066's dependency on it is semantically incorrect (test cases depend on pipeline behavior, not whitelist)",
+      "T-0067 JSON has a self-referencing dependency: [T-0067]. This is a structural bug.",
+      "T-0067 should depend on T-0062 if it's the persistence test (per tasks.md)",
+      "T-0068 should depend on T-0066, T-0067 (all test work) — currently only declares T-0067"
+    ],
+    "declared_vs_json_mismatch": true,
+    "critical_path_tasks_md": ["T-0062", "T-0063", "T-0066", "T-0068"],
+    "critical_path_json_reconstructable": false,
+    "note": "Critical path T-0062 → T-0063 → T-0066 → T-0068 cannot be reconstructed from JSON files because T-0063 JSON scope is incorrect (whitelist instead of pipeline insert)."
+  },
+  "task_sizing": {
+    "each_task_atomic": false,
+    "comments": [
+      "T-0062 bundles TWO distinct concerns: (a) new getDirectAssignment() method, AND (b) #MAPPING_FIELDS whitelist + #stripFields refactor of addMapping/updateMapping. Architecture §3.1 describes these as separate subsections. Acceptable for a single low-complexity task since they're same-file changes.",
+      "T-0063 JSON is a DUPLICATE of T-0062's whitelist concern (not a separate pipeline task as intended). Should be retitled/rewritten to be the pipeline insertion task.",
+      "T-0067 JSON duplicates T-0068's regression-gate concern. Should be a persistence round-trip test task (new file tests/categoryMappingService.test.js).",
+      "All seven tasks individually estimated at low or medium complexity are within the <1 day atomic threshold.",
+      "Sprint capacity check: 7/12 tasks, under threshold."
+    ]
+  },
+  "missing_tasks": [
+    {
+      "id_suggestion": "T-0063 (rewrite existing)",
+      "title": "Insert direct-assign check into App.js #resolveCategory() pipeline",
+      "rationale": "Per tasks.md this task should exist but the JSON file is titled as a duplicate of T-0062 (whitelist). The JSON file must be rewritten to match tasks.md description: pipeline insertion at line 1214, DEC-0022, fall-through rule."
+    },
+    {
+      "id_suggestion": "T-0067 (rewrite existing)",
+      "title": "Add persistence round-trip test for directAssign field",
+      "rationale": "Per tasks.md this task should be the persistence test (new file tests/categoryMappingService.test.js). The JSON file currently duplicates T-0068 regression gate scope."
+    },
+    {
+      "id_suggestion": "(optional) Documentation update for direct-assign",
+      "title": "Update CODEBASE_ANALYSIS.md and runbook with direct-assign documentation",
+      "rationale": "Neither tasks.md nor any JSON task mentions updating CODEBASE_ANALYSIS.md (US-0002 alignment) or the runbook (pipeline step order, hitl semantics for direct-assign). Not strictly required for AC satisfaction but surfaced in discovery as a nice-to-have. Defer to PO or handle as follow-up."
+    }
+  ],
+  "test_coverage_plan": {
+    "new_cases_planned": 3,
+    "case_ids_planned": ["case-5-direct-assign-match", "case-6-direct-assign-miss", "case-7-mixed"],
+    "expected_total_tests_after_sprint": 21,
+    "breakdown": "18 existing + 3 new",
+    "persistence_test_accounted_for": false,
+    "note": "The persistence test (T-0067 per tasks.md) is not counted in the 21-test expectation. If included, total would be 22. This is a minor bookkeeping inconsistency; recommend counting persistence test as part of the sprint's test output but separately from the case-5..7 set."
+  },
+  "sprint_capacity": {
+    "declared_tasks": 7,
+    "cap": 12,
+    "under_cap": true,
+    "split_required": false,
+    "capacity_utilization_pct": 58
+  },
+  "risk_flags": [
+    {
+      "severity": "critical",
+      "issue": "No pipeline insertion task JSON exists. AC-2 (direct-assign → assign directly) and AC-4 (insertion at AI-hint slot) have no implementation task in the JSON file set. Executing the sprint as-is would deliver the service method + UI + test stubs but no pipeline integration — the core feature would be absent.",
+      "resolution": "Rewrite T-0063.json to be the pipeline insertion task per tasks.md description. Files: src/App.js, dependencies: [T-0062], decision refs: [DEC-0022], acceptance: [AC-2, AC-4]."
+    },
+    {
+      "severity": "critical",
+      "issue": "T-0067.json is mis-titled as regression gate (duplicate of T-0068) instead of persistence test. The persistence test scope described in tasks.md has no JSON representation.",
+      "resolution": "Rewrite T-0067.json to be the persistence test (new file tests/categoryMappingService.test.js, depends on T-0062, verifies directAssign survives save/load cycle per DEC-0021)."
+    },
+    {
+      "severity": "moderate",
+      "issue": "T-0067.json has a self-referencing dependency (depends on itself). DAG is not acyclic if taken literally.",
+      "resolution": "Fix dependency when rewriting T-0067 as persistence test."
+    },
+    {
+      "severity": "moderate",
+      "issue": "T-0063.json (whitelist duplicate) and T-0062.json (whitelist+service) overlap in scope. Both target src/CategoryMappingService.js with the same #MAPPING_FIELDS change.",
+      "resolution": "Retitle T-0063.json as pipeline insert per resolution above. The whitelist work stays in T-0062."
+    },
+    {
+      "severity": "minor",
+      "issue": "Test count expectation (21 tests) does not include persistence test described in tasks.md.",
+      "resolution": "Clarify whether persistence test makes total 22 tests, or if it's expected to be bundled with T-0067's existing count. Recommend stating 22 tests as the final regression target."
+    },
+    {
+      "severity": "minor",
+      "issue": "tasks.md implementation order step 2 lists T-0063, T-0064, T-0065, T-0067 as parallel — but T-0067 (persistence test) and T-0068 (regression gate) have a serial relationship through the JSON dependency, which contradicts the parallel claim.",
+      "resolution": "Update tasks.md to clarify: parallel phase 2 = T-0063/T-0064/T-0065/T-0067 (assuming T-0067 is persistence test). Serial: T-0067 → T-0068."
+    }
+  ],
+  "recommendations": [
+    "BLOCK execution until T-0063.json and T-0067.json are rewritten to match tasks.md.",
+    "Fix T-0067 self-dependency.",
+    "Reconcile test count (21 vs 22 with persistence test) in sprint.json success_criteria.",
+    "Optional: add a minor documentation task for CODEBASE_ANALYSIS / runbook pipeline step update (low-effort, no new acceptance criteria).",
+    "Re-run plan-verify after fixes before proceeding to /execute."
+  ],
+  "evidence_ref": [
+    "sprints/S0010/sprint.json",
+    "sprints/S0010/tasks.md",
+    "sprints/S0010/tasks/T-0062.json",
+    "sprints/S0010/tasks/T-0063.json",
+    "sprints/S0010/tasks/T-0064.json",
+    "sprints/S0010/tasks/T-0065.json",
+    "sprints/S0010/tasks/T-0066.json",
+    "sprints/S0010/tasks/T-0067.json",
+    "sprints/S0010/tasks/T-0068.json",
+    "docs/engineering/architecture-us0007.md",
+    "handoffs/tl_to_dev.md",
+    "docs/product/acceptance.md (US-0007 AC-1..AC-7)"
+  ]
+}

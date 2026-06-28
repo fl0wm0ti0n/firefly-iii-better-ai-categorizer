@@ -1,0 +1,12 @@
+{
+  "id": "T-0005",
+  "sprint_id": "S0011",
+  "story": "US-0008",
+  "title": "Render already-mapped accounts with yellow highlight + MAPPED badge",
+  "type": "implementation",
+  "status": "done",
+  "description": "Yellow background (#fff8d6) for mapped accounts in picker and existing mappings list with MAPPED badge",
+  "dependencies": [],
+  "files_modified": ["public/index.html"],
+  "completed_at": "2026-06-28T18:20:35.948+02:00"
+}

@@ -2,7 +2,11 @@
 
 ## Current context pack
 
-- Latest released work: **US-0006** Agent-driven local Categorizer launch shipped S0008 (2026-06-22); backlog **DONE**.
+- Latest released work: **US-0008** Account → Category Mappings bulk assign UI shipped S0011 (2026-06-28).
+  **DEC-0023** (bulk assign upsert, field whitelist, no Firefly validation) validated.
+- Prior released work: **US-0007** Keyword mapping direct-assign mode shipped S0010 (2026-06-28).
+  **DEC-0021** (additive `directAssign?: boolean` schema), **DEC-0022** (pipeline placement at AI-hint slot) validated.
+- Prior released work: **US-0006** Agent-driven local Categorizer launch shipped S0008 (2026-06-22).
   **DEC-0018** (standalone compose with explicit `-f`), **DEC-0019** (schema_version 1 additive extensions) validated.
 - Prior segment: **US-0005** Admin UI consolidation S0007 (2026-06-15); **DEC-0015** + **DEC-0016** + **DEC-0017** validated.
 - Prior segment: **US-0004** Account history suggestions S0006 (2026-06-14); **DEC-0011** + **DEC-0012** + **DEC-0013** + **DEC-0014** validated.
@@ -36,6 +40,9 @@
 - **DEC-0018** — US-0006: Standalone `docker-compose.local.yml` with explicit `-f` flag; no auto-merge with production stack (Accepted; validated S0008).
 - **DEC-0019** — US-0006: Extend `schema_version: 1` with additive AC-1 fields; no version bump (Accepted; validated S0008).
 - **DEC-0020** — BUG-0002: Stale-image remediation + defensive fetch handling (Accepted).
+- **DEC-0021** — US-0007: Additive `directAssign?: boolean` schema; no migration (Accepted).
+- **DEC-0022** — US-0007: Pipeline placement at AI-hint slot (intake option c) (Accepted).
+- **DEC-0023** — US-0008: Bulk assign upsert semantics, field whitelist, single coalesced save, no Firefly category validation (Accepted; completed S0011).
 
 ## Canonical full records
 
@@ -57,3 +64,5 @@
 - DEC-0018 accepted during US-0006 architecture (2026-06-22).
 - DEC-0019 accepted during US-0006 architecture (2026-06-22).
 - DEC-0020 accepted during BUG-0002 architecture (2026-06-23).
+- DEC-0021 accepted during US-0007 architecture (2026-06-28); completed 2026-06-28 (validated S0010).
+- DEC-0022 accepted during US-0007 architecture (2026-06-28); completed 2026-06-28 (validated S0010).

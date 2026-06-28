@@ -1,0 +1,12 @@
+{
+  "id": "T-0006",
+  "sprint_id": "S0011",
+  "story": "US-0008",
+  "title": "Write 5 tests in tests/bulkAssign.test.js (happy path, duplicate-skip, upsert, unknown category, partial failure)",
+  "type": "testing",
+  "status": "done",
+  "description": "5 test cases covering upsert semantics, field whitelist, coalesced save, and edge cases per DEC-0023",
+  "dependencies": ["T-0001"],
+  "files_modified": ["tests/bulkAssign.test.js"],
+  "completed_at": "2026-06-28T18:20:35.948+02:00"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "T-0065",
+  "title": "Add per-row direct-assign toggle to keyword mapping UI in public/index.html",
+  "description": "Extend the keyword mapping admin UI in public/index.html with: (1) per-row 'DIRECT' badge in renderCategoryMappings() — shown when mapping.directAssign=true, absent otherwise, placed in the category-mapping-header next to the mapping name; (2) form checkbox in add/edit mapping form labeled 'Direct assign (bypass AI)' with helper text placed after the keywords input; (3) update saveCategoryMapping() (line ~3636) to include directAssign: checkbox.checked in payload; (4) update editCategoryMapping() (line ~3774) to accept 5th argument directAssign and set checkbox.checked = Boolean(directAssign); (5) update call site in renderCategoryMappings() (line ~3758) to pass !!mapping.directAssign as 5th arg.",
+  "acceptance_criteria_refs": ["US-0007 AC-5"],
+  "decision_refs": ["DEC-0021"],
+  "dependencies": ["T-0062"],
+  "estimated_complexity": "low",
+  "status": "planned",
+  "files": ["public/index.html"],
+  "notes": "Badge placement: inside mapping header next to mapping name (line ~3741 in renderCategoryMappings template). Form checkbox: after keywords textarea (in the add/edit form). Helper text: 'When enabled, transactions matching these keywords are assigned the target category immediately without calling OpenAI.' UI toggle is independent of the enabled/disabled master switch — a mapping must be both enabled AND directAssign=true to trigger direct-assign behavior. Per architecture §3.3: use existing badge CSS classes if present, else inline style.",
+  "verification_steps": [
+    "renderCategoryMappings() displays 'DIRECT' badge on mappings with directAssign=true.",
+    "Add/edit form has checkbox labeled 'Direct assign (bypass AI)' with helper text.",
+    "saveCategoryMapping() includes directAssign: checkbox.checked in POST/PUT payload.",
+    "editCategoryMapping() populates checkbox correctly from mapping.directAssign value.",
+    "Call site passes !!mapping.directAssign as 5th arg (no undefined leakage).",
+    "Existing 18/18 tests unaffected (UI-only change, no test changes needed).",
+    "Manual smoke: create new mapping with directAssign=true, confirm badge appears; edit it, confirm checkbox checked; uncheck and save, confirm badge disappears."
+  ]
+}

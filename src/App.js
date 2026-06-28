@@ -191,6 +191,7 @@ export default class App {
         // Account → category mapping endpoints
         this.#express.get('/api/account-category-mappings', this.#onGetAccountCategoryMappings.bind(this))
         this.#express.post('/api/account-category-mappings', this.#onAddAccountCategoryMapping.bind(this))
+        this.#express.post('/api/account-category-mappings/bulk', this.#onBulkAssignAccountCategoryMappings.bind(this))
         this.#express.put('/api/account-category-mappings/:id', this.#onUpdateAccountCategoryMapping.bind(this))
         this.#express.delete('/api/account-category-mappings/:id', this.#onDeleteAccountCategoryMapping.bind(this))
         this.#express.patch('/api/account-category-mappings/:id/toggle', this.#onToggleAccountCategoryMapping.bind(this))
@@ -1211,6 +1212,29 @@ export default class App {
 
         let mappedDescription = this.#wordMapping.applyMappings(description);
         const mappedDestinationName = this.#wordMapping.applyMappings(destinationName);
+
+        // US-0007: Direct-assign check at AI-hint slot
+        const directAssignment = this.#categoryMappingService.getDirectAssignment(transaction);
+        if (directAssignment?.assigned && categories.has(directAssignment.category)) {
+            console.info(
+                `🎯 Direct-assign: "${description}" → category "${directAssignment.category}" ` +
+                `(mapping "${directAssignment.mappingName}", keyword "${directAssignment.matchedKeyword}")`
+            );
+            return {
+                category: directAssignment.category,
+                prompt: directAssignment.reason,
+                response: `Direct-assign: "${directAssignment.category}" via keyword mapping "${directAssignment.mappingName}"`,
+                autoRule: 'category_mapping_direct',
+            };
+        }
+        if (directAssignment?.assigned && !categories.has(directAssignment.category)) {
+            console.warn(
+                `⚠️ Direct-assign matched mapping "${directAssignment.mappingName}" but category ` +
+                `"${directAssignment.category}" was not found in Firefly — falling through to AI hint`
+            );
+        }
+
+        // Existing AI-hint path (unchanged)
         const aiHint = this.#categoryMappingService.getAiHint(transaction);
         const classifyOptions = {};
         if (aiHint?.descriptionHint) {
@@ -3039,6 +3063,34 @@ export default class App {
             res.json({ success: true, message: 'Account→category mapping toggled successfully', mapping });
         } catch (e) {
             console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    }
+
+    async #onBulkAssignAccountCategoryMappings(req, res) {
+        try {
+            const { items } = req.body;
+            if (!Array.isArray(items)) {
+                return res.status(400).json({ success: false, error: 'items must be an array' });
+            }
+            const result = await this.#accountCategoryMappingService.bulkAssign(items);
+            const errors = result.errors || [];
+
+            if (result.created.length === 0 && result.updated.length === 0 && errors.length > 0) {
+                return res.status(400).json({ success: false, error: errors.join('; '), ...result });
+            }
+
+            const summaryText =
+                `${result.created.length} created, ${result.updated.length} updated, ` +
+                `${result.skipped.length} skipped, ${errors.length} errors`;
+
+            res.json({
+                success: true,
+                message: `Bulk assign completed: ${summaryText}`,
+                ...result
+            });
+        } catch (e) {
+            console.error('Error in bulk assign:', e);
             res.status(500).json({ success: false, error: e.message });
         }
     }

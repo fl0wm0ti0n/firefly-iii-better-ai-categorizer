@@ -1268,6 +1268,15 @@
                     <label for="mapping-keywords">Keywords (comma separated):</label>
                     <input type="text" id="mapping-keywords" placeholder="e.g. rewe, spar, hofer, billa" style="width: 100%; padding: 8px; margin-top: 5px;">
                 </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="mapping-direct-assign" style="width: auto; margin: 0;">
+                        <span>Direct assign (bypass AI)</span>
+                    </label>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 4px; margin-left: 24px;">
+                        When enabled, transactions matching these keywords are assigned the target category immediately without calling OpenAI.
+                    </div>
+                </div>
                 <div style="display: flex; gap: 10px;">
                     <button id="btn-save-category-mapping" class="btn btn-success">💾 Save Mapping</button>
                     <button id="btn-cancel-category-mapping" class="btn btn-warning">❌ Cancel</button>
@@ -1313,6 +1322,38 @@
                 <small><em>Example: Account “Zelisko” → Category “Einnahmen - XYZ”</em></small>
             </div>
             
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('bulk-assign-content')">
+                    <span class="collapsible-title">Bulk assign category</span>
+                    <div class="collapsible-info">
+                        <span id="bulk-selected-count" class="item-count">0</span>
+                        <span class="expand-icon">🔽</span>
+                    </div>
+                </div>
+                <div id="bulk-assign-content" class="collapsible-content">
+                    <div style="margin-bottom: 10px;">
+                        <label for="bulk-search-filter" style="display: block; margin-bottom: 4px;"><strong>Search accounts:</strong></label>
+                        <input type="text" id="bulk-search-filter" placeholder="Type to filter accounts…" oninput="renderBulkAccountPicker()" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="checkbox" id="bulk-show-mapped" onchange="renderBulkAccountPicker()">
+                            <span>Show already-mapped</span>
+                        </label>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="selectAllFilteredAccounts(true)">Select all visible</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="selectAllFilteredAccounts(false)">Deselect all</button>
+                    </div>
+                    <div id="bulk-account-picker" style="max-height: 250px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; padding: 5px; margin-bottom: 15px;"></div>
+                    <div style="margin-bottom: 10px;">
+                        <label for="bulk-target-category" style="display: block; margin-bottom: 4px;"><strong>Target Category:</strong></label>
+                        <select id="bulk-target-category" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                            <option value="">Select category…</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-success" id="btn-bulk-assign" onclick="bulkAssignAccounts()">🚀 Bulk Assign Selected</button>
+                </div>
+            </div>
+
             <div class="collapsible-section">
                 <div class="collapsible-header" onclick="toggleCollapsible('account-category-mappings-content')">
                     <span class="collapsible-title">Configured mappings</span>
@@ -3265,6 +3306,8 @@ See job monitor below.`);
 
             populateAccountMappingAccountSelect(editingAccountId);
             if (catJson.success) populateAccountMappingCategorySelect();
+            populateBulkTargetCategorySelect();
+            renderBulkAccountPicker();
         } catch (error) {
             console.error('Error loading accounts/categories:', error);
             if (acmAccount) acmAccount.innerHTML = '<option value="">Failed to load accounts</option>';
@@ -3383,11 +3426,12 @@ See job monitor below.`);
             const created = m.created ? new Date(m.created).toLocaleDateString() : '';
             const updated = m.updated ? new Date(m.updated).toLocaleDateString() : '';
             return `
-                <div class="category-mapping ${!m.enabled ? 'disabled' : ''}">
+                <div class="category-mapping ${!m.enabled ? 'disabled' : ''}" style="background: #fff8d6; border-left: 4px solid #f9a825;">
                     <div class="category-mapping-content">
                         <div class="category-mapping-header">
                             <span class="category-mapping-name">${escapeHtml(m.accountName || '(unknown account)')}</span>
                             <span class="category-mapping-category">${escapeHtml(m.targetCategory || '')}</span>
+                            <span style="display: inline-block; margin-left: 8px; padding: 2px 8px; background: #ffd54f; color: #5d4037; border-radius: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">MAPPED</span>
                         </div>
                         <div class="category-mapping-stats">
                             ${escapeHtml(m.accountType || '')}${m.accountType ? ' • ' : ''}Created: ${created}${updated ? ` • Updated: ${updated}` : ''}
@@ -3421,6 +3465,201 @@ See job monitor below.`);
         populateAccountMappingCategorySelect(targetCategory);
         addAccountCategoryMappingForm?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         acmAccount?.focus();
+    };
+
+    // ===== Bulk assign (US-0008) =====
+    const bulkSelectedAccountIds = new Set();
+
+    function getMappedAccountsIndex() {
+        const index = new Map();
+        for (const m of accountMappingCurrentMappings || []) {
+            if (m?.accountId != null) index.set(String(m.accountId), m);
+        }
+        return index;
+    }
+
+    window.renderBulkAccountPicker = function renderBulkAccountPicker() {
+        const picker = document.getElementById('bulk-account-picker');
+        const countEl = document.getElementById('bulk-selected-count');
+        const infoEl = document.getElementById('bulk-selection-info');
+        if (!picker) return;
+
+        const search = (document.getElementById('bulk-search-filter')?.value || '').toLowerCase().trim();
+        const showMapped = document.getElementById('bulk-show-mapped')?.checked ?? false;
+        const mappedIndex = getMappedAccountsIndex();
+
+        // Remove selections for accounts no longer visible
+        const visibleIds = [];
+        for (const acc of accountMappingAccounts) {
+            const name = (acc.name || '').toLowerCase();
+            const type = (acc.type || '').toLowerCase();
+            const isMapped = mappedIndex.has(String(acc.id));
+            const matchesSearch = !search || name.includes(search) || type.includes(search);
+            const visible = matchesSearch && (showMapped || !isMapped);
+            if (visible) visibleIds.push(String(acc.id));
+        }
+        for (const sid of [...bulkSelectedAccountIds]) {
+            if (!visibleIds.includes(sid)) bulkSelectedAccountIds.delete(sid);
+        }
+
+        if (!accountMappingAccounts.length) {
+            picker.innerHTML = '<div style="color: #6c757d; padding: 10px;">No accounts loaded.</div>';
+            if (infoEl) infoEl.textContent = '';
+            if (countEl) countEl.textContent = '0';
+            return;
+        }
+
+        const rows = [];
+        for (const acc of accountMappingAccounts) {
+            const accId = String(acc.id);
+            const name = acc.name || '(unnamed)';
+            const type = acc.type || '';
+            const isMapped = mappedIndex.has(accId);
+            const mapped = mappedIndex.get(accId);
+            const matchesSearch = !search || name.toLowerCase().includes(search) || type.toLowerCase().includes(search);
+            if (!matchesSearch) continue;
+            if (isMapped && !showMapped) continue;
+
+            const checked = bulkSelectedAccountIds.has(accId) ? 'checked' : '';
+            const rowBg = isMapped ? 'background: #fff8d6;' : '';
+            const mappedBadge = isMapped
+                ? `<span style="display: inline-block; margin-left: 8px; padding: 1px 6px; background: #ffd54f; color: #5d4037; border-radius: 8px; font-size: 11px; font-weight: 600;">MAPPED → ${escapeHtml(mapped.targetCategory || '')}</span>`
+                : '';
+
+            rows.push(`
+                <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; ${rowBg} border-radius: 3px; cursor: pointer; border-bottom: 1px solid #f0f0f0;">
+                    <input type="checkbox" data-account-id="${accId}" ${checked} onchange="toggleBulkAccountSelection('${accId}', this.checked)" style="flex-shrink: 0;">
+                    <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${escapeHtml(name)}
+                        <span style="color: #6c757d; font-size: 12px;">(${escapeHtml(type || 'n/a')})</span>
+                        ${mappedBadge}
+                    </span>
+                </label>
+            `);
+        }
+
+        picker.innerHTML = rows.length
+            ? rows.join('')
+            : '<div style="color: #6c757d; padding: 10px;">No accounts match filters.</div>';
+
+        if (countEl) countEl.textContent = String(bulkSelectedAccountIds.size);
+        if (infoEl) infoEl.textContent = `${visibleIds.length} visible · ${bulkSelectedAccountIds.size} selected · ${accountMappingAccounts.length} total`;
+    };
+
+    window.toggleBulkAccountSelection = function(accountId, isChecked) {
+        if (isChecked) bulkSelectedAccountIds.add(String(accountId));
+        else bulkSelectedAccountIds.delete(String(accountId));
+        const countEl = document.getElementById('bulk-selected-count');
+        const infoEl = document.getElementById('bulk-selection-info');
+        if (countEl) countEl.textContent = String(bulkSelectedAccountIds.size);
+        if (infoEl) {
+            const visible = document.getElementById('bulk-account-picker')?.querySelectorAll('label')?.length || 0;
+            infoEl.textContent = `${visible} visible · ${bulkSelectedAccountIds.size} selected · ${accountMappingAccounts.length} total`;
+        }
+    };
+
+    window.selectAllFilteredAccounts = function(selectAll) {
+        const picker = document.getElementById('bulk-account-picker');
+        if (!picker) return;
+        const boxes = picker.querySelectorAll('input[type="checkbox"][data-account-id]');
+        boxes.forEach(cb => {
+            cb.checked = selectAll;
+            const id = cb.dataset.accountId;
+            if (selectAll) bulkSelectedAccountIds.add(id);
+            else bulkSelectedAccountIds.delete(id);
+        });
+        const countEl = document.getElementById('bulk-selected-count');
+        if (countEl) countEl.textContent = String(bulkSelectedAccountIds.size);
+        renderBulkAccountPicker();
+    };
+
+    function populateBulkTargetCategorySelect(selectedCategory = null) {
+        const sel = document.getElementById('bulk-target-category');
+        if (!sel) return;
+        if (!accountMappingCategories.length) {
+            sel.innerHTML = '<option value="">No categories available</option>';
+            return;
+        }
+        sel.innerHTML = ['<option value="">Select category…</option>']
+            .concat(accountMappingCategories
+                .slice()
+                .sort((a, b) => String(a).localeCompare(String(b)))
+                .map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`))
+            .join('');
+        if (selectedCategory) sel.value = selectedCategory;
+    }
+
+    function syncBulkCategoryDropdownWithSingle() {
+        const bulkSel = document.getElementById('bulk-target-category');
+        const singleSel = document.getElementById('acm-target-category');
+        if (bulkSel && singleSel && singleSel.value && !bulkSel.value) {
+            bulkSel.value = singleSel.value;
+        }
+    }
+
+    window.bulkAssignAccounts = async function bulkAssignAccounts() {
+        try {
+            syncBulkCategoryDropdownWithSingle();
+            const targetCategory = (document.getElementById('bulk-target-category')?.value || '').trim();
+            if (!targetCategory) {
+                alert('Please choose a target category first.');
+                return;
+            }
+            if (bulkSelectedAccountIds.size === 0) {
+                alert('Please select at least one account.');
+                return;
+            }
+
+            const mappedIndex = getMappedAccountsIndex();
+            const items = [];
+            for (const accId of bulkSelectedAccountIds) {
+                const acc = accountMappingAccounts.find(a => String(a.id) === String(accId));
+                if (!acc) continue;
+                items.push({
+                    accountId: String(acc.id),
+                    accountName: acc.name || '',
+                    accountType: acc.type || '',
+                    targetCategory
+                });
+            }
+
+            const btn = document.getElementById('btn-bulk-assign');
+            const originalLabel = btn ? btn.textContent : '';
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Assigning…'; }
+
+            const response = await fetch('/api/account-category-mappings/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items })
+            });
+            const result = await response.json();
+
+            const created = Array.isArray(result.created) ? result.created.length : 0;
+            const updated = Array.isArray(result.updated) ? result.updated.length : 0;
+            const skipped = Array.isArray(result.skipped) ? result.skipped.length : 0;
+            const errors = Array.isArray(result.errors) ? result.errors.length : 0;
+
+            if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
+
+            if (result.success) {
+                alert(
+                    `Bulk assign complete:\n` +
+                    `• ${created} created\n` +
+                    `• ${updated} updated\n` +
+                    `• ${skipped} skipped (already same category)\n` +
+                    (errors > 0 ? `• ${errors} errors\n` : '')
+                );
+                bulkSelectedAccountIds.clear();
+                await loadAccountCategoryMappings();
+                renderBulkAccountPicker();
+            } else {
+                alert('Bulk assign error: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            const btn = document.getElementById('btn-bulk-assign');
+            if (btn) { btn.disabled = false; btn.textContent = '🚀 Bulk Assign Selected'; }
+            alert('Bulk assign failed: ' + error.message);
+        }
     };
 
     // ===== Pending Reviews Panel =====
@@ -3626,6 +3865,8 @@ See job monitor below.`);
         mappingName.value = '';
         mappingTargetCategory.value = '';
         mappingKeywords.value = '';
+        const directAssignCheckbox = document.getElementById('mapping-direct-assign');
+        directAssignCheckbox.checked = false;
         
         // Reset editing state
         window.editingMappingId = null;
@@ -3636,7 +3877,8 @@ See job monitor below.`);
         const mappingData = {
             name: mappingName.value.trim(),
             targetCategory: mappingTargetCategory.value.trim(),
-            keywords: mappingKeywords.value.trim()
+            keywords: mappingKeywords.value.trim(),
+            directAssign: document.getElementById('mapping-direct-assign').checked,
         };
         
         if (!mappingData.name || !mappingData.targetCategory || !mappingData.keywords) {
@@ -3733,12 +3975,13 @@ See job monitor below.`);
         categoryMappingsList.innerHTML = mappings.map(mapping => {
             const keywordsString = Array.isArray(mapping.keywords) ? mapping.keywords.join(', ') : '';
             const keywordCount = Array.isArray(mapping.keywords) ? mapping.keywords.length : 0;
+            const directAssignBadge = mapping.directAssign ? ' <span style="background: #6366f1; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">DIRECT</span>' : '';
             
             return `
                 <div class="category-mapping ${!mapping.enabled ? 'disabled' : ''}">
                     <div class="category-mapping-content">
                         <div class="category-mapping-header">
-                            <span class="category-mapping-name">${mapping.name}</span>
+                            <span class="category-mapping-name">${mapping.name}${directAssignBadge}</span>
                             <span class="category-mapping-category">${mapping.targetCategory}</span>
                         </div>
                         <div class="category-mapping-keywords">
@@ -3755,7 +3998,7 @@ See job monitor below.`);
                                    onchange="toggleCategoryMapping('${mapping.id}', this.checked)">
                             <span class="toggle-slider"></span>
                         </label>
-                        <button class="btn btn-primary btn-small" onclick="editCategoryMapping('${mapping.id}', '${mapping.name}', '${mapping.targetCategory}', '${keywordsString}')">
+                        <button class="btn btn-primary btn-small" onclick="editCategoryMapping('${mapping.id}', '${mapping.name}', '${mapping.targetCategory}', '${keywordsString}', ${!!mapping.directAssign})">
                             ✏️ Edit
                         </button>
                         <button class="btn btn-danger btn-small" onclick="deleteCategoryMapping('${mapping.id}', '${mapping.name}')">
@@ -3771,16 +4014,20 @@ See job monitor below.`);
     window.toggleCategoryMapping = toggleCategoryMapping;
     window.deleteCategoryMapping = deleteCategoryMapping;
 
-    window.editCategoryMapping = function(id, name, targetCategory, keywords) {
+    window.editCategoryMapping = function(id, name, targetCategory, keywords, directAssign) {
         // Fill the form with existing values
         mappingName.value = name;
         ensureSelectOption(mappingTargetCategory, targetCategory);
         mappingTargetCategory.value = targetCategory;
         mappingKeywords.value = keywords;
-        
+
+        // Set the direct-assign checkbox
+        const directAssignCheckbox = document.getElementById('mapping-direct-assign');
+        directAssignCheckbox.checked = Boolean(directAssign);
+
         // Show the form
         showAddCategoryMappingForm();
-        
+
         // Store the ID for updating instead of creating
         window.editingMappingId = id;
         

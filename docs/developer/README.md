@@ -22,7 +22,6 @@ setup stays in the root `README.md` (user channel).
 - Run `python scripts/validate_doc_profile.py` when changing documentation profile flags or
   README surfaces.
 - Observe `US-0071` hygiene for user-visible script output (see runbook).
-- **US-0002** — operator documentation map; see `docs/user-guides/US-0002.md`.
 
 ## Architecture notes
 

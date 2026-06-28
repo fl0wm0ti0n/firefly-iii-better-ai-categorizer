@@ -18,7 +18,10 @@ export default class AccountCategoryMappingService {
     #mappings = [];
 
     constructor() {
-        this.loadMappings();
+        this.loadMappings().catch(err => {
+            // Constructor doesn't wait for loadMappings to complete
+            // Error already handled inside loadMappings()
+        });
     }
 
     async loadMappings() {
@@ -117,6 +120,102 @@ export default class AccountCategoryMappingService {
         mapping.updated = new Date().toISOString();
         this.saveMappings();
         return mapping;
+    }
+
+    /**
+     * Bulk assign a category to multiple accounts (upsert semantics).
+     * For each item: if accountId already mapped with same category → skip;
+     * if mapped with different category → update; if not mapped → create.
+     * Single coalesced save after all items processed.
+     * Field whitelist prevents injection. NO category validation against Firefly.
+     *
+     * @param {Array<{accountId:string, accountName:string, accountType?:string, targetCategory:string}>} items
+     * @returns {{created:string[], updated:string[], skipped:string[], errors:string[]}}
+     */
+    async bulkAssign(items) {
+        const ALLOWED_FIELDS = new Set(['accountId', 'accountName', 'accountType', 'targetCategory']);
+        const created = [];
+        const updated = [];
+        const skipped = [];
+        const errors = [];
+
+        if (!Array.isArray(items)) {
+            return { created, updated, skipped, errors: ['items must be an array'] };
+        }
+
+        for (let i = 0; i < items.length; i++) {
+            const raw = items[i] || {};
+            try {
+                // Apply field whitelist
+                const sanitized = {};
+                for (const key of Object.keys(raw)) {
+                    if (ALLOWED_FIELDS.has(key)) sanitized[key] = raw[key];
+                }
+
+                const accountId = String(sanitized.accountId ?? '').trim();
+                const accountName = String(sanitized.accountName ?? '').trim();
+                const accountType = String(sanitized.accountType ?? '').trim();
+                const targetCategory = String(sanitized.targetCategory ?? '').trim();
+
+                if (!accountId) {
+                    errors.push(`items[${i}]: accountId is required`);
+                    continue;
+                }
+                if (!accountName) {
+                    errors.push(`items[${i}]: accountName is required`);
+                    continue;
+                }
+                if (!targetCategory) {
+                    errors.push(`items[${i}]: targetCategory is required`);
+                    continue;
+                }
+
+                const existingIdx = this.#mappings.findIndex(m => String(m.accountId) === accountId);
+
+                if (existingIdx !== -1) {
+                    const existing = this.#mappings[existingIdx];
+                    if (existing.targetCategory === targetCategory) {
+                        skipped.push({ accountId, existingMappingId: existing.id, reason: 'same category' });
+                    } else {
+                        const next = {
+                            ...existing,
+                            targetCategory,
+                            name: `${accountName} → ${targetCategory}`,
+                            updated: new Date().toISOString()
+                        };
+                        this.#mappings[existingIdx] = next;
+                        updated.push({ accountId, existingMappingId: existing.id, previousCategory: existing.targetCategory });
+                    }
+                } else {
+                    const newMapping = {
+                        id: uuid(),
+                        name: `${accountName} → ${targetCategory}`,
+                        accountId,
+                        accountName,
+                        accountType,
+                        targetCategory,
+                        enabled: true,
+                        created: new Date().toISOString()
+                    };
+                    this.#mappings.push(newMapping);
+                    created.push({ accountId, newMappingId: newMapping.id });
+                }
+            } catch (err) {
+                errors.push(`items[${i}]: ${err.message}`);
+            }
+        }
+
+        // Single coalesced save after bulk loop
+        if (created.length > 0 || updated.length > 0) {
+            try {
+                await this.saveMappings();
+            } catch (err) {
+                errors.push(`save failed: ${err.message}`);
+            }
+        }
+
+        console.info(`📦 bulkAssign summary: ${created.length} created, ${updated.length} updated, ${skipped.length} skipped, ${errors.length} errors`);
+        return { created, updated, skipped, errors };
     }
 
     /**

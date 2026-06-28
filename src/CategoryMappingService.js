@@ -5,6 +5,7 @@ import { v4 as uuid } from 'uuid';
 export default class CategoryMappingService {
     #CONFIG_FILE = dataFile('category-mappings.json');
     #mappings = [];
+    #MAPPING_FIELDS = new Set(['name', 'targetCategory', 'keywords', 'enabled', 'directAssign']);
 
     constructor() {
         this.loadMappings();
@@ -131,13 +132,47 @@ export default class CategoryMappingService {
         return null;
     }
 
+    /**
+     * Direct-assign from keyword mappings: when an enabled mapping has directAssign=true
+     * and the transaction loosely matches a keyword, return the target category immediately.
+     * US-0007: bypasses AI classification when matched.
+     *
+     * @param {Object} transaction Firefly transaction object
+     * @returns {Object} { assigned, category?, mappingName?, matchedKeyword?, reason? }
+     */
+    getDirectAssignment(transaction) {
+        const firstTx = transaction?.attributes?.transactions?.[0];
+        if (!firstTx) return { assigned: false };
+
+        const searchText = this.#getTransactionSearchText(firstTx);
+
+        for (const mapping of this.#mappings) {
+            if (!mapping.enabled) continue;
+            if (!mapping.directAssign) continue;
+
+            for (const keyword of mapping.keywords) {
+                if (!this.#looselyMatchesKeyword(keyword, searchText)) continue;
+                return {
+                    assigned: true,
+                    category: mapping.targetCategory,
+                    mappingName: mapping.name,
+                    matchedKeyword: keyword,
+                    reason: `Direct-assign from mapping "${mapping.name}" via keyword "${keyword}" → ${mapping.targetCategory}`,
+                };
+            }
+        }
+        return { assigned: false };
+    }
+
     addMapping(mappingData) {
+        const clean = this.#stripFields(mappingData);
         const mapping = {
             id: uuid(),
-            name: mappingData.name || 'New Mapping',
-            targetCategory: mappingData.targetCategory || '',
-            keywords: this.#parseKeywords(mappingData.keywords || ''),
-            enabled: mappingData.enabled !== false,
+            name: clean.name || 'New Mapping',
+            targetCategory: clean.targetCategory || '',
+            keywords: this.#parseKeywords(clean.keywords || ''),
+            enabled: clean.enabled !== false,
+            directAssign: Boolean(clean.directAssign ?? false),
             created: new Date().toISOString()
         };
 
@@ -153,11 +188,16 @@ export default class CategoryMappingService {
             throw new Error('Mapping not found');
         }
 
-        const mapping = { ...this.#mappings[index], ...updates };
+        const clean = this.#stripFields(updates);
+        const mapping = { ...this.#mappings[index], ...clean };
         
         // Parse keywords if updated
-        if (updates.keywords !== undefined) {
-            mapping.keywords = this.#parseKeywords(updates.keywords);
+        if ('keywords' in clean) {
+            mapping.keywords = this.#parseKeywords(clean.keywords);
+        }
+        // Coerce directAssign to boolean when present
+        if ('directAssign' in clean) {
+            mapping.directAssign = Boolean(clean.directAssign);
         }
         
         mapping.updated = new Date().toISOString();
@@ -211,6 +251,14 @@ export default class CategoryMappingService {
             .split(',')
             .map(k => k.trim())
             .filter(k => k.length > 0);
+    }
+
+    #stripFields(raw) {
+        const out = {};
+        for (const k of this.#MAPPING_FIELDS) {
+            if (k in raw) out[k] = raw[k];
+        }
+        return out;
     }
 
     #formatKeywords(keywords) {

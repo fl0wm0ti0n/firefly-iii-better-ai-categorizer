@@ -1,0 +1,20 @@
+{
+  "id": "T-0062",
+  "title": "Implement getDirectAssignment() and field whitelist in CategoryMappingService",
+  "description": "Add new `getDirectAssignment(transaction)` method returning `{assigned: true, category, mappingName, matchedKeyword, reason}` when an enabled direct-assign mapping matches, or `{assigned: false}` on no-match. Add `#MAPPING_FIELDS` whitelist (`['name','targetCategory','keywords','enabled','directAssign']`) and apply in both `addMapping()` and `updateMapping()` to prevent arbitrary field injection via spread-merge. Store `directAssign: Boolean(value ?? false)` when present in input.",
+  "acceptance_criteria_refs": ["US-0007 AC-1", "US-0007 AC-3"],
+  "decision_refs": ["DEC-0021"],
+  "dependencies": [],
+  "estimated_complexity": "low",
+  "status": "planned",
+  "files": ["src/CategoryMappingService.js"],
+  "notes": "Reference implementation in docs/engineering/architecture-us0007.md §3.1. Method must skip mappings where `directAssign` is falsy. Reuses existing `#getTransactionSearchText()` and `#looselyMatchesKeyword()` helpers. The whitelist is a behavior change (arbitrary extra keys from req.body previously persisted) but only the 5 whitelisted fields are ever sent by the frontend.",
+  "verification_steps": [
+    "Add `getDirectAssignment()` method at end of service, immediately after `getAiHint()`.",
+    "Add `#MAPPING_FIELDS = new Set(['name','targetCategory','keywords','enabled','directAssign'])` and `#stripFields(raw)` helper.",
+    "Update `addMapping()`: call `this.#stripFields(mappingData)`, set `directAssign: Boolean(clean.directAssign ?? false)`.",
+    "Update `updateMapping()`: use `this.#stripFields(updates)` before spread-merge. When `'directAssign' in clean`, coerce to Boolean.",
+    "Existing 18/18 tests still green after the change (no functional change to AI-hint path).",
+    "Manual smoke: `addMapping({directAssign: true})` persists field; `updateMapping(id, {malicious: true})` does not persist `malicious`."
+  ]
+}

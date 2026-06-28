@@ -1,0 +1,20 @@
+{
+  "id": "T-0067",
+  "title": "Add 3 new test cases for direct-assign behavior (case-5..case-7)",
+  "description": "Add three new test cases to tests/resolveCategory.test.js: (1) case-5-direct-assign-match — stub with directAssignment={assigned:true, category:'Groceries', mappingName:'Supermarkets', matchedKeyword:'interspar'}, transaction description 'INTERSPAR 2361 K4'; assert result.category='Groceries', autoRule='category_mapping_direct', classify call count=0; (2) case-6-direct-assign-miss — stub with directAssignment={assigned:false}, transaction 'RANDOM STORE'; assert classify called once, autoRule !== 'category_mapping_direct'; (3) case-7-mixed — two transactions in same test: first with keyword matching direct-assign mapping; second with different keyword matching only AI-hint mapping; assert both paths coexist without interference.",
+  "acceptance_criteria_refs": ["US-0007 AC-7"],
+  "decision_refs": ["DEC-0022"],
+  "dependencies": ["T-0063", "T-0066"],
+  "estimated_complexity": "medium",
+  "status": "planned",
+  "files": ["tests/resolveCategory.test.js"],
+  "notes": "All three tests use makeCategoryMappingStub helper from T-0066, plus existing stubs (makeAccountMappingStub, makeAutoCatStub, makePassthroughWordMapping). Case-7 mixed: simulate by creating two sequential app.resolveCategoryForTest() calls within the same test block, using two different stubs or the same stub with parameterized behavior. Pattern mirrors existing case-1..4 structure. Expected test run output: 21/21 (18 existing + 3 new).",
+  "verification_steps": [
+    "case-5 passes: direct-assign match returns category directly, OpenAI not called, autoRule='category_mapping_direct'.",
+    "case-6 passes: direct-assign miss falls through to OpenAI, autoRule !== 'category_mapping_direct'.",
+    "case-7 passes: mixed scenario with direct-assign and AI-hint-only mappings coexist without interference.",
+    "All three tests use existing stubs + new makeCategoryMappingStub helper.",
+    "bash tests/run-tests.sh reports 21/21 passing (18 existing + 3 new).",
+    "No existing test modified — new tests are additions only."
+  ]
+}

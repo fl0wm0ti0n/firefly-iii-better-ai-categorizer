@@ -321,3 +321,58 @@ CAVEMAN_MODE=0
 CAVEMAN_LEVEL=
 CAVEMAN_COMPRESS_INPUT=0
 CAVEMAN_FILE_SCOPE=
+
+#
+# ## Per-phase model tier selection (US-0101 / DEC-0086)
+# MODEL_TIER selects LLM model strength (which model runs).
+# MODEL_TIER ≠ TOKEN_PROFILE ≠ DELIVERY_MODE — these are independent axes;
+#   none substitutes for the other (DEC-0062 / US-0080 / US-0096).
+# - MODEL_TIER_DEFAULT: cheap|balanced|strong (default balanced)
+# - MODEL_TIER_<PHASE>: cheap|balanced|strong (per-phase override; PHASE = canonical phase id)
+#   Default matrix (architecture-locked):
+#     cheap    — ask, refresh-context, memory-audit, status-reconcile, pause
+#     balanced — intake, discovery, research, release, plan-verify
+#     strong   — architecture, execute, quick, qa, verify-work, security-review
+#     (inherit parent) — auto (orchestrator always inherits parent model)
+# - MODEL_CATALOG: path to local slug catalog (default .cursor/model-catalog.local.json)
+# - MODEL_RESOLVE: alias_only|local_catalog|role_catalog (default alias_only)
+# - MODEL_FALLBACK: fallback when catalog lookup fails (default inherit)
+# - MODEL_PROVIDER_MODE: cursor|api (default cursor)
+#   cursor = all subagents route through Cursor-managed infrastructure
+#   api = operator uses BYOK via Cursor Settings → Models → API Key
+#   Known limitation: subagents do NOT inherit custom API keys/base URLs.
+#
+# ## Direct per-phase model slug override (US-0102 / DEC-0087) — set in this local file only
+# Precedence: MODEL_<PHASE> > MODEL_TIER_<PHASE> > MODEL_TIER_DEFAULT > Cursor alias
+# - MODEL_<PHASE>: direct vendor slug (e.g. MODEL_EXECUTE=<your-vendor-slug>, MODEL_ASK=<your-vendor-slug>)
+# - MODEL_RESOLVE=role_catalog enables phase→role→catalog slug lookup (requires v2 catalog with roles section)
+MODEL_TIER_DEFAULT=balanced
+MODEL_CATALOG=.cursor/model-catalog.local.json
+MODEL_RESOLVE=alias_only
+MODEL_FALLBACK=inherit
+MODEL_PROVIDER_MODE=cursor
+
+# Per-phase tier overrides for this project (uncomment and adjust as needed):
+#MODEL_TIER_INTAKE=balanced
+#MODEL_TIER_DISCOVERY=cheap
+#MODEL_TIER_RESEARCH=balanced
+#MODEL_TIER_ARCHITECTURE=strong
+#MODEL_TIER_SPRINT-PLAN=strong
+#MODEL_TIER_PLAN-VERIFY=balanced
+#MODEL_TIER_EXECUTE=cheap
+#MODEL_TIER_QA=strong
+#MODEL_TIER_VERIFY-WORK=strong
+#MODEL_TIER_RELEASE=balanced
+#MODEL_TIER_REFRESH-CONTEXT=cheap
+
+# Direct per-phase slug overrides (US-0102 — uncomment and set vendor slugs):
+#MODEL_ASK=<your-vendor-slug>
+#MODEL_EXECUTE=<your-vendor-slug>
+#MODEL_QA=<your-vendor-slug>
+
+# Use a vendor catalog instead of Cursor aliases:
+#   cp .cursor/model-catalog.local.example.level-2-complex.json .cursor/model-catalog.local.json
+#MODEL_RESOLVE=local_catalog
+# Role-based catalog preset (US-0102):
+#   cp .cursor/model-catalog.local.example.role-based-balanced.json .cursor/model-catalog.local.json
+#MODEL_RESOLVE=role_catalog

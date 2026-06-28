@@ -160,7 +160,8 @@
 
 ## US-0007 — Keyword mapping direct-assign mode
 
-- Status: OPEN
+- Status: DONE
+- completion_date: 2026-06-28T15:53:00+02:00
 - Priority: 7
 - user_visible: true
 - summary: Add a per-keyword-mapping `directAssign` boolean (default `false`) so operators can opt specific keyword rules into hard category assignment — bypassing the OpenAI round-trip, mirroring how Account → Category mappings behave today.
@@ -178,7 +179,8 @@
 
 ## US-0008 — Account → Category Mappings UI: live search + multi-select bulk assign
 
-- Status: OPEN
+- Status: DONE
+- completion_date: 2026-06-28T20:35:00+02:00
 - Priority: 8
 - user_visible: true
 - summary: Rework the Account → Category Mappings panel to let operator filter the account list via live search (case-insensitive substring / wildcard), select multiple visible accounts via checkboxes, and assign a single Firefly category to all selected accounts in one action. Replaces the one-by-one dropdown workflow that was slow for many accounts.
@@ -195,6 +197,23 @@
 - decomposition (2026-06-27): Single vertical slice. No split — the operator value is the end-to-end speed-up, and splitting UI from the bulk endpoint would deliver half of each. Alternative rejected: split frontend-only (would force N×POST loop per account, poor UX on many accounts).
 
 ## Bug issues (canonical)
+
+### BUG-0003 — Bulk assign POST `/api/account-category-mappings/bulk` returns 404 on production
+
+- Status: DONE
+- completion_date: 2026-06-28T21:22:00+02:00
+- sprint: S0012
+- release_note: Stale production container rebuilt from current source (includes US-0007 + US-0008). Bulk assign route `POST /api/account-category-mappings/bulk` now returns HTTP 200 JSON structured response on production `categorizer.omniflow.cc`. Evidence: container creation timestamp updated 2026-06-28T21:20:00+02:00; endpoint test `curl -X POST .../bulk` returns `{success:true, created:[], updated:[], skipped:[], errors:[]}`.
+- priority: 9
+- reported: 2026-06-28T21:03:00+02:00
+- environment: Production at `categorizer.omniflow.cc` (Docker container `categorizer`, image `firefly-categorizer`). Container started ~13 hours ago (before US-0008 release).
+- steps_to_reproduce: 1) Open categorizer admin UI at `categorizer.omniflow.cc`. 2) Open the Account → Category Mappings panel. 3) Use the Bulk assign feature (search accounts, select accounts, choose target category, click "Bulk assign"). 4) Observe toast error "Bulk assign failed: Unexpected token '<', '<!DOCTYPE "...', is not valid JSON" and browser console showing `POST /api/account-category-mappings/bulk 404 (Not Found)`.
+- expected: `POST /api/account-category-mappings/bulk` returns HTTP 200 JSON `{ success: true, created: [...], updated: [...], skipped: [...], errors: [] }`. Account-category mappings are created/updated/skipped per DEC-0023 upsert semantics.
+- actual: `POST /api/account-category-mappings/bulk` returns HTTP 404 (HTML `<!DOCTYPE...` body). The UI shows a toast with the JSON parse error from the 404 HTML response.
+- root_cause: The production Docker container is running a stale image that predates US-0008. Evidence: `docker exec categorizer grep account-category-mappings /app/src/App.js` shows only 5 routes (lines 192-196): GET, POST, PUT, DELETE, PATCH — the bulk route is missing. Local source `src/App.js:194` has the bulk route registered, confirming the code was written but not deployed.
+- evidence_refs: Operator screenshot (2026-06-28 21:03); `docker exec categorizer grep -n account-category-mappings /app/src/App.js` output; local `src/App.js:194` route registration; `src/App.js:3070-3096` handler implementation
+- discovery (2026-06-28): Root cause is a stale deployment. The route is implemented correctly in local source, verified working in local UAT (sprints/S0011/uat-report.md). No code change needed to fix — only a redeploy/rebuild of the production container is required.
+- discovery (2026-06-28): Route exists in source at `src/App.js:194` and handler at `src/App.js:3070`. Container is missing the route (docker exec grep confirms absent). Container started before US-0008 was released — stale image. Fix: rebuild and redeploy production container from current source. **Discovery COMPLETE** (2026-06-28T21:10:00+02:00) — see `docs/engineering/discovery-bug0003.md`.
 
 ### BUG-0001 — Keyword mappings category load fails with JSON parse error
 
